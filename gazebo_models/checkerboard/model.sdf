@@ -1,0 +1,951 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <model name="checkerboard">
+    <static>true</static>
+    <link name="square_01">
+      <pose>0 0 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_02">
+      <pose>0.05 0 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_03">
+      <pose>0.1 0 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_00.4">
+      <pose>0.15 0 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_05">
+      <pose>0.2 0 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_06">
+      <pose>0.25 0 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_07">
+      <pose>0.3 0 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_08">
+      <pose>0.35 0 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_09">
+      <pose>0.4 0 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.051">
+      <pose>0 0.05 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.052">
+      <pose>0.05 0.05 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.053">
+      <pose>0.1 0.05 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.050.4">
+      <pose>0.15 0.05 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.055">
+      <pose>0.2 0.05 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.056">
+      <pose>0.25 0.05 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.057">
+      <pose>0.3 0.05 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.058">
+      <pose>0.35 0.05 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.059">
+      <pose>0.4 0.05 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.101">
+      <pose>0 0.10 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.102">
+      <pose>0.05 0.10 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.103">
+      <pose>0.1 0.10 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.100.4">
+      <pose>0.15 0.10 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.105">
+      <pose>0.2 0.10 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.106">
+      <pose>0.25 0.10 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.107">
+      <pose>0.3 0.10 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.108">
+      <pose>0.35 0.10 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.109">
+      <pose>0.4 0.10 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.151">
+      <pose>0 0.15 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.152">
+      <pose>0.05 0.15 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.153">
+      <pose>0.1 0.15 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.150.4">
+      <pose>0.15 0.15 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.155">
+      <pose>0.2 0.15 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.156">
+      <pose>0.25 0.15 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.157">
+      <pose>0.3 0.15 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.158">
+      <pose>0.35 0.15 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.159">
+      <pose>0.4 0.15 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.21">
+      <pose>0 0.2 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.22">
+      <pose>0.05 0.2 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.23">
+      <pose>0.1 0.2 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.20.4">
+      <pose>0.15 0.2 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.25">
+      <pose>0.2 0.2 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.26">
+      <pose>0.25 0.2 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.27">
+      <pose>0.3 0.2 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.28">
+      <pose>0.35 0.2 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.29">
+      <pose>0.4 0.2 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.251">
+      <pose>0 0.25 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.252">
+      <pose>0.05 0.25 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.253">
+      <pose>0.1 0.25 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.250.4">
+      <pose>0.15 0.25 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.255">
+      <pose>0.2 0.25 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.256">
+      <pose>0.25 0.25 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.257">
+      <pose>0.3 0.25 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.258">
+      <pose>0.35 0.25 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.259">
+      <pose>0.4 0.25 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.31">
+      <pose>0 0.3 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.32">
+      <pose>0.05 0.3 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.33">
+      <pose>0.1 0.3 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.34">
+      <pose>0.15 0.3 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.35">
+      <pose>0.2 0.3 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.36">
+      <pose>0.25 0.3 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.37">
+      <pose>0.3 0.3 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.38">
+      <pose>0.35 0.3 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>1 1 1  1</diffuse>
+	  <specular>1 1 1 1</specular>
+	  <ambient>1 1 1 1</ambient>
+	</material>
+      </visual>
+    </link>
+    <link name="square_0.39">
+      <pose>0.4 0.3 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.05 0.05 0.01</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0 0 0 1</diffuse>
+	  <specular>0 0 0 1</specular>
+	  <ambient>0 0 0 1</ambient>
+	</material>
+      </visual>
+    </link>
+  </model>
+</sdf>

@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <model name="checkerboard">
+    <static>true</static>
+    <link name="the_wall">
+      <pose>0 0 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.1 4.0 2.5</size>
+	  </box>
+	</geometry>
+	<material>
+	  <diffuse>0.85546875 0.76953125 0.56640625 1</diffuse>
+	  <specular>0.85546875 0.76953125 0.56640625 1</specular>
+	  <ambient>0.85546875 0.76953125 0.56640625 1</ambient>
+	</material>
+      </visual>
+      <collision name="collision">
+	<geometry>
+	  <box>
+	    <size>0.1 4.0 2.5</size>
+	  </box>
+	</geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>

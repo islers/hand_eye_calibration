@@ -1,0 +1,13 @@
+# camera and checkerboard data for the gazebo youbot simulation with the provided checkerboard model
+
+camera:
+  fx: 448.1008985853343
+  fy: 448.1008985853343
+  cx: 376.5
+  cy: 240.5
+  
+hec:
+  checkerboard:
+    squares_per_column: 6
+    squares_per_row: 8
+    square_size: 0.073 # 5cm

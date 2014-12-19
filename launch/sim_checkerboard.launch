@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!-- launches the eye_position_from_checkerboard node with the youbot simulation in gazebo -->
+<launch>
+
+  <!-- upload camera and checkerboard parameters -->
+  <rosparam file="$(find hand_eye_calibration)/checkerboard_config/sim_checkerboard_config.yaml" command="load" ns=""/>
+  
+  <!--<remap from="/camera/image_rect" to="/youbot/eye/image_rect"/>-->
+  
+  <node name="eye_position_estimator" pkg="hand_eye_calibration" type="eye_position_from_checkerboard" respawn="false" output="screen"/>
+  
+</launch>
