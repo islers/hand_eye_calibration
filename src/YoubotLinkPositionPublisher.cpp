@@ -41,7 +41,8 @@ void YoubotLinkPositionPublisher::run()
   {
     geometry_msgs::TransformStamped transformation;
     try
-    { // use tf2 features to calculate the wanted transformation
+    { /* use tf2 features to calculate the wanted transformation
+      This gives the pose of the targetFrame (end effector) in the source's (arm base) coordinates. */
       transformation = tfCore_.lookupTransform( linkNames_[sourceFrameId_], linkNames_[targetFrameId_], ros::Time(0) );
     }
     catch( tf2::TransformException& ex)
@@ -56,6 +57,11 @@ void YoubotLinkPositionPublisher::run()
     newPose.position.y = transformation.transform.translation.y;
     newPose.position.z = transformation.transform.translation.z;
     newPose.orientation = transformation.transform.rotation;
+    
+    cout<<endl<<"Publishing new link position:"<<endl;
+    cout<<endl<<"The translation vector is:";
+    cout<<endl<<newPose.position<<endl<<endl;
+    cout<<endl<<"The rotation vector is:"<<endl<<newPose.orientation<<endl;
     
     posePublisher_.publish(newPose);
     

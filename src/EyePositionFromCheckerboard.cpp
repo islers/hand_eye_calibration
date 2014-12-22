@@ -84,6 +84,10 @@ void EyePositionFromCheckerboard::run()
 	  cameraPose.orientation.z = rotation_vector.at<double>(2)*sinThetaHalfScaled;
 	  cameraPose.orientation.w = cos(thetaHalf);
 	  
+	  cout<<endl<<"New camera pose found:"<<endl;
+	  cout<<endl<<"The translation vector is:"<<endl<<translation_vector<<endl<<endl<<"which has a length of "<<cv::norm( translation_vector, cv::NORM_L2 )<<" m."<<endl;
+	  cout<<endl<<"The rotation vector is "<<endl<<rotation_vector<<endl;
+	  
 	  posePublisher_.publish( cameraPose );
       }
       else
