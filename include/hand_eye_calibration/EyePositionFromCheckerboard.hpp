@@ -10,6 +10,7 @@
 * calibration purposes.
 * 
 * subscribes:	- /camera/image_rect [sensor_msgs/Image]
+* 		- /camera/camera_info [sensor_msgs/CameraInfo]
 * 
 * publishes:	- /hec/eye_position [geometry_msgs/Pose]: The transformation from
 * 		  checkerboard coordinates (O) to camera(eye) coordinates (E): the rotation
