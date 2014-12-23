@@ -6,9 +6,11 @@ EyePositionFromCheckerboard::EyePositionFromCheckerboard( ros::NodeHandle* _n )
   
   posePublisher_ = rosNode_->advertise<geometry_msgs::Pose>("/hec/eye_position",10);
   cameraStream_ = rosNode_->subscribe("/camera/image_rect",1, &EyePositionFromCheckerboard::imageLoader, this );
+  cameraInfoSubscriber_ = rosNode_->subscribe("/camera/camera_info",1,&EyePositionFromCheckerboard::cameraInfoUpdate, this );
   
   initSuccess_ = false;
   newImageLoaded_ = false;
+  distortionCoefficients_ = cv::Mat();
   
   return;
 }
@@ -58,7 +60,7 @@ void EyePositionFromCheckerboard::run()
 	  cv::Mat rotation_vector, translation_vector;
 	  
 	  // finds object pose from 3D-2D point correspondences: tvecs: position of the object origin in camera coordinates, rotation_vector: represents R_CO (rotation matrix from object to camera coordinates)
-	  cv::solvePnP( objectPointCoordinates_, chkbrdCorners, cameraMatrix_, cv::Mat(), rotation_vector, translation_vector );
+	  cv::solvePnP( objectPointCoordinates_, chkbrdCorners, cameraMatrix_, distortionCoefficients_, rotation_vector, translation_vector );
 	  	  
 	  // create the ROS message
 	  
@@ -95,7 +97,7 @@ void EyePositionFromCheckerboard::run()
     else
     {
       ROS_WARN("EyePositionFromCheckerboard::run()::no new image available: waiting...");
-      ros::Rate(1).sleep();
+      ros::Rate(30).sleep();
     }
   }
   return;
@@ -124,44 +126,85 @@ void EyePositionFromCheckerboard::imageLoader(  const sensor_msgs::ImageConstPtr
 }
 
 
+
+void EyePositionFromCheckerboard::cameraInfoUpdate( const sensor_msgs::CameraInfoConstPtr& _newCamInfo )
+{
+  double fx = _newCamInfo->K[0];
+  double fy = _newCamInfo->K[4];
+  double cx = _newCamInfo->K[2];
+  double cy = _newCamInfo->K[5];
+  
+  if( _newCamInfo->distortion_model != "plumb_bob" )
+  {
+    ROS_ERROR("The distortion model of the published camera_info data is unknown. It is '%s' but should be 'plumb_bob'",_newCamInfo->distortion_model.c_str());
+    return;
+  }
+  distortionCoefficients_ = cv::Mat(5, 1, CV_64F);
+  
+  for( int i=0;i<5;i++ ) distortionCoefficients_.at<double>(i) = _newCamInfo->D[i];
+  
+  
+  if( !rosNode_->getParam("/camera/fx",fx) ) rosNode_->setParam("/camera/fx",fx);
+  if( !rosNode_->getParam("/camera/fy",fy) ) rosNode_->setParam("/camera/fy",fy);
+  if( !rosNode_->getParam("/camera/cx",cx) ) rosNode_->setParam("/camera/cx",cx);
+  if( !rosNode_->getParam("/camera/cy",cy) ) rosNode_->setParam("/camera/cy",cy);
+  
+  return;
+}
+
+
 bool EyePositionFromCheckerboard::init()
 {
   double fx, fy, cx, cy, sPc, sPr, squareSize;
-  if( !rosNode_->getParam("/camera/fx",fx) )
+  
+  ros::Rate rate(1);
+  bool initialized;
+  do
   {
-    ROS_ERROR("EyePositionFromCheckerboard::initialization failed - missing fx parameter on /camera/fx");
-    return false;
-  }
-  if( !rosNode_->getParam("/camera/fy",fy) )
-  {
-    ROS_ERROR("EyePositionFromCheckerboard::initialization failed - missing fy parameter on /camera/fy");
-    return false;
-  }
-  if( !rosNode_->getParam("/camera/cx",cx) )
-  {
-    ROS_ERROR("EyePositionFromCheckerboard::initialization failed - missing cx parameter on /camera/cx");
-    return false;
-  }
-  if( !rosNode_->getParam("/camera/cy",cy) )
-  {
-    ROS_ERROR("EyePositionFromCheckerboard::initialization failed - missing cy parameter on /camera/cy");
-    return false;
-  }
-  if( !rosNode_->getParam("/hec/checkerboard/squares_per_column",sPc) )
-  {
-    ROS_ERROR("EyePositionFromCheckerboard::initialization failed - missing squares_per_column parameter on /hec/checkerboard/squares_per_column");
-    return false;
-  }
-  if( !rosNode_->getParam("/hec/checkerboard/squares_per_row",sPr) )
-  {
-    ROS_ERROR("EyePositionFromCheckerboard::initialization failed - missing squares_per_row parameter on /hec/checkerboard/squares_per_row");
-    return false;
-  }
-  if( !rosNode_->getParam("/hec/checkerboard/square_size",squareSize) )
-  {
-    ROS_ERROR("EyePositionFromCheckerboard::initialization failed - missing square_size parameter on /hec/checkerboard/square_size");
-    return false;
-  }
+    ros::spinOnce();
+    initialized = true;
+    
+    cout<<endl<<"Load parameters from server..."<<endl;
+    
+    if( !rosNode_->getParam("/camera/fx",fx) )
+    {
+      ROS_WARN("EyePositionFromCheckerboard::initialization failed - missing fx parameter on /camera/fx");
+      initialized =  false;
+    }
+    if( !rosNode_->getParam("/camera/fy",fy) )
+    {
+      ROS_WARN("EyePositionFromCheckerboard::initialization failed - missing fy parameter on /camera/fy");
+      initialized =  false;
+    }
+    if( !rosNode_->getParam("/camera/cx",cx) )
+    {
+      ROS_WARN("EyePositionFromCheckerboard::initialization failed - missing cx parameter on /camera/cx");
+      initialized =  false;
+    }
+    if( !rosNode_->getParam("/camera/cy",cy) )
+    {
+      ROS_WARN("EyePositionFromCheckerboard::initialization failed - missing cy parameter on /camera/cy");
+      initialized =  false;
+    }
+    if( !rosNode_->getParam("/hec/checkerboard/squares_per_column",sPc) )
+    {
+      ROS_WARN("EyePositionFromCheckerboard::initialization failed - missing squares_per_column parameter on /hec/checkerboard/squares_per_column");
+      initialized =  false;
+    }
+    if( !rosNode_->getParam("/hec/checkerboard/squares_per_row",sPr) )
+    {
+      ROS_WARN("EyePositionFromCheckerboard::initialization failed - missing squares_per_row parameter on /hec/checkerboard/squares_per_row");
+      initialized =  false;
+    }
+    if( !rosNode_->getParam("/hec/checkerboard/square_size",squareSize) )
+    {
+      ROS_WARN("EyePositionFromCheckerboard::initialization failed - missing square_size parameter on /hec/checkerboard/square_size");
+      initialized =  false;
+    }
+    if(!initialized) rate.sleep();
+  }while( !initialized && rosNode_->ok() );
+  
+  cameraInfoSubscriber_.shutdown();
   
   cameraMatrix_ = cv::Mat::zeros(3,3,CV_64FC1);
   cameraMatrix_.at<double>(0,0) = fx;

@@ -24,7 +24,6 @@ void DualQuaternionTransformationEstimator::addLastRetrievedPosePair()
   ROS_INFO("Saving last published poses for hand and eye...");
   
   int trialCount = 0;
-  ros::Rate rate(5);
   do
   {
     ros::spinOnce();
@@ -224,7 +223,8 @@ void DualQuaternionTransformationEstimator::calculateTransformation()
   
   // save transformation
   rot_EH_ = q.first;
-  E_trans_EH_ = -rot_EH_*t;
+  E_trans_EH_ = rot_EH_*t;
+  E_trans_EH_ = -E_trans_EH_;
   
   transformationCalculated_ = true;
   return;
@@ -284,7 +284,7 @@ Matrix<double,4,4> DualQuaternionTransformationEstimator::matrixH2E()
   
   Vector3d E_t_EH = E_trans_EH_;
   
-  mH2E<<rotH2E(), E_t_HE, 0, 0, 0, 1;
+  mH2E<<rotH2E(), E_t_EH, 0, 0, 0, 1;
   
   return mH2E;
 }

@@ -19,13 +19,14 @@
 * 		  x_E = R_EO*x_O + E_t_EO
 * 
 * Data needed on the parameter server (use either the command line or a yaml file):
+* 		- /hec/checkerboard/squares_per_column (nr of internal chkrbrd edges per column)
+* 		- /hec/checkerboard/squares_per_row (nr of internal chckrbrd edges per row
+* 		- /hec/checkerboard/square_size (the size of checkerboard fields in [m])
+* 	optional: (will be loaded from camera_info topic otherwise, but data set on parameter server has priority)
 * 		- /camera/fx (intrinsic camera matrix data)
 * 		- /camera/fy (")
 * 		- /camera/cx (")
 * 		- /camera/cy (")
-* 		- /hec/checkerboard/squares_per_column (nr of internal chkrbrd edges per column)
-* 		- /hec/checkerboard/squares_per_row (nr of internal chckrbrd edges per row
-* 		- /hec/checkerboard/square_size (the size of checkerboard fields in [m])
 * 
 * 
 * Released under the GNU Lesser General Public License v3 (LGPLv3), see www.gnu.org
@@ -38,6 +39,7 @@
 #include "geometry_msgs/Pose.h"
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/CameraInfo.h>
 #include <opencv2/opencv.hpp>
 #include <cmath>
 
@@ -53,13 +55,16 @@ class EyePositionFromCheckerboard
     void run();
 
     void imageLoader(  const sensor_msgs::ImageConstPtr& _newImage );
+    void cameraInfoUpdate( const sensor_msgs::CameraInfoConstPtr& _newCamInfo );
   private:
     ros::Publisher posePublisher_;
     ros::Subscriber cameraStream_;
+    ros::Subscriber cameraInfoSubscriber_;
     
     bool newImageLoaded_; // whether a new image has been loaded
     cv::Mat currentImage_;
     cv::Mat cameraMatrix_;
+    cv::Mat distortionCoefficients_; // plumb_bob model
     cv::Size patternSize_;
     vector<cv::Point3f> objectPointCoordinates_; // coordinates of to-be-detected checkerboard points in checkerboard frame
     
