@@ -10,4 +10,4 @@ hec:
   checkerboard:
     squares_per_column: 6
     squares_per_row: 8
-    square_size: 0.073 # cm
+    square_size: 0.073 # m

@@ -61,10 +61,10 @@ class DualQuaternionTransformationEstimator
     /** returns the rotation matrix R_HE */
     Matrix3d rotE2H();
     
-    /** returns the translation vector H_t_EH */
+    /** returns the translation vector E_t_EH (position of H in E)*/
     Vector3d transH2E();
     
-    /** returns the translation vector E_t_HE */
+    /** returns the translation vector H_t_HE (position of E in H)*/
     Vector3d transE2H();
     
     /** returns the transformation matrix H_EH from hand to eye coordinates */
@@ -110,7 +110,7 @@ class DualQuaternionTransformationEstimator
     ros::Time recordedHandTimeStamp_, recordedEyeTimeStamp_;
     
     Quaterniond rot_EH_; // estimated rotation from hand to eye
-    Vector3d H_trans_EH_; // estimated translation vector from hand to eye in hand coordinates
+    Vector3d E_trans_EH_; // estimated position of H (hand) origin in E (eye) coordinates
     
     Matrix3d crossProdMatrix( Vector3d _vec );
     Eigen::Vector3d geometryToEigen( const geometry_msgs::Point& _vec );

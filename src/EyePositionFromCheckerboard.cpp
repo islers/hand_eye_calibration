@@ -59,14 +59,7 @@ void EyePositionFromCheckerboard::run()
 	  
 	  // finds object pose from 3D-2D point correspondences: tvecs: position of the object origin in camera coordinates, rotation_vector: represents R_CO (rotation matrix from object to camera coordinates)
 	  cv::solvePnP( objectPointCoordinates_, chkbrdCorners, cameraMatrix_, cv::Mat(), rotation_vector, translation_vector );
-	  
-	  /* while the rotation vector represents the expected rotation by the hand-eye transformation estimator,
-	   * the translation vector does not. Need to get the camera origin in object space coordinates
-	   */
-	  //cv::Mat R_OC; //rotation matrix C->O
-	  //cv::Rodrigues( -1*rotation_vector, R_OC ); // need the inverse rotation
-	  //cv::Mat translationVecTransformed = -1*R_OC*translation_vector; // rotate and flip translation vector
-	  
+	  	  
 	  // create the ROS message
 	  
 	  geometry_msgs::Pose cameraPose;

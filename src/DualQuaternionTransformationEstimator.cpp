@@ -224,7 +224,7 @@ void DualQuaternionTransformationEstimator::calculateTransformation()
   
   // save transformation
   rot_EH_ = q.first;
-  H_trans_EH_ = t;
+  E_trans_EH_ = -rot_EH_*t;
   
   transformationCalculated_ = true;
   return;
@@ -237,9 +237,9 @@ geometry_msgs::Pose DualQuaternionTransformationEstimator::getHandToEye()
   
   geometry_msgs::Pose estimatedTransformation;
   
-  estimatedTransformation.position.x = H_trans_EH_[0];
-  estimatedTransformation.position.y = H_trans_EH_[1];
-  estimatedTransformation.position.z = H_trans_EH_[2];
+  estimatedTransformation.position.x = E_trans_EH_[0];
+  estimatedTransformation.position.y = E_trans_EH_[1];
+  estimatedTransformation.position.z = E_trans_EH_[2];
   estimatedTransformation.orientation.x = rot_EH_.x();
   estimatedTransformation.orientation.y = rot_EH_.y();
   estimatedTransformation.orientation.z = rot_EH_.z();
@@ -266,14 +266,14 @@ Matrix3d DualQuaternionTransformationEstimator::rotE2H()
 Vector3d DualQuaternionTransformationEstimator::transH2E()
 {
   if( !transformationCalculated_ ) ROS_WARN("DualQuaternionTransformationEstimator::transH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
-  return H_trans_EH_;
+  return E_trans_EH_;
 }
 
 
 Vector3d DualQuaternionTransformationEstimator::transE2H()
 {
   if( !transformationCalculated_ ) ROS_WARN("DualQuaternionTransformationEstimator::transE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
-  return -(rot_EH_*H_trans_EH_);
+  return -(rotH2E()*E_trans_EH_);
 }
 
 
@@ -282,7 +282,7 @@ Matrix<double,4,4> DualQuaternionTransformationEstimator::matrixH2E()
   if( !transformationCalculated_ ) ROS_WARN("DualQuaternionTransformationEstimator::matrixH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   Matrix<double,4,4> mH2E;
   
-  Vector3d E_t_HE = rot_EH_ * (-H_trans_EH_);
+  Vector3d E_t_EH = E_trans_EH_;
   
   mH2E<<rotH2E(), E_t_HE, 0, 0, 0, 1;
   
@@ -295,7 +295,9 @@ Matrix<double,4,4> DualQuaternionTransformationEstimator::matrixE2H()
   if( !transformationCalculated_ ) ROS_WARN("DualQuaternionTransformationEstimator::matrixE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   Matrix<double,4,4> mE2H;
   
-  mE2H<<rotE2H(), H_trans_EH_, 0, 0, 0, 1;
+  Vector3d H_t_HE = - rotE2H()*E_trans_EH_;
+  
+  mE2H<<rotE2H(), H_t_HE, 0, 0, 0, 1;
   
   return mE2H;
 }
