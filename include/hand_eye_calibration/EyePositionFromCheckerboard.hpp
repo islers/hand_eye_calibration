@@ -9,8 +9,8 @@
 * detected checkerboard pattern is published to provide a feedback for
 * calibration purposes.
 * 
-* subscribes:	- /camera/image_rect [sensor_msgs/Image]
-* 		- /camera/camera_info [sensor_msgs/CameraInfo]
+* subscribes:	- /camera/image_rect [sensor_msgs/Image]: Rectified camera image, e.g. published by image_proc
+* 		- /camera/camera_info [sensor_msgs/CameraInfo]: Camera info data, published by the camera driver
 * 
 * publishes:	- /hec/eye_position [geometry_msgs/Pose]: The transformation from
 * 		  checkerboard coordinates (O) to camera(eye) coordinates (E): the rotation
@@ -23,7 +23,7 @@
 * 		- /hec/checkerboard/squares_per_column (nr of internal chkrbrd edges per column)
 * 		- /hec/checkerboard/squares_per_row (nr of internal chckrbrd edges per row
 * 		- /hec/checkerboard/square_size (the size of checkerboard fields in [m])
-* 	optional: (will be loaded from camera_info topic otherwise, but data set on parameter server has priority)
+* 	optional: (Will be loaded from camera_info topic otherwise, but data set on parameter server has priority. If data is read from camera_info topic it uses the values given in the projection matrix, not those in the camera matrix.)
 * 		- /camera/fx (intrinsic camera matrix data)
 * 		- /camera/fy (")
 * 		- /camera/cx (")

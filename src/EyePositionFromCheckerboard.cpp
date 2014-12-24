@@ -129,10 +129,10 @@ void EyePositionFromCheckerboard::imageLoader(  const sensor_msgs::ImageConstPtr
 
 void EyePositionFromCheckerboard::cameraInfoUpdate( const sensor_msgs::CameraInfoConstPtr& _newCamInfo )
 {
-  double fx = _newCamInfo->K[0];
-  double fy = _newCamInfo->K[4];
-  double cx = _newCamInfo->K[2];
-  double cy = _newCamInfo->K[5];
+  double fx = _newCamInfo->P[0];//K[0];
+  double fy = _newCamInfo->P[5];//K[4];
+  double cx = _newCamInfo->P[2];//K[2];
+  double cy = _newCamInfo->P[6];//K[5];
   
   if( _newCamInfo->distortion_model != "plumb_bob" )
   {
