@@ -55,6 +55,13 @@ void DualQuaternionTransformationEstimator::addLastRetrievedPosePair()
     }
     
     posePairs_.push_back( pair<geometry_msgs::Pose, geometry_msgs::Pose>(bufferedHand_,bufferedEye_) );
+    
+    if( posePairs_.size()>=2 ) //estimation is possible
+    {
+      calculateTransformation(true);
+      rotationEstimates_EH_.push_back( rot_EH_ );
+      translationEstimates_E_t_EH_.push_back( E_trans_EH_ );
+    }
   }
   
   
@@ -66,11 +73,13 @@ void DualQuaternionTransformationEstimator::addLastRetrievedPosePair()
 void DualQuaternionTransformationEstimator::deleteLastAddedPosePair()
 {
   posePairs_.pop_back();
+  if( rotationEstimates_EH_.size()>=1 ) rotationEstimates_EH_.pop_back();
+  if( translationEstimates_E_t_EH_.size()>=1 ) translationEstimates_E_t_EH_.pop_back();
   return;
 }
 
 
-void DualQuaternionTransformationEstimator::calculateTransformation()
+void DualQuaternionTransformationEstimator::calculateTransformation( bool _suppressWarnings )
 {
   ROS_INFO("Calculating hand-eye transformation...");
   
@@ -379,10 +388,23 @@ bool DualQuaternionTransformationEstimator::printToFile( string fileName_ )
       eyePoses.at<double>(6,i) = posePairs_[i].second.position.z;
     }
     
+    cv::Mat estimatedTransformations( 7, rotationEstimates_EH_.size(), CV_64FC1 );
+    for( int i=0; i<rotationEstimates_EH_.size(); i++ )
+    {
+      estimatedTransformations.at<double>(0,i) = rotationEstimates_EH_[i].x();
+      estimatedTransformations.at<double>(1,i) = rotationEstimates_EH_[i].y();
+      estimatedTransformations.at<double>(2,i) = rotationEstimates_EH_[i].z();
+      estimatedTransformations.at<double>(3,i) = rotationEstimates_EH_[i].w();
+      estimatedTransformations.at<double>(4,i) = translationEstimates_E_t_EH_[i].x();
+      estimatedTransformations.at<double>(5,i) = translationEstimates_E_t_EH_[i].y();
+      estimatedTransformations.at<double>(6,i) = translationEstimates_E_t_EH_[i].z();
+    }
+    
     cv::FileStorage outputFile( fileName_, cv::FileStorage::WRITE );
     
     outputFile<<"handPoses"<<handPoses;
     outputFile<<"eyePoses"<<eyePoses;
+    outputFile<<"estimatedTransformations"<<estimatedTransformations;
   }
   catch(...)
   {
@@ -403,17 +425,24 @@ bool DualQuaternionTransformationEstimator::loadFromFile( string fileName_, bool
     
     cv::Mat handPoses( cv::Size(), CV_64FC1 );
     cv::Mat eyePoses( cv::Size(), CV_64FC1 );
+    cv::Mat estimatedTransformations( cv::Size(), CV_64FC1 );
     
     inputFile["handPoses"] >> handPoses;
     inputFile["eyePoses"] >> eyePoses;
+    inputFile["estimatedTransformations"] >> estimatedTransformations;
     
-    if( handPoses.cols!=eyePoses.cols || handPoses.rows!=7 || eyePoses.rows!=7 || handPoses.cols==0 )
+    if( handPoses.cols!=eyePoses.cols || handPoses.rows!=7 || eyePoses.rows!=7 || handPoses.cols==0 || estimatedTransformations.rows!=7 || estimatedTransformations.cols!=(handPoses.cols-1) )
     {
        ROS_ERROR("DualQuaternionTransformationEstimator::loadFromFile::failed::The input file %s did not contain valid cv::Mat matrices.",fileName_.c_str() );
        return 0;
     }
     
-    if( destroyOldData_ ) posePairs_.clear();
+    if( destroyOldData_ )
+    {
+      posePairs_.clear();
+      rotationEstimates_EH_.clear();
+      translationEstimates_E_t_EH_.clear();
+    }
     
     for( int i=0; i<handPoses.cols; i++ )
     {
@@ -436,6 +465,22 @@ bool DualQuaternionTransformationEstimator::loadFromFile( string fileName_, bool
      eyePoseToAdd.position.z = eyePoses.at<double>(6,i);
       
       posePairs_.push_back( pair<geometry_msgs::Pose, geometry_msgs::Pose>( handPoseToAdd,eyePoseToAdd ) );
+    }
+    for( int i=0; i<estimatedTransformations.cols; i++ )
+    {
+      Quaterniond newRotationEstimate;
+      newRotationEstimate.x() = estimatedTransformations.at<double>(0,i);
+      newRotationEstimate.y() = estimatedTransformations.at<double>(1,i);
+      newRotationEstimate.z() = estimatedTransformations.at<double>(2,i);
+      newRotationEstimate.w() = estimatedTransformations.at<double>(3,i);
+      Vector3d newTranslationEstimate;
+      newTranslationEstimate.x() = estimatedTransformations.at<double>(4,i);
+      newTranslationEstimate.y() = estimatedTransformations.at<double>(5,i);
+      newTranslationEstimate.z() = estimatedTransformations.at<double>(6,i);
+      
+      rotationEstimates_EH_.push_back(newRotationEstimate);
+      translationEstimates_E_t_EH_.push_back(newTranslationEstimate);
+      
     }
     
   }

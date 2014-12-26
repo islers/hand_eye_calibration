@@ -43,14 +43,14 @@ class DualQuaternionTransformationEstimator
     ~DualQuaternionTransformationEstimator();
     
     /** adds the next eye- and the next hand-position to the list of
-     * pose pairs which will be used for estimation*/
+     * pose pairs which will be used for estimation and calculates a new transformation estimate which is stored in the respective vector*/
     void addLastRetrievedPosePair();
     
     /** deletes the last added pose pair */
     void deleteLastAddedPosePair();
     
     /** calculates the transformation estimate */
-    void calculateTransformation();
+    void calculateTransformation(bool _suppressWarnings=false );
     
     /** returns the calculated transformation */
     geometry_msgs::Pose getHandToEye();
@@ -109,8 +109,10 @@ class DualQuaternionTransformationEstimator
     bool handRecorded_, eyeRecorded_;
     ros::Time recordedHandTimeStamp_, recordedEyeTimeStamp_;
     
-    Quaterniond rot_EH_; // estimated rotation from hand to eye
-    Vector3d E_trans_EH_; // estimated position of H (hand) origin in E (eye) coordinates
+    Quaterniond rot_EH_; // current estimated rotation from hand to eye
+    Vector3d E_trans_EH_; // current estimated position of H (hand) origin in E (eye) coordinates
+    vector<Quaterniond, Eigen::aligned_allocator<Quaterniond> > rotationEstimates_EH_; // estimated rotations for data subsets
+    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > translationEstimates_E_t_EH_; //estimated translations for data subsets
     
     Matrix3d crossProdMatrix( Vector3d _vec );
     Eigen::Vector3d geometryToEigen( const geometry_msgs::Point& _vec );
