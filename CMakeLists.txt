@@ -25,19 +25,19 @@ include_directories(include
   ${Eigen_INCLUDE_DIRS}
 )
 
-add_executable(youbot_link_position_publisher src/YoubotLinkPositionPublisher.cpp src/youbot_link_position_publisher.cpp)
+add_executable(youbot_link_position_publisher src/youbot_link_position_publisher.cpp src/youbot_link_position_publisher_node.cpp)
 
 target_link_libraries(youbot_link_position_publisher
   ${catkin_LIBRARIES}
 )
 
-add_executable(eye_position_from_checkerboard src/EyePositionFromCheckerboard.cpp src/eye_position_from_checkerboard.cpp)
+add_executable(eye_position_from_checkerboard src/eye_position_from_checkerboard.cpp src/eye_position_from_checkerboard_node.cpp)
 
 target_link_libraries(eye_position_from_checkerboard
   ${catkin_LIBRARIES}
 )
 
-add_executable(dual_quaternion_transformation_estimator src/DualQuaternionTransformationEstimator.cpp src/dual_quaternion_transformation_estimator.cpp)
+add_executable(dual_quaternion_transformation_estimator src/dual_quaternion_transformation_estimator.cpp src/dual_quaternion_estimation_node.cpp)
 
 target_link_libraries(dual_quaternion_transformation_estimator
   ${catkin_LIBRARIES}
