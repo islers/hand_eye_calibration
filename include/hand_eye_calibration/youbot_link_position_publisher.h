@@ -44,7 +44,6 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 
-using namespace std;
 
 class YoubotLinkPositionPublisher
 {
@@ -64,7 +63,7 @@ class YoubotLinkPositionPublisher
     ros::Publisher posePublisher_;
     
     int sourceFrameId_, targetFrameId_;
-    vector<string> linkNames_;
+    std::vector<std::string> linkNames_;
     
     tf2_ros::Buffer tfCore_; // object that can be queried for specific transformations
     tf2_ros::TransformListener tf2Listener_;

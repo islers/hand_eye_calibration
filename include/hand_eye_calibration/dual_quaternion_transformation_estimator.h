@@ -50,10 +50,6 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 #include <opencv2/opencv.hpp>
 
-using namespace std;
-using namespace Eigen;
-
-typedef pair<geometry_msgs::Pose,geometry_msgs::Pose> calibPair;
 
 class DualQuaternionTransformationEstimator
 {
@@ -75,22 +71,22 @@ class DualQuaternionTransformationEstimator
     geometry_msgs::Pose getHandToEye();
     
     /** returns the rotation matrix R_EH */
-    Matrix3d rotH2E();
+    Eigen::Matrix3d rotH2E();
     
     /** returns the rotation matrix R_HE */
-    Matrix3d rotE2H();
+    Eigen::Matrix3d rotE2H();
     
     /** returns the translation vector E_t_EH (position of H in E)*/
-    Vector3d transH2E();
+    Eigen::Vector3d transH2E();
     
     /** returns the translation vector H_t_HE (position of E in H)*/
-    Vector3d transE2H();
+    Eigen::Vector3d transE2H();
     
     /** returns the transformation matrix H_EH from hand to eye coordinates */
-    Matrix<double,4,4> matrixH2E();
+    Eigen::Matrix<double,4,4> matrixH2E();
     
     /** returns the transformation matrix H_HE from eye to hand coordinates */
-    Matrix<double,4,4> matrixE2H();
+    Eigen::Matrix<double,4,4> matrixE2H();
     
     /** clears all data to restart recording */
     void clearAll();
@@ -103,40 +99,40 @@ class DualQuaternionTransformationEstimator
     
     
     /** saves the hand and eye poses to a file, using the opencv storage functionality. Returns true if no problems occured */
-    bool printToFile( string fileName_ );
+    bool printToFile( std::string fileName_ );
     
     /** loads hand and eye poses from a file, saved using the printToFile method: both must be saved like a OpenCV Mat matrix with size 7xNumberOfPoses, where indices 0...3 represent the rotation quaternion and 4..6 the translation vector and the number of poses must be equal for both. The name of the hand poses must be "handPoses", the one of the eye poses "eyePoses". Returns true if succesful.
      * 
      * If destroyOldData_ is set to true, any previous hand-eye correspondences are dropped. If it is false, the correspondences loaded from file are added to the ones already stored.
     */
-    bool loadFromFile( string fileName_, bool destroyOldData_=false );
+    bool loadFromFile( std::string fileName_, bool destroyOldData_=false );
     
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   private:
     ros::Subscriber handSubscriber_;
     ros::Subscriber eyeSubscriber_;
     
-    vector< pair<geometry_msgs::Pose, geometry_msgs::Pose> > posePairs_; //pairs: hand,cam
+    std::vector< std::pair<geometry_msgs::Pose, geometry_msgs::Pose> > posePairs_; //pairs: hand,cam
     
     /** simple solver for the quadratic equation a*x² + bx + c = 0
      *  Returns false if the roots are imaginary, otherwhise the two roots are stored in _roots - twice
      *  the same value if only one root exists.
      */
-    bool roots( double _aCoeff, double _bCoeff, double _cCoeff, pair<double,double>& _roots );
+    bool roots( double _aCoeff, double _bCoeff, double _cCoeff, std::pair<double,double>& _roots );
         
     bool transformationCalculated_;
     bool handRecorded_, eyeRecorded_;
     ros::Time recordedHandTimeStamp_, recordedEyeTimeStamp_;
     
-    Quaterniond rot_EH_; // current estimated rotation from hand to eye
-    Vector3d E_trans_EH_; // current estimated position of H (hand) origin in E (eye) coordinates
-    vector<Quaterniond, Eigen::aligned_allocator<Quaterniond> > rotationEstimates_EH_; // estimated rotations for data subsets
-    vector<Vector3d, Eigen::aligned_allocator<Vector3d> > translationEstimates_E_t_EH_; //estimated translations for data subsets
+    Eigen::Quaterniond rot_EH_; // current estimated rotation from hand to eye
+    Eigen::Vector3d E_trans_EH_; // current estimated position of H (hand) origin in E (eye) coordinates
+    std::vector<Eigen::Quaterniond, Eigen::aligned_allocator<Eigen::Quaterniond> > rotationEstimates_EH_; // estimated rotations for data subsets
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > translationEstimates_E_t_EH_; //estimated translations for data subsets
     
-    Matrix3d crossProdMatrix( Vector3d _vec );
+    Eigen::Matrix3d crossProdMatrix( Eigen::Vector3d _vec );
     Eigen::Vector3d geometryToEigen( const geometry_msgs::Point& _vec );
     Eigen::Quaterniond geometryToEigen( const geometry_msgs::Quaternion& _quat );
-    pair<Eigen::Quaterniond,Eigen::Quaterniond> dualQuaternion( Eigen::Quaterniond _rot, Eigen::Vector3d _trans );
+    std::pair<Eigen::Quaterniond,Eigen::Quaterniond> dualQuaternion( Eigen::Quaterniond _rot, Eigen::Vector3d _trans );
     
     geometry_msgs::Pose bufferedHand_, bufferedEye_;
         

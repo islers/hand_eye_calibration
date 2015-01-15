@@ -16,6 +16,9 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
  
 #include "hand_eye_calibration/youbot_link_position_publisher.h"
+#include "utils/numeric_iterator.h"
+#include "utils/iterator_bouncer.h"
+#include "utils/multi_dimensional_space_iterator.h"
 
 using namespace std;
 

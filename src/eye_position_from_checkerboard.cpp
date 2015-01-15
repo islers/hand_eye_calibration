@@ -15,6 +15,8 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "hand_eye_calibration/eye_position_from_checkerboard.h"
+
+using namespace std;
  
 EyePositionFromCheckerboard::EyePositionFromCheckerboard( ros::NodeHandle* _n )
 {

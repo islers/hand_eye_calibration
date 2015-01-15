@@ -61,7 +61,6 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include <opencv2/opencv.hpp>
 #include <cmath>
 
-using namespace std;
 
 class EyePositionFromCheckerboard
 {
@@ -84,7 +83,7 @@ class EyePositionFromCheckerboard
     cv::Mat cameraMatrix_;
     cv::Mat distortionCoefficients_; // plumb_bob model
     cv::Size patternSize_;
-    vector<cv::Point3f> objectPointCoordinates_; // coordinates of to-be-detected checkerboard points in checkerboard frame
+    std::vector<cv::Point3f> objectPointCoordinates_; // coordinates of to-be-detected checkerboard points in checkerboard frame
     
     bool initSuccess_; // indicates successful initialization of all parameters
     

@@ -16,6 +16,8 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 #include "hand_eye_calibration/youbot_link_position_publisher.h"
 
+using namespace std;
+
 YoubotLinkPositionPublisher::YoubotLinkPositionPublisher( ros::NodeHandle* _n, int _sourceId, int _targetId ):
 tf2Listener_(tfCore_)
 {

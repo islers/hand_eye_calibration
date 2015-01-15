@@ -15,6 +15,8 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "hand_eye_calibration/dual_quaternion_transformation_estimator.h" 
+using namespace std;
+using namespace Eigen;
 
 DualQuaternionTransformationEstimator::DualQuaternionTransformationEstimator( ros::NodeHandle* _n )
 {

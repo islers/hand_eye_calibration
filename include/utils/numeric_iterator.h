@@ -44,10 +44,21 @@ namespace st_is
   public:
     /// constructor
     /** Initializes the numeric iterator.
-     * @param _base start point of iterator, also sets the grid for space discretization
+     * @param _base start point of iterator, used as base and initial value, also sets the grid for space discretization
      * @param _step_size sets the increment
      */
-    NumericIterator( T _base=T(), T _step_size=T() ):base_(_base),step_size_(_step_size)
+    NumericIterator( T _base=T(), T _step_size=T() ):value_(_base),base_(_base),step_size_(_step_size)
+    {
+      
+    }
+    
+    /// constructor
+    /** Initializes the numeric iterator.
+     * @param _base start point of iterator, used as base, also sets the grid for space discretization
+     * @param _step_size sets the increment
+     * @param _value sets the initial value
+     */
+    NumericIterator( T _base, T _step_size, T _value ):value_(_value),base_(_base),step_size_(_step_size)
     {
       
     }
