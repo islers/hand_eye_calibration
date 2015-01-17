@@ -1,0 +1,13 @@
+joints:
+  - arm_joint_1
+  - arm_joint_2
+  - arm_joint_3
+  - arm_joint_4
+  - arm_joint_5
+joint_space:
+  arm_joint_1: {lower_limit: 0.011, upper_limit: 5.840, step_size: 2}
+  arm_joint_2: {lower_limit: 0.011, upper_limit: 2.617, step_size: 2}
+  arm_joint_3: {lower_limit: -5.026, upper_limit: -0.016, step_size: 2}
+  arm_joint_4: {lower_limit: 0.023, upper_limit: 3.429, step_size: 2}
+  arm_joint_5: {lower_limit: 0.111, upper_limit: 5.641, step_size: 2}
+estimation_type: dual_quaternion

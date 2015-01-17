@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!-- launches the autonomous_hand_eye_calibration node with a checkerboard configuration -->
+<launch>
+
+  
+  
+  <!--<remap from="/camera/image_rect" to="/youbot/eye/image_rect"/>-->
+  
+  <node name="autonomous_hand_eye_calibration" pkg="hand_eye_calibration" type="autonomous_hand_eye_calibration" respawn="false" output="screen"><!-- link parameters -->
+    <rosparam file="$(find hand_eye_calibration)/autonomous_config/auto_config.yaml" command="load" ns=""/>
+  </node>
+  
+</launch>
+ 

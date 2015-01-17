@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2015, Stefan Isler, islerstefan@bluewin.ch
+/* Copyright (c) 2015, Stefan Isler, islerstefan@bluewin.ch
 *
 This file is part of hand_eye_calibration, a ROS package for hand eye calibration,
 
@@ -15,21 +15,18 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 */
 
  
-#include "hand_eye_calibration/youbot_link_position_publisher.h"
+#include "hand_eye_calibration/autonomous_hand_eye_calibrator.h"
 
 using namespace std;
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "youbot_link_position_publisher");
-  ros::NodeHandle n;
+  ros::init(argc, argv, "autonomous_hand_eye_calibration");
+  ros::NodeHandle n("autonomous_hand_eye_calibration");
   
-  if( n.ok() )
-  {
-    YoubotLinkPositionPublisher youbotTransformations( &n,0,5 );
-    youbotTransformations.run();
-  }
   
+  AutonomousHandEyeCalibrator calibrator(&n);
+  calibrator.runSingleIteration();
   
   return 0;
-}
+} 

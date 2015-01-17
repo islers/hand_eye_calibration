@@ -104,14 +104,14 @@ void DualQuaternionTransformationEstimator::calculateTransformation( bool _suppr
   if( posePairs_.size()<=1 )
   {
     ROS_ERROR("At least two hand-eye pose pairs are necessary for computation.");
-    ROS_INFO("Number of pose pairs currently available for computation: %i", posePairs_.size() );
+    ROS_INFO("Number of pose pairs currently available for computation: %i", (int)posePairs_.size() );
     ROS_ERROR("Aborting transformation computation.");
     return;
   }
   else if( posePairs_.size()<20 )
   {
     ROS_WARN("For good results more than 20 hand-eye pose pairs are recommended. The computed transformation might be inaccurate.");
-    ROS_INFO("Number of pose pairs currently available for computation: %i", posePairs_.size() );
+    ROS_INFO("Number of pose pairs currently available for computation: %i", (int)posePairs_.size() );
     ROS_INFO("Going on with calculation...");
   }
   

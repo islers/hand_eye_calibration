@@ -17,6 +17,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 #include <iterator>
+#include <string>
 
 /// Class to iterate numeric types.
 /** Standard random access iterator class to iterate over numeric types (int,double,etc) 

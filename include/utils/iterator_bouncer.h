@@ -30,6 +30,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 #include <iterator>
 #include <stdexcept>
+#include <string>
 
 #define TEMPRAIt template<class RAIt>
 
@@ -118,12 +119,12 @@ namespace st_is
   {
     if( _lower_bound > _upper_bound )
     {
-      std::range_error e("iterator_bouncer.h::line 121::IteratorBouncer<RAIt>::IteratorBouncer( RAIt _init_pos, RAIt _lower_bound, RAIt _upper_bound ):: Called with invalid range (lower bound higher than upper bound)");
+      std::range_error e("iterator_bouncer.h::line "+std::to_string(__LINE__)+"::IteratorBouncer<RAIt>::IteratorBouncer( RAIt _init_pos, RAIt _lower_bound, RAIt _upper_bound ):: Called with invalid range (lower bound higher than upper bound)");
       throw e;
     }
     else if( _init_pos > _upper_bound || _init_pos < _lower_bound )
     {
-      std::range_error e("iterator_bouncer.h::line 126::IteratorBouncer<RAIt>::IteratorBouncer( RAIt _init_pos, RAIt _lower_bound, RAIt _upper_bound ):: Called with invalid position: _init_pos doesn't lie in the given range.");
+      std::range_error e("iterator_bouncer.h::line "+std::to_string(__LINE__)+"::IteratorBouncer<RAIt>::IteratorBouncer( RAIt _init_pos, RAIt _lower_bound, RAIt _upper_bound ):: Called with invalid position: _init_pos doesn't lie in the given range.");
       throw e;
     }
     pos_ = _init_pos;
@@ -139,7 +140,7 @@ namespace st_is
   {
     if( _lower_bound > _upper_bound )
     {
-      std::range_error e("iterator_bouncer.h::line 142::IteratorBouncer( RAIt _lower_bound, RAIt _upper_bound ):: Called with invalid range (lower bound higher than upper bound)");
+      std::range_error e("iterator_bouncer.h::line "+std::to_string(__LINE__)+"::IteratorBouncer( RAIt _lower_bound, RAIt _upper_bound ):: Called with invalid range (lower bound higher than upper bound)");
       throw e;
     }
     lower_bound_ = _lower_bound;
@@ -151,7 +152,7 @@ namespace st_is
   {
     if( _new_pos > upper_bound_ || _new_pos < lower_bound_ )
     {
-      std::range_error e("iterator_bouncer.h::line 154::void IteratorBouncer<RAIt>::setPos( RAIt _new_pos ):: Called with invalid position: _new_pos doesn't lie in the range specified for the IteratorBouncer.");
+      std::range_error e("iterator_bouncer.h::line "+std::to_string(__LINE__)+"::void IteratorBouncer<RAIt>::setPos( RAIt _new_pos ):: Called with invalid position: _new_pos doesn't lie in the range specified for the IteratorBouncer.");
       throw e;
     }
     pos_ = _new_pos;
@@ -162,7 +163,7 @@ namespace st_is
   {
     if( _lower_bound > _upper_bound )
     {
-      std::range_error e("iterator_bouncer.h::line 165::void IteratorBouncer<RAIt>::setBounds( RAIt _lower_bound, RAIt _upper_bound ):: Called with invalid range (lower bound higher than upper bound)");
+      std::range_error e("iterator_bouncer.h::line "+std::to_string(__LINE__)+"::void IteratorBouncer<RAIt>::setBounds( RAIt _lower_bound, RAIt _upper_bound ):: Called with invalid range (lower bound higher than upper bound)");
       throw e;
     }
     lower_bound_ = _lower_bound;

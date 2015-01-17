@@ -17,7 +17,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 
 /// class to iterate through a multidimensional space spanned by multiple IteratorBouncers with the pass_border_twice flag set.
-/** Dimensions can be dynamically added. Incrementing the MultiDimensionalSpaceIterator leads to it
+/** Dimensions can be dynamically added. Incrementing the ContinuousXDimSpaceIterator leads to it
  * counting through the currently constructed space. A dimension added later is of one order higher
  * than the one added directly before. That is, if the space spanned would correspond to the space
  * of integral numbers the first dimension would correspond to the ones, the second to the 
@@ -39,10 +39,10 @@ namespace st_is
    * *******************************/
   
   TEMPRAIt
-  class MultiDimensionalSpaceIterator: public std::iterator<std::bidirectional_iterator_tag,RAIt>
+  class ContinuousXDimSpaceIterator: public std::iterator<std::bidirectional_iterator_tag,RAIt>
   {
   public:
-    MultiDimensionalSpaceIterator():
+    ContinuousXDimSpaceIterator():
       use_named_dim_(true)
     {
       
@@ -84,10 +84,10 @@ namespace st_is
     /// returns a pointer to the internal position dimension array
     std::vector< IteratorBouncer<RAIt> >* operator->();
         
-    MultiDimensionalSpaceIterator<RAIt>& operator++();
-    MultiDimensionalSpaceIterator<RAIt> operator++(int);
-    MultiDimensionalSpaceIterator<RAIt>& operator--();
-    MultiDimensionalSpaceIterator<RAIt> operator--(int);
+    ContinuousXDimSpaceIterator<RAIt>& operator++();
+    ContinuousXDimSpaceIterator<RAIt> operator++(int);
+    ContinuousXDimSpaceIterator<RAIt>& operator--();
+    ContinuousXDimSpaceIterator<RAIt> operator--(int);
     
     /// returns true if the highest point in the space is reached, defined as the position where the bounced() flag is set for all internal IteratorBouncer.
     /** Note that this position may change if the range of the internal IteratorBouncers changes */
@@ -105,7 +105,7 @@ namespace st_is
    * ********************************/
   
   TEMPRAIt
-  void MultiDimensionalSpaceIterator<RAIt>::addDim( IteratorBouncer<RAIt>* _new_dim, std::string _name )
+  void ContinuousXDimSpaceIterator<RAIt>::addDim( IteratorBouncer<RAIt>* _new_dim, std::string _name )
   {
     if ( _name=="" ) use_named_dim_ = false;
     else if( use_named_dim_ )
@@ -114,7 +114,7 @@ namespace st_is
       {
 	if( dim_names_[i]==_name )
 	{
-	  std::runtime_error e("multi_dimensional_space_iterator.h::110::void MultiDimensionalSpaceIterator<RAIt>::addDim( IteratorBouncer<RAIt>* _new_dim, std::string _name="" )::The name '"+_name+"' is not unique.");
+	  std::runtime_error e("multi_dimensional_space_iterator.h::"+std::to_string(__LINE__)+"::void ContinuousXDimSpaceIterator<RAIt>::addDim( IteratorBouncer<RAIt>* _new_dim, std::string _name="" )::The name '"+_name+"' is not unique.");
 	  throw e;
 	}
       }
@@ -126,17 +126,17 @@ namespace st_is
   }
   
   TEMPRAIt
-  unsigned int MultiDimensionalSpaceIterator<RAIt>::getDimensionality()
+  unsigned int ContinuousXDimSpaceIterator<RAIt>::getDimensionality()
   {
     return position_.size();
   }
   
   TEMPRAIt
-  typename std::iterator_traits<RAIt>::value_type MultiDimensionalSpaceIterator<RAIt>::getDimValue( std:: string _dim_name )
+  typename std::iterator_traits<RAIt>::value_type ContinuousXDimSpaceIterator<RAIt>::getDimValue( std:: string _dim_name )
   {
     if( !use_named_dim_ )
     {
-      std::runtime_error e("multi_dimensional_space_iterator.h::133::typename std::iterator_traits<RAIt>::value_type MultiDimensionalSpaceIterator<RAIt>::getDimValue( std:: string _dim_name )::function called but dimension naming was deactivated, because of an added dimension without name.");
+      std::runtime_error e("multi_dimensional_space_iterator.h::"+std::to_string(__LINE__)+"::typename std::iterator_traits<RAIt>::value_type ContinuousXDimSpaceIterator<RAIt>::getDimValue( std:: string _dim_name )::function called but dimension naming was deactivated, because of an added dimension without name.");
       throw e;
     }
     
@@ -151,11 +151,11 @@ namespace st_is
   }
   
   TEMPRAIt
-  typename std::iterator_traits<RAIt>::value_type MultiDimensionalSpaceIterator<RAIt>::getDimValue( unsigned int _order )
+  typename std::iterator_traits<RAIt>::value_type ContinuousXDimSpaceIterator<RAIt>::getDimValue( unsigned int _order )
   {
     if( _order >= position_.size() )
     {
-      std::range_error e("multi_dimensional_space_iterator.h::152::typename std::iterator_traits<RAIt>::value_type MultiDimensionalSpaceIterator<RAIt>::getDimValue( unsigned int _order ):: The order by which the function was called exceeds the order of the highest dimension.");
+      std::range_error e("multi_dimensional_space_iterator.h::"+std::to_string(__LINE__)+"::typename std::iterator_traits<RAIt>::value_type ContinuousXDimSpaceIterator<RAIt>::getDimValue( unsigned int _order ):: The order by which the function was called exceeds the order of the highest dimension.");
       throw e;
     }
     
@@ -163,11 +163,11 @@ namespace st_is
   }
   
   TEMPRAIt
-  typename std::iterator_traits<RAIt>::value_type& MultiDimensionalSpaceIterator<RAIt>::operator[]( unsigned int _order )
+  typename std::iterator_traits<RAIt>::value_type& ContinuousXDimSpaceIterator<RAIt>::operator[]( unsigned int _order )
   {
     if( _order >= position_.size() )
     {
-      std::range_error e("multi_dimensional_space_iterator.h::152::typename std::iterator_traits<RAIt>::value_type MultiDimensionalSpaceIterator<RAIt>::getDimValue( unsigned int _order ):: The order by which the function was called exceeds the order of the highest dimension.");
+      std::range_error e("multi_dimensional_space_iterator.h::"+std::to_string(__LINE__)+"::typename std::iterator_traits<RAIt>::value_type ContinuousXDimSpaceIterator<RAIt>::getDimValue( unsigned int _order ):: The order by which the function was called exceeds the order of the highest dimension.");
       throw e;
     }
     
@@ -175,19 +175,19 @@ namespace st_is
   }
   
   TEMPRAIt
-  std::vector< IteratorBouncer<RAIt> >& MultiDimensionalSpaceIterator<RAIt>::operator*()
+  std::vector< IteratorBouncer<RAIt> >& ContinuousXDimSpaceIterator<RAIt>::operator*()
   {
     return position_;
   }
   
   TEMPRAIt
-  std::vector< IteratorBouncer<RAIt> >* MultiDimensionalSpaceIterator<RAIt>::operator->()
+  std::vector< IteratorBouncer<RAIt> >* ContinuousXDimSpaceIterator<RAIt>::operator->()
   {
     return &position_;
   }
   
   TEMPRAIt
-  MultiDimensionalSpaceIterator<RAIt>& MultiDimensionalSpaceIterator<RAIt>::operator++()
+  ContinuousXDimSpaceIterator<RAIt>& ContinuousXDimSpaceIterator<RAIt>::operator++()
   {
     for( std::size_t dim = 0; dim < position_.size(); dim++ )
     {
@@ -198,15 +198,15 @@ namespace st_is
   }
   
   TEMPRAIt
-  MultiDimensionalSpaceIterator<RAIt> MultiDimensionalSpaceIterator<RAIt>::operator++(int)
+  ContinuousXDimSpaceIterator<RAIt> ContinuousXDimSpaceIterator<RAIt>::operator++(int)
   {
-    MultiDimensionalSpaceIterator<RAIt> copy(*this);
+    ContinuousXDimSpaceIterator<RAIt> copy(*this);
     operator++();
     return copy;
   }
   
   TEMPRAIt
-  MultiDimensionalSpaceIterator<RAIt>& MultiDimensionalSpaceIterator<RAIt>::operator--()
+  ContinuousXDimSpaceIterator<RAIt>& ContinuousXDimSpaceIterator<RAIt>::operator--()
   {
     for( std::size_t dim=0; dim < position_.size(); dim++ )
     {
@@ -216,15 +216,15 @@ namespace st_is
   }
   
   TEMPRAIt
-  MultiDimensionalSpaceIterator<RAIt> MultiDimensionalSpaceIterator<RAIt>::operator--(int)
+  ContinuousXDimSpaceIterator<RAIt> ContinuousXDimSpaceIterator<RAIt>::operator--(int)
   {
-    MultiDimensionalSpaceIterator<RAIt> copy(*this);
+    ContinuousXDimSpaceIterator<RAIt> copy(*this);
     operator--();
     return copy;
   }    
   
   TEMPRAIt
-  bool MultiDimensionalSpaceIterator<RAIt>::reachedTop()
+  bool ContinuousXDimSpaceIterator<RAIt>::reachedTop()
   {
     bool reached_top = true;
     for( std::size_t dim=0; dim < position_.size(); dim++ ) reached_top = reached_top && position_[dim].bounced();
