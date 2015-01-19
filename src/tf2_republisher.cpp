@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2015, Stefan Isler, islerstefan@bluewin.ch
+/* Copyright (c) 2015, Stefan Isler, islerstefan@bluewin.ch
 *
 This file is part of hand_eye_calibration, a ROS package for hand eye calibration,
 
@@ -14,46 +14,43 @@ You should have received a copy of the GNU Lesser General Public License
 along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "hand_eye_calibration/youbot_link_position_publisher.h"
+#include "hand_eye_calibration/tf2_republisher.h"
 
 using namespace std;
 
-YoubotLinkPositionPublisher::YoubotLinkPositionPublisher( ros::NodeHandle* _n, int _sourceId, int _targetId ):
+TF2Republisher::TF2Republisher( ros::NodeHandle* _n ):
 tf2Listener_(tfCore_)
 {
   rosNode_ = _n;
   
   posePublisher_ = rosNode_->advertise<geometry_msgs::Pose>("/hec/hand_position",10);
-  hand_position_server_ = rosNode_->advertiseService("hand_eye_hand_pose", &YoubotLinkPositionPublisher::serviceHandPoseRequest, this );
+  hand_position_server_ = rosNode_->advertiseService("hand_eye_hand_pose", &TF2Republisher::serviceHandPoseRequest, this );
   
-  linkNames_.push_back("arm_link_0"); // arm base which is rigidly fixed to the youbot base
-  linkNames_.push_back("arm_link_1");
-  linkNames_.push_back("arm_link_2");
-  linkNames_.push_back("arm_link_3");
-  linkNames_.push_back("arm_link_4");
-  linkNames_.push_back("arm_link_5");
-  
-  if( _sourceId<0 ) _sourceId=0;
-  else if ( _sourceId > linkNames_.size()-1 ) _sourceId = linkNames_.size()-1;
-    
-  if( _targetId<0 ) _targetId=0;
-  else if ( _targetId > linkNames_.size()-1 ) _targetId = linkNames_.size()-1;
-  
-  sourceFrameId_ = _sourceId;
-  targetFrameId_ = _targetId;
-  
+  if( !rosNode_->getParam("hand/base_link",base_link_) )
+  {
+    std::string error = "TF2Republisher::TF2Republisher::line "+std::to_string(__LINE__)+"::No base link name provided on 'hec/hand/base_link'. Shutting down node.";
+    ROS_FATAL("%s",error.c_str());
+    ros::shutdown();
+    return;
+  }
+  if( !rosNode_->getParam("hec/hand/end_link",end_link_) )
+  {
+    std::string error = "TF2Republisher::TF2Republisher::line "+std::to_string(__LINE__)+"::No end link name provided on 'hand/end_link'. Shutting down node.";
+    ROS_FATAL("%s",error.c_str());
+    ros::shutdown();
+    return;
+  }  
 }
 
 
-YoubotLinkPositionPublisher::~YoubotLinkPositionPublisher()
+TF2Republisher::~TF2Republisher()
 {
   
 }
 
-
-void YoubotLinkPositionPublisher::run()
+void TF2Republisher::run()
 {
-  cout<<endl<<"YoubotLinkPositionPublisher:: starting transformation calculation from "<<linkNames_[sourceFrameId_]<<" to "<<linkNames_[targetFrameId_]<<"."<<endl;
+  cout<<endl<<"TF2Republisher:: starting transformation calculation from "<<base_link_<<" to "<<end_link_<<"."<<endl;
   
   ros::Rate rate(30.0);
   while( rosNode_->ok() )
@@ -76,7 +73,7 @@ void YoubotLinkPositionPublisher::run()
   return;
 }
 
-bool YoubotLinkPositionPublisher::serviceHandPoseRequest( hand_eye_calibration::HandPose::Request& _req, hand_eye_calibration::HandPose::Response& _res )
+bool TF2Republisher::serviceHandPoseRequest( hand_eye_calibration::HandPose::Request& _req, hand_eye_calibration::HandPose::Response& _res )
 {
   ros::Time request_time = ros::Time::now();
   ros::Duration max_wait_time = _req.request.max_wait_time.data;
@@ -96,7 +93,7 @@ bool YoubotLinkPositionPublisher::serviceHandPoseRequest( hand_eye_calibration::
       _res.description.pose_found = true;
       return true;
     }
-    ROS_INFO("YoubotLinkPositionPublisher::serviceHandPoseRequest::called, waiting for new pose");
+    ROS_INFO("TF2Republisher::serviceHandPoseRequest::called, waiting for new pose");
     rate.sleep();
     ros::spinOnce();
   }
@@ -106,17 +103,17 @@ bool YoubotLinkPositionPublisher::serviceHandPoseRequest( hand_eye_calibration::
   return true;
 }
 
-bool YoubotLinkPositionPublisher::calculateTransformation( geometry_msgs::Pose& _hand_pose )
+bool TF2Republisher::calculateTransformation( geometry_msgs::Pose& _hand_pose )
 {
   geometry_msgs::TransformStamped transformation;
   try
   { /* use tf2 features to calculate the wanted transformation
     This gives the pose of the targetFrame (end effector) in the source's (arm base) coordinates. */
-    transformation = tfCore_.lookupTransform( linkNames_[sourceFrameId_], linkNames_[targetFrameId_], ros::Time(0) );
+    transformation = tfCore_.lookupTransform( base_link_, end_link_, ros::Time(0) );
   }
   catch( tf2::TransformException& ex)
   {
-    ROS_ERROR("YoubotLinkPositionPublisher::run:: %s", ex.what() );
+    ROS_ERROR("TF2Republisher::run:: %s", ex.what() );
     return false;
   }
   

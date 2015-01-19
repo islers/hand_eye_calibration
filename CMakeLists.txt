@@ -11,15 +11,38 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_msgs
   tf2_ros
   moveit_ros_planning_interface
+  control_msgs
+  message_generation
 )
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(Eigen REQUIRED)
 
+add_message_files(
+  FILES
+  CameraPoseDescription.msg
+  CameraPoseNodeInfo.msg
+  NumberedRequest.msg
+  Point2D.msg
+  HandPoseDescription.msg
+)
+
+add_service_files(
+  FILES
+  CameraPose.srv
+  CameraPoseInfo.srv
+  HandPose.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  geometry_msgs
+  sensor_msgs
+)
 
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp geometry_msgs tf2_msgs tf2_ros sensor_msgs cv_bridge moveit_ros_planning_interface
+  CATKIN_DEPENDS roscpp geometry_msgs tf2_msgs tf2_ros sensor_msgs cv_bridge moveit_ros_planning_interface control_msgs message_runtime
   DEPENDS opencv opencv2 Eigen
 )
 
@@ -31,6 +54,12 @@ include_directories(include
 add_executable(youbot_link_position_publisher src/youbot_link_position_publisher.cpp src/youbot_link_position_publisher_node.cpp)
 
 target_link_libraries(youbot_link_position_publisher
+  ${catkin_LIBRARIES}
+)
+
+add_executable(tf2_republisher src/tf2_republisher.cpp src/tf2_republisher_node.cpp)
+
+target_link_libraries(tf2_republisher
   ${catkin_LIBRARIES}
 )
 

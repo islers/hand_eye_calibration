@@ -53,6 +53,10 @@ public:
   
 private:
   ros::NodeHandle* ros_node_;
+  ros::ServiceClient eye_client_;
+  ros::ServiceClient hand_client_;
+  
+  boost::shared_ptr<moveit::planning_interface::MoveGroup> robot_;
   
   st_is::ContinuousXDimSpaceIterator< st_is::NumericIterator<double> > joint_position_; // current joint configuration of the robot
   DualQuaternionTransformationEstimator daniilidis_estimator_;
@@ -67,5 +71,10 @@ private:
   /** @param name_ name of the dimension (=joint name)
    */
   void initializeJointConfiguration( std::string name_ );
+  
+  /// plans and executes a plan to the currently loaded target - blocks until completion
+  /** completion means that the robot state is closer to the target than set in the tolerance and its velocity is approximately zero in all joint
+   */
+  void planAndMove();
   
 };

@@ -61,6 +61,9 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include <opencv2/opencv.hpp>
 #include <cmath>
 
+#include "hand_eye_calibration/CameraPose.h"
+#include "hand_eye_calibration/CameraPoseInfo.h"
+
 
 class EyePositionFromCheckerboard
 {
@@ -73,14 +76,45 @@ class EyePositionFromCheckerboard
 
     void imageLoader(  const sensor_msgs::ImageConstPtr& _newImage );
     void cameraInfoUpdate( const sensor_msgs::CameraInfoConstPtr& _newCamInfo );
+    bool serviceCameraPoseRequest( hand_eye_calibration::CameraPose::Request& _req, hand_eye_calibration::CameraPose::Response& _res );
+    bool serviceCameraPoseInfoRequest( hand_eye_calibration::CameraPoseInfo::Request& _req, hand_eye_calibration::CameraPoseInfo::Response& _res );
   private:
     ros::Publisher posePublisher_;
     ros::Subscriber cameraStream_;
     ros::Subscriber cameraInfoSubscriber_;
+    ros::ServiceServer eyePositionServer_;
+    ros::ServiceServer eyePositionInfoServer_;
+    
+    /// locates the checkerboard corners in the given image
+    /** The function locates the checkerboard corners in the given image, writing their coordinates
+     * in the array given. It returns true if the checkerboard pattern was found
+     * @param _image The image in which the pattern should be searched for
+     * @param _chkbrdCorners array in which the coordinates will be written
+     * @return bool true if the checkerboard pattern was found
+     */
+    bool calculateChessboardCorners( cv::Mat& _image, cv::vector<cv::Point2f>& _chkbrdCorners );
+    
+    /// extracts a pose from extracted checkerboard pattern coordinates
+    /** finds object pose from 3D-2D point correspondences
+     * @param _chkbrdCorners extracted 2d checkerboard pattern coordinates
+     * @param _rotation_vector represents R_CO (rotation matrix from object to camera coordinates)
+     * @param _translation_vector position of the object origin in camera coordinates
+     */
+    void calculatePose( cv::vector<cv::Point2f>& _chkbrdCorners, cv::Mat& _rotation_vector, cv::Mat& _translation_vector );
+    
+    /// calculates a gemoetry_msgs::Pose structure from given rotation and translation vectors
+    /**
+     * @param _rotation_vector represents R_CO (rotation matrix from object to camera coordinates)
+     * @param _translation_vector position of the object origin in camera coordinates
+     */
+    geometry_msgs::Pose geometryPoseFromVectors( cv::Mat& _rotation_vector, cv::Mat& _translation_vector );
     
     bool newImageLoaded_; // whether a new image has been loaded
-    cv::Mat currentImage_;
+    ros::Time lastImageRetrieval_; // time stamp of the last retrieved image
+    
+    cv_bridge::CvImage currentImage_;
     cv::Mat cameraMatrix_;
+    sensor_msgs::CameraInfo camera_info_;
     cv::Mat distortionCoefficients_; // plumb_bob model
     cv::Size patternSize_;
     std::vector<cv::Point3f> objectPointCoordinates_; // coordinates of to-be-detected checkerboard points in checkerboard frame

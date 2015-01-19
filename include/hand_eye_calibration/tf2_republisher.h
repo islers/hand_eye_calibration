@@ -1,23 +1,28 @@
  /******************************************************************************
 *
 * Author:
-* Stefan Isler, islerstefan@bluewin.ch, ETH Zürich 2014
+* Stefan Isler, islerstefan@bluewin.ch, ETH Zürich 2015
 *
 *
-* This class reads tf arm joint transformations published on the /tf topic by the
-* KUKA youbot controllers and republishes the transformation from the base to the last
-* joint (joint 5) on /hec/hand_position as geometry_msgs/Pose type.
+* This class reads tf arm joint transformations between the links specified on
+* the parameter server and republishes them on the /hec/eye_position topic.
 * 
 * subscribes:	- /tf [expecting tf2_msgs/TFMessage]
 * 
-* publishes:	- /hec/eye_position [geometry_msgs/Pose]: default is transformation link 0 (arm base) ->link 5
+* publishes:	- /hec/eye_position [geometry_msgs/Pose]: transformation base_link ->end_link (hand)
 * 		 thus: rotation R_BH (rotation hand->base) and translation t_BH in B coordinates
+* services provided:
+* 	- hand_eye_hand_pose [HandPose.srv]
+* 
+* expects on parameter server:
+* 	- hec/hand/base_link
+* 	- hand/end_link
 * 
 * 
 * Released under the GNU Lesser General Public License v3 (LGPLv3), see www.gnu.org
 *
 ******************************************************************************/
-/* Copyright (c) 2014, 2015, Stefan Isler, islerstefan@bluewin.ch
+/* Copyright (c) 2015, Stefan Isler, islerstefan@bluewin.ch
 *
 This file is part of hand_eye_calibration, a ROS package for hand eye calibration,
 
@@ -47,15 +52,15 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include "hand_eye_calibration/HandPose.h"
 
 
-class YoubotLinkPositionPublisher
+class TF2Republisher
 {
   public:
     /** constructor expects as arguments the id's of the arm links for which the transformation shall be published:
      * 0: arm_base (rigidly fixed to youbot base)
      * 1-5: the moving arm links
      */
-    YoubotLinkPositionPublisher( ros::NodeHandle* _n, int _sourceId=0, int _targetId=5 );
-    ~YoubotLinkPositionPublisher();
+    TF2Republisher( ros::NodeHandle* _n );
+    ~TF2Republisher();
     
     /** starts the listening */
     void run();
@@ -66,7 +71,8 @@ class YoubotLinkPositionPublisher
     ros::ServiceServer hand_position_server_;
     
     int sourceFrameId_, targetFrameId_;
-    std::vector<std::string> linkNames_;
+    
+    std::string base_link_, end_link_;
     
     /// calculates the transformation between the specified links
     /**

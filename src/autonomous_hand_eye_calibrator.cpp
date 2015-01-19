@@ -17,6 +17,11 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 #include "hand_eye_calibration/autonomous_hand_eye_calibrator.h"
 #include <string>
+#include <control_msgs/FollowJointTrajectoryAction.h>
+
+#include "hand_eye_calibration/CameraPose.h"
+#include "hand_eye_calibration/CameraPoseInfo.h"
+#include "hand_eye_calibration/HandPose.h"
 
 AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
   ros_node_(_n),
@@ -24,22 +29,50 @@ AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
 {
   initializeJointSpace();
   
+  std::string moveit_group_name;
+  if( !ros_node_->getParam("moveit_group_name",moveit_group_name) )
+  {
+    std::string error = "AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n )::line "+std::to_string(__LINE__)+"::No MoveIt! group name given. Check your auto_config.yaml file. Shutting down node.";
+    ROS_FATAL("%s",error.c_str());
+    ros::shutdown();
+    return;
+  }
+  
+  robot_ = boost::shared_ptr<moveit::planning_interface::MoveGroup>( new moveit::planning_interface::MoveGroup(moveit_group_name) );
+  robot_->startStateMonitor();
+  
+  eye_client_ = ros_node_->serviceClient<hand_eye_calibration::CameraPose>("hand_eye_eye_pose");
+  hand_client_ = ros_node_->serviceClient<hand_eye_calibration::HandPose>("hand_eye_hand_pose");
+  
+  hand_eye_calibration::CameraPoseInfo cam_info;
+  if( !ros::service::call("hand_eye_eye_node_info",cam_info) )
+  {
+    std::string error = "AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n )::line "+std::to_string(__LINE__)+"::Could not contact service 'hand_eye_eye_node_info'. Shutting down.";
+    ROS_FATAL("%s",error.c_str());
+    ros::shutdown();
+    return;
+  }
   
 }
 
 bool AutonomousHandEyeCalibrator::runSingleIteration()
-{
-  moveit::planning_interface::MoveGroup robot("arm");
-  
+{  
   std::vector<double> current_state;
-  current_state = robot.getCurrentJointValues();
+  current_state = robot_->getCurrentJointValues();
   for( unsigned int i=0; i<current_state.size(); i++ )
   {
     std::cout<<std::endl<<current_state[i];
   }
   std::cout<<std::endl;
+  current_state[1] = 1.15;
+  current_state[2] = -2.6;
+  current_state[3] = 1.88;
+  current_state[4] = 2.9;
   
-  robot.stop();
+  robot_->setJointValueTarget( current_state );
+  
+  planAndMove();
+  
   
   return false; /////////////////////////////////////////////////////// dummy
 }
@@ -126,5 +159,49 @@ void AutonomousHandEyeCalibrator::initializeJointConfiguration( std::string name
   
   joint_position_.addDim( &new_joint_dimension, name_ );
   
+  return;
+}
+
+void AutonomousHandEyeCalibrator::planAndMove()
+{
+  
+  std::vector<double> target_state_position;
+  
+  std::vector<std::string> joint_names = robot_->getJoints();
+  
+  robot_state::RobotStatePtr current_robot_state;
+  
+  // move() and execute() never unblock thus this target reaching function is used
+  robot_state::RobotState target_robot_state = robot_->getJointValueTarget();
+  
+  for( unsigned int i = 0; i < joint_names.size() ; i++ )
+  {
+    target_state_position.push_back( target_robot_state.getVariablePosition(joint_names[i]) );
+  }
+  
+  double joint_tolerance = robot_->getGoalJointTolerance();
+  double velocity_tolerance = 0.0001;
+    
+  
+  // plan and execute a path to the target state
+  moveit::planning_interface::MoveItErrorCode result = robot_->asyncMove();
+     
+  ros::Duration wait_time(0,10000000);
+  
+  bool succeeded = false;
+  // check whether the robot has assumed the commanded target state yet or not
+  while( !succeeded )
+  {
+    succeeded = true;
+    current_robot_state = robot_->getCurrentState();
+        
+    for( unsigned int i = 0; i < joint_names.size(); i++ )
+    {
+      succeeded = succeeded && ( abs( current_robot_state->getVariablePosition(joint_names[i]) - target_state_position[i] ) <= joint_tolerance ) && ( abs( current_robot_state->getVariableVelocity(joint_names[i]) ) <= velocity_tolerance );
+    }
+    
+    ros::spinOnce();
+    wait_time.sleep();
+  }
   return;
 }
