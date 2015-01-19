@@ -22,6 +22,8 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include "hand_eye_calibration/dual_quaternion_transformation_estimator.h"
 #include <moveit/move_group_interface/move_group.h>
 
+#include <sensor_msgs/CameraInfo.h>
+
 /// class that autonomously extracts hand-eye pose correspondences in a robotic setup and estimates the hand-eye-calibration from it
 class AutonomousHandEyeCalibrator
 {
@@ -58,9 +60,13 @@ private:
   
   boost::shared_ptr<moveit::planning_interface::MoveGroup> robot_;
   
+  sensor_msgs::CameraInfo camera_info_; /// camera information from the camera pose publication node
+  std::vector<geometry_msgs::Point> pattern_coordinates_; /// coordinates of the pattern used for calibration in its own 3d coordinate frame
+  
   st_is::ContinuousXDimSpaceIterator< st_is::NumericIterator<double> > joint_position_; // current joint configuration of the robot
   DualQuaternionTransformationEstimator daniilidis_estimator_;
   std::vector< std::string > joint_names_;
+  bool position_initialized_;
   
   /// loads the joint dimension names, limits and step sizes, initializes joint_position_ accordingly
   /** @throws ROS_FATAL if a correct configuration wasn't found on the parameter server and shuts down the node
@@ -76,5 +82,23 @@ private:
   /** completion means that the robot state is closer to the target than set in the tolerance and its velocity is approximately zero in all joint
    */
   void planAndMove();
+  
+  /// initializes the position to the current position of the arm
+  /**
+   * @throws ROS_ERROR If not all joints set for actuation are available through the MoveGroup
+   */
+  void initializePosition();
+  
+  /// sets target position to the position encoded in position
+  /** @param _position the new position to be assumed, can be a subspace of the active joints in the MoveGroup,
+   * in which case all unmentioned joint values will be left at the current position
+   */
+  void setTargetPosition( st_is::ContinuousXDimSpaceIterator< st_is::NumericIterator<double> >& _position );
+  
+  /// returns if camera pose publisher node info is available 
+  /** If the information has not yet been gathered, it attempts to get information about the camera pose publisher node by calling the hand_eye_eye_node_info service
+   */
+  bool cameraPubNodeInfoAvailable();
+  
   
 };

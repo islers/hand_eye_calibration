@@ -94,6 +94,15 @@ namespace st_is
     
     bool pass_border_twice; // whether the border element is passed twice, once before and once after bouncing or not, default is false
     
+    /// splits the iterator at the current position - splitting is deactivated if the new border equals the border the iterator would have in the unsplit case (which is its lower_bound)
+    void split();
+    
+    /// whether the iterator is split or not
+    bool isSplit();
+    
+    /// returns the iterator border - empty iterator if iterator not split
+    RAIt iteratorBorder();
+    
   private:
     RAIt pos_; /// internal iterator that is being moved
     RAIt lower_bound_; /// lower bound iterator (lowest iterator that is part of the iterated set)
@@ -101,9 +110,16 @@ namespace st_is
     
     bool bounced_; /// whether the IteratorBouncer bounced_ during the last incrementation or decrementation or not
     bool is_reversed_; /// after one bounce the iteration is reversed, after two bounces it is normal again
+    bool split_space_; /// true if the iterator border is not at the lower and upper bound but somewhere in the array
+    RAIt iterator_border_; /// border of the iterator if splitSpace_=true: iterator_border equals the new lower bound, iterator_border-1 the new upper bound
     
     void moveUp(); /// moves the iterator upwards (can bounce)
     void moveDown(); /// moves the iterator downwards (can bounce)
+    
+    /// returns true if the current iterator points to the begin (split space considered)
+    bool atBegin();
+    /// returns true if the current iterator points to the end (split space considered)
+    bool atEnd();
   };
   
   
@@ -223,12 +239,52 @@ namespace st_is
   }
   
   TEMPRAIt
+  void IteratorBouncer<RAIt>::split()
+  {
+    if( pos_==lower_bound_ )
+    {
+      split_space_ = false;
+    }
+    else
+    {
+      iterator_border_ = pos_;
+      split_space_ = true;
+    }
+    return;
+  }
+  
+  TEMPRAIt
+  bool IteratorBouncer<RAIt>::isSplit()
+  {
+    return split_space_;
+  }
+  
+  TEMPRAIt
+  RAIt IteratorBouncer<RAIt>::iteratorBorder()
+  {
+    if( split_space_ ) return pos_;
+    else return RAIt();
+  }
+  
+  TEMPRAIt
   void IteratorBouncer<RAIt>::moveUp()
   {
-    if( pos_ == upper_bound_ )
+    if( atEnd() )
     {
-      if( !pass_border_twice && (pos_ != lower_bound_)  )
-	pos_--;
+      if( !pass_border_twice  )
+      {
+	if( !split_space_ )
+	{
+	  if( pos_ != lower_bound_ ) pos_--;
+	}
+	else
+	{
+	  if( pos_ != lower_bound_ )
+	    pos_--;
+	  else
+	    pos_ = upper_bound_;
+	}
+      }
       
       bounced_ = true;
       is_reversed_ = !is_reversed_;
@@ -236,17 +292,39 @@ namespace st_is
     else
     {
       bounced_ = false;
-      pos_++;
+      if( !split_space_ )
+      {
+	pos_++;
+      }
+      else
+      {
+	if( pos_!=upper_bound_ )
+	  pos_++;
+	else
+	  pos_ = lower_bound_;
+      }
     }
   }
   
   TEMPRAIt
   void IteratorBouncer<RAIt>::moveDown()
   {
-    if( pos_ == lower_bound_ )
+    if( atBegin() )
     {
-      if( !pass_border_twice && (pos_ != upper_bound_) )
-	pos_++;
+      if( !pass_border_twice )
+      {
+	if( !split_space_ )
+	{
+	  if( pos_ != upper_bound_ ) pos_++;
+	}
+	else
+	{
+	  if( pos_ != upper_bound_ )
+	    pos_++;
+	  else
+	    pos_ = lower_bound_;	    
+	}
+      }
       
       bounced_ = true;
       is_reversed_ = !is_reversed_;
@@ -254,10 +332,44 @@ namespace st_is
     else
     {
       bounced_ = false;
-      pos_--;
+      
+      if( !split_space_ )
+	pos_--;
+      else
+      {
+	if( pos_ != lower_bound_ )
+	  pos_--;
+	else
+	  pos_ = upper_bound_;
+      }
     }
   }
   
+  TEMPRAIt
+  bool IteratorBouncer<RAIt>::atBegin()
+  {
+    if( !split_space_ )
+    {
+      return ( pos_ == lower_bound_ );
+    }
+    else
+    {
+      return ( pos_ == iterator_border_ );
+    }
+  }
+  
+  TEMPRAIt
+  bool IteratorBouncer<RAIt>::atEnd()
+  {
+    if( !split_space_ )
+    {
+      return ( pos_ == upper_bound_ );
+    }
+    else
+    {
+      return ( pos_ == (iterator_border_-1) );
+    }
+  }
 }
 
 #undef TEMPRAIt

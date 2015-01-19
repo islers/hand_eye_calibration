@@ -62,15 +62,15 @@ namespace st_is
     /// returns the value of the iterator pointed at by the iterator of dimension _dim_name
     /** @param _dim_name The name of the dimension
      * @return An empty value_type if no dimension with the given name was found
-     * @throws std::runtime_error If dimension naming is disabled, that is use_named_dim_=false
+     * @throws std::runtime_error If dimension naming is disabled, that is use_named_dim_=false or if the name is unknown
      */
-    typename std::iterator_traits<RAIt>::value_type getDimValue( std:: string _dim_name );
+    typename std::iterator_traits<RAIt>::value_type& getDimValue( std:: string _dim_name );
     
     /// returns the value of the iterator pointed at by the iterator with order _order
     /** @param _order Order of the dimension (the first has order 0
      * @throws std::range_error If the given order _order is too high
      */
-    typename std::iterator_traits<RAIt>::value_type getDimValue( unsigned int _order );
+    typename std::iterator_traits<RAIt>::value_type& getDimValue( unsigned int _order );
     
     /// returns a reference to the value of the iterator pointed at by the iterator with order _order
     /** @param _order Order of the dimension (the first has order 0
@@ -89,9 +89,15 @@ namespace st_is
     ContinuousXDimSpaceIterator<RAIt>& operator--();
     ContinuousXDimSpaceIterator<RAIt> operator--(int);
     
+    /// return the names of the dimensions
+    std::vector<std::string> dimensionNames();
+    
     /// returns true if the highest point in the space is reached, defined as the position where the bounced() flag is set for all internal IteratorBouncer.
     /** Note that this position may change if the range of the internal IteratorBouncers changes */
     bool reachedTop();
+    
+    /// sets the current internal position as new lower end of the spanned space
+    void split();
     
   private:
     std::vector< IteratorBouncer<RAIt> > position_; /// vector pointing to the current position in iterator space
@@ -132,7 +138,7 @@ namespace st_is
   }
   
   TEMPRAIt
-  typename std::iterator_traits<RAIt>::value_type ContinuousXDimSpaceIterator<RAIt>::getDimValue( std:: string _dim_name )
+  typename std::iterator_traits<RAIt>::value_type& ContinuousXDimSpaceIterator<RAIt>::getDimValue( std:: string _dim_name )
   {
     if( !use_named_dim_ )
     {
@@ -147,11 +153,13 @@ namespace st_is
 	return (*position_[i]);
       }
     }
-    return std::iterator_traits<RAIt>::value_type();
+    std::runtime_error e("multi_dimensional_space_iterator.h::"+std::to_string(__LINE__)+"::typename std::iterator_traits<RAIt>::value_type ContinuousXDimSpaceIterator<RAIt>::getDimValue( std:: string _dim_name )::Cannot return reference to dimension with name "+_dim_name+". No dimension with such a name known.");
+    throw e;
+    return *position_[0];
   }
   
   TEMPRAIt
-  typename std::iterator_traits<RAIt>::value_type ContinuousXDimSpaceIterator<RAIt>::getDimValue( unsigned int _order )
+  typename std::iterator_traits<RAIt>::value_type& ContinuousXDimSpaceIterator<RAIt>::getDimValue( unsigned int _order )
   {
     if( _order >= position_.size() )
     {
@@ -221,7 +229,13 @@ namespace st_is
     ContinuousXDimSpaceIterator<RAIt> copy(*this);
     operator--();
     return copy;
-  }    
+  }
+  
+  TEMPRAIt
+  std::vector<std::string> ContinuousXDimSpaceIterator<RAIt>::dimensionNames()
+  {
+    return dim_names_;
+  }
   
   TEMPRAIt
   bool ContinuousXDimSpaceIterator<RAIt>::reachedTop()
@@ -229,6 +243,15 @@ namespace st_is
     bool reached_top = true;
     for( std::size_t dim=0; dim < position_.size(); dim++ ) reached_top = reached_top && position_[dim].bounced();
     return reached_top;
+  }
+  
+  TEMPRAIt
+  void ContinuousXDimSpaceIterator<RAIt>::split()
+  {
+    for( unsigned int i=0; i<position_.size(); i++ )
+    {
+      position_[i].split();
+    }
   }
 }
 

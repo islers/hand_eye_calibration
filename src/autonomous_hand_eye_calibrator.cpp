@@ -25,7 +25,8 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
   ros_node_(_n),
-  daniilidis_estimator_(_n)
+  daniilidis_estimator_(_n),
+  position_initialized_(false)
 {
   initializeJointSpace();
   
@@ -44,19 +45,26 @@ AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
   eye_client_ = ros_node_->serviceClient<hand_eye_calibration::CameraPose>("hand_eye_eye_pose");
   hand_client_ = ros_node_->serviceClient<hand_eye_calibration::HandPose>("hand_eye_hand_pose");
   
-  hand_eye_calibration::CameraPoseInfo cam_info;
-  if( !ros::service::call("hand_eye_eye_node_info",cam_info) )
-  {
-    std::string error = "AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n )::line "+std::to_string(__LINE__)+"::Could not contact service 'hand_eye_eye_node_info'. Shutting down.";
-    ROS_FATAL("%s",error.c_str());
-    ros::shutdown();
-    return;
-  }
+  cameraPubNodeInfoAvailable(); // attempts to gather information
   
 }
 
 bool AutonomousHandEyeCalibrator::runSingleIteration()
-{  
+{   
+  if( !position_initialized_ ) // first iteration, initialize position, check if all listed joints are available for actuation through the move group with the provided name
+  {    
+    initializePosition();
+  }
+  else
+  { // get next position
+    joint_position_++;
+  }
+  // while position invalid: pos++
+  // move to position
+  // check if checkerboard visible
+  // ->add pose pair
+  
+  
   std::vector<double> current_state;
   current_state = robot_->getCurrentJointValues();
   for( unsigned int i=0; i<current_state.size(); i++ )
@@ -109,13 +117,15 @@ void AutonomousHandEyeCalibrator::initializeJointSpace()
   for (unsigned int i = 0; i < static_cast<unsigned int> (jointNames.size()); ++i)
   {
     XmlRpc::XmlRpcValue &name = jointNames[i];
-      if (name.getType() != XmlRpc::XmlRpcValue::TypeString)
-      {
-	std::string error = "AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n )::line "+std::to_string(__LINE__)+"::Array of joint names should contain only strings.  (namespace: "+ros_node_->getNamespace()+"). Check your auto_config.yaml file. Shutting down node.";
-	ROS_FATAL("%s",error.c_str());
-	ros::shutdown();
-	return;
-      }
+    if (name.getType() != XmlRpc::XmlRpcValue::TypeString)
+    {
+      std::string error = "AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n )::line "+std::to_string(__LINE__)+"::Array of joint names should contain only strings.  (namespace: "+ros_node_->getNamespace()+"). Check your auto_config.yaml file. Shutting down node.";
+      ROS_FATAL("%s",error.c_str());
+      ros::shutdown();
+      return;
+    }
+    else
+      joint_names_.push_back( jointNames[i] );
   }  
   
   for (unsigned int i = 0; i < static_cast<unsigned int> (jointNames.size()); ++i)
@@ -162,6 +172,71 @@ void AutonomousHandEyeCalibrator::initializeJointConfiguration( std::string name
   return;
 }
 
+void AutonomousHandEyeCalibrator::initializePosition()
+{
+  std::vector<std::string> active_moveit_joints;
+  active_moveit_joints = robot_->getActiveJoints(); // get activated joints in the constructed move group
+  
+  bool all_joints_available = true;
+  // check if all joints that shall be actuated actually are activated joints in the MoveGroup
+  for( unsigned int i=0; joint_names_.size(); i++ )
+  {
+    bool joint_available = false;
+    for( unsigned int j=0; active_moveit_joints.size(); j++ )
+    {
+      if( joint_names_[i] == active_moveit_joints[j] )
+      {
+	joint_available = true;
+	break;
+      }
+    }
+    if( joint_available == false )
+    {
+      all_joints_available = false;
+      break;
+    }
+  }
+  
+  if( !all_joints_available )
+  {
+    std::string error = "AutonomousHandEyeCalibrator::runSingleIteration()::Not all joints given in the auto_config.yaml file are available for actuation in the MoveIt group '" + robot_->getName() + "' provided. The dimensions to be activated are";
+    
+    for( unsigned int i=0; joint_names_.size(); i++ )
+      error += " "+joint_names_[i];
+    
+    error += ". The actuated joints in the MoveGroup are";      
+    for( unsigned int i=0; active_moveit_joints.size(); i++ )
+      error += " '"+active_moveit_joints[i]+"'";
+    error += ". No iteration will be carried out.";
+    
+    ROS_ERROR( "%s",error.c_str() );
+    
+    return;
+  }
+  else
+  {
+    // initialize position
+    
+    std::vector<double> current_state;
+    current_state = robot_->getCurrentJointValues();
+    
+    for( unsigned int i=0; i<joint_names_.size(); i++ )
+    {
+      for( unsigned int j=0; active_moveit_joints.size(); j++ )
+      {
+	if( joint_names_[i] == active_moveit_joints[j] )
+	{
+	  joint_position_.getDimValue( joint_names_[i] ) = current_state[j];
+	}
+      }
+      
+    }
+    joint_position_.split();
+    position_initialized_ = true;
+  }
+  return;
+}
+
 void AutonomousHandEyeCalibrator::planAndMove()
 {
   
@@ -204,4 +279,24 @@ void AutonomousHandEyeCalibrator::planAndMove()
     wait_time.sleep();
   }
   return;
+}
+
+bool AutonomousHandEyeCalibrator::cameraPubNodeInfoAvailable()
+{
+  if( !pattern_coordinates_.empty() )
+    return true;
+  
+  hand_eye_calibration::CameraPoseInfo cam_pose_info;
+  if( !ros::service::call("hand_eye_eye_node_info",cam_pose_info) )
+  {
+    std::string warning = "AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator::could not contact 'hand_eye_eye_node_info'-service of cam pose publisher node. AutonomousHandEyeCalibrator will iterate without any knowledge of the position of the calibration target if you proceed.";
+    ROS_WARN("%s",warning.c_str());
+    return false;
+  }
+  else
+  {
+    camera_info_ = cam_pose_info.response.info.camera_info;
+    pattern_coordinates_ = cam_pose_info.response.info.pattern_coordinates;
+    return true;
+  }
 }
