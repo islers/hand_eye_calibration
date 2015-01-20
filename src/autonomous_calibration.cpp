@@ -26,7 +26,16 @@ int main(int argc, char **argv)
   
   
   AutonomousHandEyeCalibrator calibrator(&n);
-  calibrator.runSingleIteration();
+  
+  
+  cout<<endl<<"starting"<<endl;
+  ros::Rate rate(0.2);
+  while ( calibrator.runSingleIteration() && n.ok() )
+  {
+    cout<<endl<<"performing step";
+    rate.sleep();
+  }
+  cout<<endl<<"finished iteration"<<endl;
   
   return 0;
 } 

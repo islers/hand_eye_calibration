@@ -99,6 +99,9 @@ namespace st_is
     /// sets the current internal position as new lower end of the spanned space
     void split();
     
+    /// splits all dimensions at the current internal position but resolve each when it was iterated -> see IteratorBouncer descriptions
+    void resolvingSplit();
+    
   private:
     std::vector< IteratorBouncer<RAIt> > position_; /// vector pointing to the current position in iterator space
     std::vector< std::string > dim_names_; /// names of the dimensions
@@ -251,6 +254,15 @@ namespace st_is
     for( unsigned int i=0; i<position_.size(); i++ )
     {
       position_[i].split();
+    }
+  }
+  
+  TEMPRAIt
+  void ContinuousXDimSpaceIterator<RAIt>::resolvingSplit()
+  {
+    for( unsigned int i=0; i<position_.size(); i++ )
+    {
+      position_[i].resolvingSplit();
     }
   }
 }

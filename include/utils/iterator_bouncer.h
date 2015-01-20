@@ -97,6 +97,11 @@ namespace st_is
     /// splits the iterator at the current position - splitting is deactivated if the new border equals the border the iterator would have in the unsplit case (which is its lower_bound)
     void split();
     
+    /// sets a resolving split at the current internal position that resolves after one iteration
+    /** e.g. split at 4 in space (1..6): for incrementing: 4,5,6,3,2,1,2,3,4,5,6,5,4,3,2,1,2,3,4,5,6,...
+     */
+    void resolvingSplit();
+    
     /// whether the iterator is split or not
     bool isSplit();
     
@@ -111,6 +116,7 @@ namespace st_is
     bool bounced_; /// whether the IteratorBouncer bounced_ during the last incrementation or decrementation or not
     bool is_reversed_; /// after one bounce the iteration is reversed, after two bounces it is normal again
     bool split_space_; /// true if the iterator border is not at the lower and upper bound but somewhere in the array
+    bool split_resolves_; /// whether splits resolve or not
     RAIt iterator_border_; /// border of the iterator if splitSpace_=true: iterator_border equals the new lower bound, iterator_border-1 the new upper bound
     
     void moveUp(); /// moves the iterator upwards (can bounce)
@@ -131,7 +137,9 @@ namespace st_is
   IteratorBouncer<RAIt>::IteratorBouncer( RAIt _init_pos, RAIt _lower_bound, RAIt _upper_bound ):
     pass_border_twice(false),
     bounced_(false),
-    is_reversed_(false)
+    is_reversed_(false),
+    split_space_(false),
+    split_resolves_(false)
   {
     if( _lower_bound > _upper_bound )
     {
@@ -152,7 +160,9 @@ namespace st_is
   IteratorBouncer<RAIt>::IteratorBouncer( RAIt _lower_bound, RAIt _upper_bound ):
     pass_border_twice(false),
     bounced_(false),
-    is_reversed_(false)
+    is_reversed_(false),
+    split_space_(false),
+    split_resolves_(false)
   {
     if( _lower_bound > _upper_bound )
     {
@@ -241,6 +251,8 @@ namespace st_is
   TEMPRAIt
   void IteratorBouncer<RAIt>::split()
   {
+    split_resolves_ = false;
+    
     if( pos_==lower_bound_ )
     {
       split_space_ = false;
@@ -249,6 +261,22 @@ namespace st_is
     {
       iterator_border_ = pos_;
       split_space_ = true;
+    }
+    return;
+  }
+  
+  TEMPRAIt
+  void IteratorBouncer<RAIt>::resolvingSplit()
+  {
+    if( pos_==lower_bound_ )
+    {
+      split_space_ = false;
+    }
+    else
+    {
+      iterator_border_ = pos_;
+      split_space_ = true;
+      split_resolves_ = true;
     }
     return;
   }
@@ -282,7 +310,15 @@ namespace st_is
 	  if( pos_ != lower_bound_ )
 	    pos_--;
 	  else
-	    pos_ = upper_bound_;
+	  {
+	    if( !split_resolves_ )
+	      pos_ = upper_bound_;
+	    else
+	    {
+	      pos_ = iterator_border_-1;
+	      split_space_ = false;
+	    }
+	  }
 	}
       }
       
@@ -301,7 +337,16 @@ namespace st_is
 	if( pos_!=upper_bound_ )
 	  pos_++;
 	else
-	  pos_ = lower_bound_;
+	{
+	  if( !split_resolves_ )
+	    pos_ = lower_bound_;
+	  else
+	  {
+	    pos_ = iterator_border_-1;
+	    split_space_ = false;
+	    is_reversed_ = !is_reversed_;
+	  }
+	}
       }
     }
   }
@@ -322,7 +367,15 @@ namespace st_is
 	  if( pos_ != upper_bound_ )
 	    pos_++;
 	  else
-	    pos_ = lower_bound_;	    
+	  {
+	    if( !split_resolves_ )
+	      pos_ = lower_bound_;
+	    else
+	    {
+	      pos_ = iterator_border_;
+	      split_space_ = false;
+	    }
+	  }
 	}
       }
       
@@ -340,7 +393,16 @@ namespace st_is
 	if( pos_ != lower_bound_ )
 	  pos_--;
 	else
-	  pos_ = upper_bound_;
+	{
+	  if( !split_resolves_ )
+	    pos_ = upper_bound_;
+	  else
+	  {
+	    pos_ = iterator_border_;
+	    split_space_ = false;
+	    is_reversed_ = !is_reversed_;
+	  }
+	}
       }
     }
   }

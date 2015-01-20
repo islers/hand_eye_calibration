@@ -21,6 +21,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include "utils/continuous_x_dim_space_iterator.h"
 #include "hand_eye_calibration/dual_quaternion_transformation_estimator.h"
 #include <moveit/move_group_interface/move_group.h>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 
 #include <sensor_msgs/CameraInfo.h>
 
@@ -58,6 +59,7 @@ private:
   ros::ServiceClient eye_client_;
   ros::ServiceClient hand_client_;
   
+  boost::shared_ptr<planning_scene_monitor::PlanningSceneMonitor> scene_;
   boost::shared_ptr<moveit::planning_interface::MoveGroup> robot_;
   
   sensor_msgs::CameraInfo camera_info_; /// camera information from the camera pose publication node
@@ -89,11 +91,25 @@ private:
    */
   void initializePosition();
   
-  /// sets target position to the position encoded in position
-  /** @param _position the new position to be assumed, can be a subspace of the active joints in the MoveGroup,
-   * in which case all unmentioned joint values will be left at the current position
+  /// calculates the next position and writes it into joint_position_
+  /** (with no collisions, and where the calibration pattern is expected to be visible if calibration results
+   * are already available
+   * @return true if new position was found, false otherwhise (which means that the joint space was fully covered)
    */
-  void setTargetPosition( st_is::ContinuousXDimSpaceIterator< st_is::NumericIterator<double> >& _position );
+  bool calculateNextJointPosition();
+  
+  /// returns whether MoveIt believes the current joint position (values in joint_position_, not the current position of the real robot) configuration to be free of collisions or not
+  bool isCollisionFree();
+  
+  /// calculates whether the calibration pattern is expected to be visible at the current joint position
+  /** @return true if expected to be visible or no knowledge of the calibration pattern position is available
+   */
+  bool calibrationPatternExpectedVisible();
+    
+  /// sets target position to the position encoded in position
+  /** The new position to be assumed is the one in joint_position_
+   */
+  void setTargetToNewPosition( );
   
   /// returns if camera pose publisher node info is available 
   /** If the information has not yet been gathered, it attempts to get information about the camera pose publisher node by calling the hand_eye_eye_node_info service
