@@ -24,7 +24,7 @@ tf2Listener_(tfCore_)
   rosNode_ = _n;
   
   posePublisher_ = rosNode_->advertise<geometry_msgs::Pose>("/hec/hand_position",10);
-  hand_position_server_ = rosNode_->advertiseService("hand_eye_hand_pose", &TF2Republisher::serviceHandPoseRequest, this );
+  hand_position_server_ = rosNode_->advertiseService("hec_hand_pose", &TF2Republisher::serviceHandPoseRequest, this );
   
   if( !rosNode_->getParam("hand/base_link",base_link_) )
   {

@@ -26,8 +26,8 @@ EyePositionFromCheckerboard::EyePositionFromCheckerboard( ros::NodeHandle* _n )
   cameraStream_ = rosNode_->subscribe("/camera/image_rect",1, &EyePositionFromCheckerboard::imageLoader, this );
   cameraInfoSubscriber_ = rosNode_->subscribe("/camera/camera_info",1,&EyePositionFromCheckerboard::cameraInfoUpdate, this );
   
-  eyePositionServer_ = rosNode_->advertiseService("hand_eye_eye_pose", &EyePositionFromCheckerboard::serviceCameraPoseRequest, this );
-  eyePositionInfoServer_ = rosNode_->advertiseService("hand_eye_eye_node_info", &EyePositionFromCheckerboard::serviceCameraPoseInfoRequest, this );
+  eyePositionServer_ = rosNode_->advertiseService("hec_eye_pose", &EyePositionFromCheckerboard::serviceCameraPoseRequest, this );
+  eyePositionInfoServer_ = rosNode_->advertiseService("hec_eye_node_info", &EyePositionFromCheckerboard::serviceCameraPoseInfoRequest, this );
   
   initSuccess_ = false;
   newImageLoaded_ = false;

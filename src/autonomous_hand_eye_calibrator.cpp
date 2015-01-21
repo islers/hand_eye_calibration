@@ -46,8 +46,8 @@ AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
   
   robot_ = boost::shared_ptr<moveit::planning_interface::MoveGroup>( new moveit::planning_interface::MoveGroup(moveit_group_name) );
   
-  eye_client_ = ros_node_->serviceClient<hand_eye_calibration::CameraPose>("hand_eye_eye_pose");
-  hand_client_ = ros_node_->serviceClient<hand_eye_calibration::HandPose>("hand_eye_hand_pose");
+  eye_client_ = ros_node_->serviceClient<hand_eye_calibration::CameraPose>("hec_eye_pose");
+  hand_client_ = ros_node_->serviceClient<hand_eye_calibration::HandPose>("hec_hand_pose");
   
   cameraPubNodeInfoAvailable(); // attempts to gather information
   
@@ -331,7 +331,10 @@ bool AutonomousHandEyeCalibrator::planAndMove()
   
   
   bool finished = false;
+  
   // check whether the robot has assumed the commanded target state yet or not
+  ros::Time start_time = ros::Time::now();
+  ros::Duration max_wait_time(30,0); // if execution takes longer, it is considered unsuccessful
   while( !finished )
   {
     finished = true;
@@ -341,6 +344,12 @@ bool AutonomousHandEyeCalibrator::planAndMove()
     for( unsigned int i = 0; i < joint_names.size(); i++ )
     {
       finished = finished && ( abs( current_robot_state.getVariablePosition(joint_names[i]) - target_state_position[i] ) <= joint_tolerance ) && ( abs( current_robot_state.getVariableVelocity(joint_names[i]) ) <= velocity_tolerance );
+    }
+    
+    if( (start_time + max_wait_time)>ros::Time::now() )
+    {
+      robot_->stop(); // stop trajectory execuation if still active
+      return false;
     }
     
     ros::spinOnce();
@@ -381,7 +390,7 @@ bool AutonomousHandEyeCalibrator::cameraPubNodeInfoAvailable()
     return true;
   
   hand_eye_calibration::CameraPoseInfo cam_pose_info;
-  if( !ros::service::call("hand_eye_eye_node_info",cam_pose_info) )
+  if( !ros::service::call("hec_eye_node_info",cam_pose_info) )
   {
     std::string warning = "AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator::could not contact 'hand_eye_eye_node_info'-service of cam pose publisher node. AutonomousHandEyeCalibrator will iterate without any knowledge of the position of the calibration target if you proceed.";
     ROS_WARN("%s",warning.c_str());
@@ -389,6 +398,7 @@ bool AutonomousHandEyeCalibrator::cameraPubNodeInfoAvailable()
   }
   else
   {
+    ROS_INFO("Successfully contacted 'hec_eye_node_info' service.");
     camera_info_ = cam_pose_info.response.info.camera_info;
     pattern_coordinates_ = cam_pose_info.response.info.pattern_coordinates;
     return true;
