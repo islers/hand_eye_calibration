@@ -1,9 +1,9 @@
 joints:
-  - arm_joint_1
-  - arm_joint_2
-  - arm_joint_3
   - arm_joint_4
-  - arm_joint_5
+  - arm_joint_3
+  - arm_joint_2
+  - arm_joint_1
+  #- arm_joint_5
 joint_space:
   arm_joint_1: {lower_limit: 0.011, upper_limit: 5.840, step_size: 0.5}
   arm_joint_2: {lower_limit: 0.011, upper_limit: 2.617, step_size: 0.5}

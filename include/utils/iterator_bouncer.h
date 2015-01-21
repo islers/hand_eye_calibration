@@ -89,6 +89,12 @@ namespace st_is
     IteratorBouncer<RAIt>& operator--();
     IteratorBouncer<RAIt> operator--(int);
     
+    /// return the upper limit
+    RAIt upperLimit();
+    
+    /// return the lower limit
+    RAIt lowerLimit();
+    
     /// whether the IteratorBouncer bounced during the last incrementation or decrementation or not
     bool bounced();
     
@@ -240,6 +246,18 @@ namespace st_is
     IteratorBouncer<RAIt> copy(*this);
     operator--();
     return copy;
+  }
+  
+  TEMPRAIt
+  RAIt IteratorBouncer<RAIt>::upperLimit()
+  {
+    return upper_bound_;
+  }
+  
+  TEMPRAIt
+  RAIt IteratorBouncer<RAIt>::lowerLimit()
+  {
+    return lower_bound_;
   }
   
   TEMPRAIt

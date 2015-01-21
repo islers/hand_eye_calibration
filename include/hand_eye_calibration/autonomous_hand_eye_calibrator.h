@@ -22,6 +22,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include "hand_eye_calibration/dual_quaternion_transformation_estimator.h"
 #include <moveit/move_group_interface/move_group.h>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
+#include <moveit/robot_state/robot_state.h>
 
 #include <sensor_msgs/CameraInfo.h>
 
@@ -82,8 +83,9 @@ private:
   
   /// plans and executes a plan to the currently loaded target - blocks until completion
   /** completion means that the robot state is closer to the target than set in the tolerance and its velocity is approximately zero in all joint
+   * @return true if movement was executed successfully
    */
-  void planAndMove();
+  bool planAndMove();
   
   /// initializes the position to the current position of the arm
   /**
@@ -98,18 +100,27 @@ private:
    */
   bool calculateNextJointPosition();
   
-  /// returns whether MoveIt believes the current joint position (values in joint_position_, not the current position of the real robot) configuration to be free of collisions or not
-  bool isCollisionFree();
-  
-  /// calculates whether the calibration pattern is expected to be visible at the current joint position
-  /** @return true if expected to be visible or no knowledge of the calibration pattern position is available
+  /// returns whether MoveIt believes the robot state represented in _robot to be free of collisions or not given the current scene
+  /**
+   * @param _robot robot state to check
+   * @param _scene the current scene
    */
-  bool calibrationPatternExpectedVisible();
+  bool isCollisionFree( planning_scene::PlanningScenePtr _scene, robot_state::RobotState& _robot );
+  
+  /// calculates whether the calibration pattern is expected to be visible for the given robot state _robot
+  /** @param _robot state of the robot 
+   * @return true if expected to be visible or no knowledge of the calibration pattern position is available
+   */
+  bool calibrationPatternExpectedVisible( robot_state::RobotState& _robot );
     
   /// sets target position to the position encoded in position
   /** The new position to be assumed is the one in joint_position_
    */
   void setTargetToNewPosition( );
+  
+  
+  /// sets the joint values in the robot state to the values currently pointed at by joint_positions_
+  void setRobotStateToCurrentJointPosition( robot_state::RobotState& _robot );
   
   /// returns if camera pose publisher node info is available 
   /** If the information has not yet been gathered, it attempts to get information about the camera pose publisher node by calling the hand_eye_eye_node_info service

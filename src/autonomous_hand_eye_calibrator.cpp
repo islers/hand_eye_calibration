@@ -61,15 +61,16 @@ bool AutonomousHandEyeCalibrator::runSingleIteration()
   }
   else
   { // get next position
-    std::cout<<std::endl<<"Calculating next position.";
+    
     bool found_new_pos = calculateNextJointPosition();
     if( !found_new_pos )
       return false;
     else
       setTargetToNewPosition();
+    
+    planAndMove(); // don't have to move for first position
   }
   
-  planAndMove();
   // while position invalid: pos++
   // move to position
   // check if checkerboard visible
@@ -228,7 +229,8 @@ void AutonomousHandEyeCalibrator::initializePosition()
   else
   {
     // initialize position
-    scene_->getStateMonitor()->waitForCurrentState(10); //wait at most 60 seconds to get the full current state
+    //scene_->getStateMonitor()->waitForCurrentState(10);
+    
     planning_scene::PlanningScenePtr current_scene = scene_->getPlanningScene();
     
     robot_state::RobotState current_robot_state = current_scene->getCurrentState();
@@ -237,7 +239,7 @@ void AutonomousHandEyeCalibrator::initializePosition()
     current_robot_state.copyJointGroupPositions( robot_->getName(), current_state );
     //current_state = robot_->getCurrentJointValues();
     
-    std::cout<<std::endl<<"Initialize position:";
+    ROS_INFO("Initializing with current robot state.");
     
     for( unsigned int i=0; i<joint_names_.size(); i++ )
     {
@@ -259,78 +261,118 @@ void AutonomousHandEyeCalibrator::initializePosition()
 
 bool AutonomousHandEyeCalibrator::calculateNextJointPosition()
 {  
+  planning_scene::PlanningScenePtr current_scene = scene_->getPlanningScene();
+  robot_state::RobotState state_to_check = current_scene->getCurrentState();
+    
   do{
     if( joint_position_.reachedTop() )
       return false;
+    
     joint_position_++;
-  }while( !isCollisionFree() || !calibrationPatternExpectedVisible() );
+    setRobotStateToCurrentJointPosition( state_to_check );
+    
+  }while( !isCollisionFree(current_scene, state_to_check) || !calibrationPatternExpectedVisible(state_to_check) );
   return true;
 }
 
-bool AutonomousHandEyeCalibrator::isCollisionFree()
+bool AutonomousHandEyeCalibrator::isCollisionFree( planning_scene::PlanningScenePtr _scene, robot_state::RobotState& _robot )
 {
-  return true; ////////////////////////////////////////////////////////////// dummy
+  bool colliding = _scene->isStateColliding( _robot );
+  
+  if( colliding )
+  {
+    ROS_INFO("Skipping state that would lead to collision.");
+    ros::Duration wait(1,0);
+    wait.sleep();
+  }
+  
+  return !colliding;
 }
 
-bool AutonomousHandEyeCalibrator::calibrationPatternExpectedVisible()
+bool AutonomousHandEyeCalibrator::calibrationPatternExpectedVisible( robot_state::RobotState& _robot )
 {
   return true; /////////////////////////////////////////////////////////////////////// dummy
 }
 
-void AutonomousHandEyeCalibrator::planAndMove()
+bool AutonomousHandEyeCalibrator::planAndMove()
 {
   
   std::vector<double> target_state_position;
   
   std::vector<std::string> joint_names = robot_->getJoints();
   
-  robot_state::RobotStatePtr current_robot_state;
-  
   // move() and execute() never unblock thus this target reaching function is used
   robot_state::RobotState target_robot_state = robot_->getJointValueTarget();
   
   std::cout<<std::endl<<"Moving to new position:";
+  
   for( unsigned int i = 0; i < joint_names.size() ; i++ )
   {
     std::cout<<std::endl<<joint_names[i]<<": "<<target_robot_state.getVariablePosition(joint_names[i]);
     target_state_position.push_back( target_robot_state.getVariablePosition(joint_names[i]) );
   }
+  std::cout<<std::endl;
   
   double joint_tolerance = robot_->getGoalJointTolerance();
   double velocity_tolerance = 0.0001;
     
+  planning_scene::PlanningScenePtr current_scene = scene_->getPlanningScene();
+  robot_state::RobotState current_robot_state = current_scene->getCurrentState();
+    
+  robot_->setStartState(current_robot_state);
+  
   
   // plan and execute a path to the target state
-  moveit::planning_interface::MoveItErrorCode result = robot_->asyncMove();
-     
+  bool success = robot_->asyncMove();
+  
+  if( !success ) return false;
+    
   ros::Duration wait_time(0,10000000);
   
-  bool succeeded = false;
+  
+  bool finished = false;
   // check whether the robot has assumed the commanded target state yet or not
-  while( !succeeded )
+  while( !finished )
   {
-    succeeded = true;
-    current_robot_state = robot_->getCurrentState();
+    finished = true;
+    
+    current_robot_state = current_scene->getCurrentState();
         
     for( unsigned int i = 0; i < joint_names.size(); i++ )
     {
-      succeeded = succeeded && ( abs( current_robot_state->getVariablePosition(joint_names[i]) - target_state_position[i] ) <= joint_tolerance ) && ( abs( current_robot_state->getVariableVelocity(joint_names[i]) ) <= velocity_tolerance );
+      finished = finished && ( abs( current_robot_state.getVariablePosition(joint_names[i]) - target_state_position[i] ) <= joint_tolerance ) && ( abs( current_robot_state.getVariableVelocity(joint_names[i]) ) <= velocity_tolerance );
     }
     
     ros::spinOnce();
     wait_time.sleep();
   }
-  return;
+  
+  return true;
 }
 
 void AutonomousHandEyeCalibrator::setTargetToNewPosition()
 {
   for( unsigned int i=0; i<joint_names_.size(); i++ )
   {
-    robot_->setJointValueTarget( joint_names_[i], joint_position_.getDimValue(joint_names_[i]) );
+    // enforce boundaries
+    double new_value = joint_position_.getDimValue(joint_names_[i]);
+    if( new_value > *(*joint_position_)[i].upperLimit() ) new_value = *(*joint_position_)[i].upperLimit();
+    else if( new_value < *(*joint_position_)[i].lowerLimit() ) new_value = *(*joint_position_)[i].lowerLimit();
+    
+    robot_->setJointValueTarget( joint_names_[i], new_value );
   }
   
   return;
+}
+
+void AutonomousHandEyeCalibrator::setRobotStateToCurrentJointPosition( robot_state::RobotState& _robot )
+{
+  std::vector<double> joint_configuration;
+  for( unsigned int i = 0; i<joint_names_.size(); i++ )
+  {
+    joint_configuration.push_back( joint_position_[i] );
+  }
+  _robot.setVariablePositions( joint_names_, joint_configuration );
 }
 
 bool AutonomousHandEyeCalibrator::cameraPubNodeInfoAvailable()
