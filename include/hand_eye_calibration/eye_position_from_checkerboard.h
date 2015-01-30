@@ -23,11 +23,6 @@
 * 		- /hec/checkerboard/squares_per_column (nr of internal chkrbrd edges per column)
 * 		- /hec/checkerboard/squares_per_row (nr of internal chckrbrd edges per row
 * 		- /hec/checkerboard/square_size (the size of checkerboard fields in [m])
-* 	optional: (Will be loaded from camera_info topic otherwise, but data set on parameter server has priority. If data is read from camera_info topic it uses the values given in the projection matrix, not those in the camera matrix.)
-* 		- /camera/fx (intrinsic camera matrix data)
-* 		- /camera/fy (")
-* 		- /camera/cx (")
-* 		- /camera/cy (")
 * 
 * 
 * Released under the GNU Lesser General Public License v3 (LGPLv3), see www.gnu.org
@@ -113,6 +108,7 @@ class EyePositionFromCheckerboard
     ros::Time lastImageRetrieval_; // time stamp of the last retrieved image
     
     cv_bridge::CvImage currentImage_;
+    bool camera_data_retrieved_;
     cv::Mat cameraMatrix_;
     sensor_msgs::CameraInfo camera_info_;
     cv::Mat distortionCoefficients_; // plumb_bob model

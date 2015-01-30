@@ -26,7 +26,8 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
   ros_node_(_n),
   daniilidis_estimator_(_n),
-  position_initialized_(false)
+  position_initialized_(false),
+  cam_info_gathered_(false)
 {
   initializeJointSpace();
   
@@ -55,6 +56,7 @@ AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
 
 bool AutonomousHandEyeCalibrator::runSingleIteration()
 {
+  
   if( !position_initialized_ ) // first iteration, initialize position, check if all listed joints are available for actuation through the move group with the provided name
   {
     initializePosition();
@@ -68,7 +70,8 @@ bool AutonomousHandEyeCalibrator::runSingleIteration()
     else
       setTargetToNewPosition();
     
-    planAndMove(); // don't have to move for first position
+    if( planAndMove() ) // don't have to move for first position
+      return true; // no calculation for current new pos, but still new positions available
   }
   
   // while position invalid: pos++
@@ -231,7 +234,7 @@ void AutonomousHandEyeCalibrator::initializePosition()
     // initialize position
     //scene_->getStateMonitor()->waitForCurrentState(10);
     
-    planning_scene::PlanningScenePtr current_scene = scene_->getPlanningScene();
+    planning_scene_monitor::LockedPlanningSceneRO current_scene( scene_ );
     
     robot_state::RobotState current_robot_state = current_scene->getCurrentState();
     //current_robot_state->update();
@@ -261,7 +264,7 @@ void AutonomousHandEyeCalibrator::initializePosition()
 
 bool AutonomousHandEyeCalibrator::calculateNextJointPosition()
 {  
-  planning_scene::PlanningScenePtr current_scene = scene_->getPlanningScene();
+  planning_scene_monitor::LockedPlanningSceneRO current_scene( scene_ );
   robot_state::RobotState state_to_check = current_scene->getCurrentState();
     
   do{
@@ -275,7 +278,7 @@ bool AutonomousHandEyeCalibrator::calculateNextJointPosition()
   return true;
 }
 
-bool AutonomousHandEyeCalibrator::isCollisionFree( planning_scene::PlanningScenePtr _scene, robot_state::RobotState& _robot )
+bool AutonomousHandEyeCalibrator::isCollisionFree( planning_scene_monitor::LockedPlanningSceneRO& _scene, robot_state::RobotState& _robot )
 {
   bool colliding = _scene->isStateColliding( _robot );
   
@@ -291,6 +294,11 @@ bool AutonomousHandEyeCalibrator::isCollisionFree( planning_scene::PlanningScene
 
 bool AutonomousHandEyeCalibrator::calibrationPatternExpectedVisible( robot_state::RobotState& _robot )
 {
+  if( !cameraPubNodeInfoAvailable() )
+  {
+    ROS_INFO("Still no camera calibration info available. Going on with blind iteration.");
+    return true;
+  }
   return true; /////////////////////////////////////////////////////////////////////// dummy
 }
 
@@ -304,7 +312,7 @@ bool AutonomousHandEyeCalibrator::planAndMove()
   // move() and execute() never unblock thus this target reaching function is used
   robot_state::RobotState target_robot_state = robot_->getJointValueTarget();
   
-  std::cout<<std::endl<<"Moving to new position:";
+  std::cout<<std::endl<<std::endl<<"Moving to new position:";
   
   for( unsigned int i = 0; i < joint_names.size() ; i++ )
   {
@@ -316,14 +324,18 @@ bool AutonomousHandEyeCalibrator::planAndMove()
   double joint_tolerance = robot_->getGoalJointTolerance();
   double velocity_tolerance = 0.0001;
     
-  planning_scene::PlanningScenePtr current_scene = scene_->getPlanningScene();
+  planning_scene_monitor::LockedPlanningSceneRO current_scene( scene_ );
   robot_state::RobotState current_robot_state = current_scene->getCurrentState();
     
   robot_->setStartState(current_robot_state);
   
-  
+  ros::AsyncSpinner spinner(1);
+  scene_->unlockSceneRead();
+  spinner.start();
   // plan and execute a path to the target state
-  bool success = robot_->asyncMove();
+  bool success = robot_->move();
+  spinner.stop();
+  scene_->lockSceneRead();
   
   if( !success ) return false;
     
@@ -332,29 +344,35 @@ bool AutonomousHandEyeCalibrator::planAndMove()
   
   bool finished = false;
   
-  // check whether the robot has assumed the commanded target state yet or not
+  // ensuring that the robot has assumed the commanded target state
   ros::Time start_time = ros::Time::now();
-  ros::Duration max_wait_time(30,0); // if execution takes longer, it is considered unsuccessful
-  while( !finished )
+  ros::Duration max_wait_time(10.0); // if execution takes longer, it is considered unsuccessful
+  
+  do
   {
-    finished = true;
+    scene_->unlockSceneRead();
+    ros::spinOnce();
+    scene_->lockSceneRead();
     
     current_robot_state = current_scene->getCurrentState();
         
+    finished = true;
     for( unsigned int i = 0; i < joint_names.size(); i++ )
     {
       finished = finished && ( abs( current_robot_state.getVariablePosition(joint_names[i]) - target_state_position[i] ) <= joint_tolerance ) && ( abs( current_robot_state.getVariableVelocity(joint_names[i]) ) <= velocity_tolerance );
     }
     
-    if( (start_time + max_wait_time)>ros::Time::now() )
+    if( ros::Time::now() > (start_time+max_wait_time) )
     {
       robot_->stop(); // stop trajectory execuation if still active
+      ROS_WARN_STREAM("Execution of a move was signaled to be successful but the joint states suggest otherwise. Waited for "<<max_wait_time.toSec()<<" seconds for the joints to assume the commanded position, aborting now, considering it unsuccessful and going on with the calculation.");
       return false;
     }
     
-    ros::spinOnce();
-    wait_time.sleep();
-  }
+    if( !finished )
+      wait_time.sleep();
+    
+  }while( !finished );
   
   return true;
 }
@@ -386,21 +404,54 @@ void AutonomousHandEyeCalibrator::setRobotStateToCurrentJointPosition( robot_sta
 
 bool AutonomousHandEyeCalibrator::cameraPubNodeInfoAvailable()
 {
-  if( !pattern_coordinates_.empty() )
+  if( cam_info_gathered_ )
     return true;
   
+    
   hand_eye_calibration::CameraPoseInfo cam_pose_info;
   if( !ros::service::call("hec_eye_node_info",cam_pose_info) )
   {
-    std::string warning = "AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator::could not contact 'hand_eye_eye_node_info'-service of cam pose publisher node. AutonomousHandEyeCalibrator will iterate without any knowledge of the position of the calibration target if you proceed.";
+    std::string warning = "AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator::could not contact 'hec_eye_node_info'-service of cam pose publisher node. AutonomousHandEyeCalibrator will iterate without any knowledge of the position of the calibration target if you proceed.";
     ROS_WARN("%s",warning.c_str());
     return false;
   }
   else
   {
     ROS_INFO("Successfully contacted 'hec_eye_node_info' service.");
-    camera_info_ = cam_pose_info.response.info.camera_info;
-    pattern_coordinates_ = cam_pose_info.response.info.pattern_coordinates;
+    
+    
+    if( cam_pose_info.response.info.camera_info.P.size()!=12 )
+    {
+      ROS_ERROR("The projection matrix provided by the 'hec_eye_node_info' service is invalid or empty. Calibration pattern pose estimation not possible.");
+      return false;
+    }
+    if( cam_pose_info.response.info.pattern_coordinates.size()==0 )
+    {
+      ROS_ERROR("No calibraton pattern coordinates are provided by the 'hec_eye_nod_info' service. Calibration pattern pose estimation not possible.");
+      return false;
+    }
+    
+    int i = 0;
+    for( unsigned int row=0; row<3; row++ )
+    {
+      for( unsigned int col=0; col<4; col++, i++ )
+      {
+	projection_(row,col) = cam_pose_info.response.info.camera_info.P[i];
+      }
+    }
+    ROS_INFO_STREAM("The projection matrix is:"<<std::endl<<std::endl<<projection_<<std::endl);
+    
+    pattern_coordinates_.resize( 4, cam_pose_info.response.info.pattern_coordinates.size() );
+    for( unsigned int i=0; i<cam_pose_info.response.info.pattern_coordinates.size(); i++ )
+    {
+      pattern_coordinates_.col(i) << cam_pose_info.response.info.pattern_coordinates[i].x , cam_pose_info.response.info.pattern_coordinates[i].y, cam_pose_info.response.info.pattern_coordinates[i].z, 1.0;
+    }
+    
+    ROS_INFO_STREAM("Calibration pattern retrieved with "<<pattern_coordinates_.cols()<<" points.");
+    ROS_INFO_STREAM("Successfully retrieved all data needed from 'hec_eye_node_info' topic.");
+    
+    cam_info_gathered_ = true;
+    
     return true;
   }
 }

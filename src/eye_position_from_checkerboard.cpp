@@ -18,7 +18,8 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 using namespace std;
  
-EyePositionFromCheckerboard::EyePositionFromCheckerboard( ros::NodeHandle* _n )
+EyePositionFromCheckerboard::EyePositionFromCheckerboard( ros::NodeHandle* _n ):
+camera_data_retrieved_(false)
 {
   rosNode_ = _n;
   
@@ -146,12 +147,15 @@ void EyePositionFromCheckerboard::cameraInfoUpdate( const sensor_msgs::CameraInf
   distortionCoefficients_ = cv::Mat(5, 1, CV_64F);
   
   for( int i=0;i<5;i++ ) distortionCoefficients_.at<double>(i) = _newCamInfo->D[i];
+    
+  cameraMatrix_ = cv::Mat::zeros(3,3,CV_64FC1);
+  cameraMatrix_.at<double>(0,0) = fx;
+  cameraMatrix_.at<double>(1,1) = fy;
+  cameraMatrix_.at<double>(2,2) = 1;
+  cameraMatrix_.at<double>(0,2) = cx;
+  cameraMatrix_.at<double>(1,2) = cy;
   
-  
-  if( !rosNode_->getParam("/camera/fx",fx) ) rosNode_->setParam("/camera/fx",fx);
-  if( !rosNode_->getParam("/camera/fy",fy) ) rosNode_->setParam("/camera/fy",fy);
-  if( !rosNode_->getParam("/camera/cx",cx) ) rosNode_->setParam("/camera/cx",cx);
-  if( !rosNode_->getParam("/camera/cy",cy) ) rosNode_->setParam("/camera/cy",cy);
+  camera_data_retrieved_ = true;
   
   return;
 }
@@ -279,7 +283,7 @@ geometry_msgs::Pose EyePositionFromCheckerboard::geometryPoseFromVectors( cv::Ma
 
 bool EyePositionFromCheckerboard::init()
 {
-  double fx, fy, cx, cy, sPc, sPr, squareSize;
+  double sPc, sPr, squareSize;
   
   ros::Rate rate(1);
   bool initialized;
@@ -288,26 +292,10 @@ bool EyePositionFromCheckerboard::init()
     ros::spinOnce();
     initialized = true;
     
-    cout<<endl<<"Load parameters from server..."<<endl;
+    ROS_INFO("Waiting for all parameters to be initialized...");
     
-    if( !rosNode_->getParam("/camera/fx",fx) )
+    if( !camera_data_retrieved_ )
     {
-      ROS_WARN("EyePositionFromCheckerboard::initialization failed - missing fx parameter on /camera/fx");
-      initialized =  false;
-    }
-    if( !rosNode_->getParam("/camera/fy",fy) )
-    {
-      ROS_WARN("EyePositionFromCheckerboard::initialization failed - missing fy parameter on /camera/fy");
-      initialized =  false;
-    }
-    if( !rosNode_->getParam("/camera/cx",cx) )
-    {
-      ROS_WARN("EyePositionFromCheckerboard::initialization failed - missing cx parameter on /camera/cx");
-      initialized =  false;
-    }
-    if( !rosNode_->getParam("/camera/cy",cy) )
-    {
-      ROS_WARN("EyePositionFromCheckerboard::initialization failed - missing cy parameter on /camera/cy");
       initialized =  false;
     }
     if( !rosNode_->getParam("/hec/checkerboard/squares_per_column",sPc) )
@@ -330,12 +318,6 @@ bool EyePositionFromCheckerboard::init()
   
   cameraInfoSubscriber_.shutdown();
   
-  cameraMatrix_ = cv::Mat::zeros(3,3,CV_64FC1);
-  cameraMatrix_.at<double>(0,0) = fx;
-  cameraMatrix_.at<double>(1,1) = fy;
-  cameraMatrix_.at<double>(2,2) = 1;
-  cameraMatrix_.at<double>(0,2) = cx;
-  cameraMatrix_.at<double>(1,2) = cy;
   
   patternSize_ = cv::Size( sPr, sPc );
   

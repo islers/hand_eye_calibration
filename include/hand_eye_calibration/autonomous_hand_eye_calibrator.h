@@ -23,6 +23,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include <moveit/move_group_interface/move_group.h>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit/robot_state/robot_state.h>
+#include <Eigen/Core>
 
 #include <sensor_msgs/CameraInfo.h>
 
@@ -63,8 +64,9 @@ private:
   boost::shared_ptr<planning_scene_monitor::PlanningSceneMonitor> scene_;
   boost::shared_ptr<moveit::planning_interface::MoveGroup> robot_;
   
-  sensor_msgs::CameraInfo camera_info_; /// camera information from the camera pose publication node
-  std::vector<geometry_msgs::Point> pattern_coordinates_; /// coordinates of the pattern used for calibration in its own 3d coordinate frame
+  bool cam_info_gathered_; /// whether camera infor has been retrieved or not
+  Eigen::Matrix<double,3,4> projection_; /// camera projection matrix
+  Eigen::Matrix<double,4,Eigen::Dynamic> pattern_coordinates_; // coordinates of the pattern used for calibration in its own 3d coordinate frame
   
   st_is::ContinuousXDimSpaceIterator< st_is::NumericIterator<double> > joint_position_; // current joint configuration of the robot
   DualQuaternionTransformationEstimator daniilidis_estimator_;
@@ -105,7 +107,7 @@ private:
    * @param _robot robot state to check
    * @param _scene the current scene
    */
-  bool isCollisionFree( planning_scene::PlanningScenePtr _scene, robot_state::RobotState& _robot );
+  bool isCollisionFree( planning_scene_monitor::LockedPlanningSceneRO& _scene, robot_state::RobotState& _robot );
   
   /// calculates whether the calibration pattern is expected to be visible for the given robot state _robot
   /** @param _robot state of the robot 

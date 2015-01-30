@@ -57,16 +57,30 @@ target_link_libraries(youbot_link_position_publisher
   ${catkin_LIBRARIES}
 )
 
+add_dependencies(youbot_link_position_publisher
+ ${catkin_EXPORTED_TARGETS}
+)
+
 add_executable(tf2_republisher src/tf2_republisher.cpp src/tf2_republisher_node.cpp)
 
 target_link_libraries(tf2_republisher
   ${catkin_LIBRARIES}
 )
 
+add_dependencies(tf2_republisher
+ ${catkin_EXPORTED_TARGETS}
+ ${PROJECT_NAME}_generate_messages_cpp
+)
+
 add_executable(eye_position_from_checkerboard src/eye_position_from_checkerboard.cpp src/eye_position_from_checkerboard_node.cpp)
 
 target_link_libraries(eye_position_from_checkerboard
   ${catkin_LIBRARIES}
+)
+
+add_dependencies(eye_position_from_checkerboard
+ ${catkin_EXPORTED_TARGETS}
+ ${PROJECT_NAME}_generate_messages_cpp
 )
 
 add_executable(dual_quaternion_transformation_estimator src/dual_quaternion_transformation_estimator.cpp src/dual_quaternion_estimation_node.cpp)
@@ -83,4 +97,9 @@ add_executable(autonomous_hand_eye_calibration
 
 target_link_libraries(autonomous_hand_eye_calibration
   ${catkin_LIBRARIES}
+)
+
+add_dependencies(autonomous_hand_eye_calibration
+ ${catkin_EXPORTED_TARGETS}
+ ${PROJECT_NAME}_generate_messages_cpp
 )

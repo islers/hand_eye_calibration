@@ -1,25 +1,3 @@
- 
- /******************************************************************************
-*
-* Author:
-* Stefan Isler, islerstefan@bluewin.ch, ETH Zürich 2014
-*
-*
-* Class to estimate the transformation from a robot link (hand) to a camera 
-* sensor frame (eye) [Hand-Eye-Calibration] using the method described in
-* "Hand-Eye Calibration Using Dual Quaternions" by Konstantinos Daniilidis.
-* It features a simple command line interface, the estimated transformations
-* are printed to the command line as well.
-* 
-* subscribes:	- /hec/eye_position [geometry_msgs/Pose]: transformation grid->camera [rotation R_CG, position of origin of G in C
-* 		- /hec/hand_position [geometry_msgs/Pose]: transformation hand->base  [rotation R_BH, position of origin of H in B
-* 
-* 
-* Released under the GNU Lesser General Public License v3 (LGPLv3), see www.gnu.org
-*
-******************************************************************************/
- 
- 
 /* Copyright (c) 2014, 2015, Stefan Isler, islerstefan@bluewin.ch
 *
 This file is part of hand_eye_calibration, a ROS package for hand eye calibration,
@@ -51,64 +29,70 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include <opencv2/opencv.hpp>
 
 
-class DualQuaternionTransformationEstimator
+class TransformationEstimator
 {
   public:
-    DualQuaternionTransformationEstimator( ros::NodeHandle* _n );
-    ~DualQuaternionTransformationEstimator();
+    TransformationEstimator( ros::NodeHandle* _n );
+    ~TransformationEstimator();
     
     /** adds the next eye- and the next hand-position to the list of
      * pose pairs which will be used for estimation and calculates a new transformation estimate which is stored in the respective vector*/
-    void addLastRetrievedPosePair();
+    virtual void addLastRetrievedPosePair();
     
     /** deletes the last added pose pair */
-    void deleteLastAddedPosePair();
+    virtual void deleteLastAddedPosePair();
     
     /** calculates the transformation estimate */
-    void calculateTransformation(bool _suppressWarnings=false );
+    virtual void calculateTransformation(bool _suppressWarnings=false );
     
     /** returns the calculated transformation */
-    geometry_msgs::Pose getHandToEye();
+    virtual geometry_msgs::Pose getHandToEye();
     
     /** returns the rotation matrix R_EH */
-    Eigen::Matrix3d rotH2E();
+    virtual Eigen::Matrix3d rotH2E();
     
     /** returns the rotation matrix R_HE */
-    Eigen::Matrix3d rotE2H();
+    virtual Eigen::Matrix3d rotE2H();
     
     /** returns the translation vector E_t_EH (position of H in E)*/
-    Eigen::Vector3d transH2E();
+    virtual Eigen::Vector3d transH2E();
     
     /** returns the translation vector H_t_HE (position of E in H)*/
-    Eigen::Vector3d transE2H();
+    virtual Eigen::Vector3d transE2H();
     
     /** returns the transformation matrix H_EH from hand to eye coordinates */
-    Eigen::Matrix<double,4,4> matrixH2E();
+    virtual Eigen::Matrix<double,4,4> matrixH2E();
     
     /** returns the transformation matrix H_HE from eye to hand coordinates */
-    Eigen::Matrix<double,4,4> matrixE2H();
+    virtual Eigen::Matrix<double,4,4> matrixE2H();
     
     /** clears all data to restart recording */
-    void clearAll();
+    virtual void clearAll();
+    
+    /** starts listening to pose topics */
+    virtual void startListening();
+    
+    /** stops listening to pose topics */
+    virtual void stopListening();
 
     void handListening( const geometry_msgs::PoseConstPtr& _newPose );
     void eyeListening( const geometry_msgs::PoseConstPtr& _newPose );
     
     /** returns the number of pose pairs added so far */
-    int count();
+    virtual int count();
     
     
     /** saves the hand and eye poses to a file, using the opencv storage functionality. Returns true if no problems occured */
-    bool printToFile( std::string fileName_ );
+    virtual bool printToFile( std::string fileName_ );
     
     /** loads hand and eye poses from a file, saved using the printToFile method: both must be saved like a OpenCV Mat matrix with size 7xNumberOfPoses, where indices 0...3 represent the rotation quaternion and 4..6 the translation vector and the number of poses must be equal for both. The name of the hand poses must be "handPoses", the one of the eye poses "eyePoses". Returns true if succesful.
      * 
      * If destroyOldData_ is set to true, any previous hand-eye correspondences are dropped. If it is false, the correspondences loaded from file are added to the ones already stored.
     */
-    bool loadFromFile( std::string fileName_, bool destroyOldData_=false );
+    virtual bool loadFromFile( std::string fileName_, bool destroyOldData_=false );
     
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  private:
+  protected:
     ros::Subscriber handSubscriber_;
     ros::Subscriber eyeSubscriber_;
     

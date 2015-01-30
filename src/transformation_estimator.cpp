@@ -18,12 +18,10 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 using namespace Eigen;
 
-DualQuaternionTransformationEstimator::DualQuaternionTransformationEstimator( ros::NodeHandle* _n )
+TransformationEstimator::TransformationEstimator( ros::NodeHandle* _n )
 {
   rosNode_ = _n;
   
-  handSubscriber_ = rosNode_->subscribe("/hec/hand_position",1,&DualQuaternionTransformationEstimator::handListening,this);
-  eyeSubscriber_ = rosNode_->subscribe("/hec/eye_position",1,&DualQuaternionTransformationEstimator::eyeListening,this);
   
   handRecorded_ = false;
   eyeRecorded_ = false;
@@ -31,13 +29,13 @@ DualQuaternionTransformationEstimator::DualQuaternionTransformationEstimator( ro
 }
 
 
-DualQuaternionTransformationEstimator::~DualQuaternionTransformationEstimator()
+TransformationEstimator::~TransformationEstimator()
 {
   
 }
 
 
-void DualQuaternionTransformationEstimator::addLastRetrievedPosePair()
+void TransformationEstimator::addLastRetrievedPosePair()
 {  
   ROS_INFO("Saving last published poses for hand and eye...");
   
@@ -88,7 +86,7 @@ void DualQuaternionTransformationEstimator::addLastRetrievedPosePair()
 
 
 
-void DualQuaternionTransformationEstimator::deleteLastAddedPosePair()
+void TransformationEstimator::deleteLastAddedPosePair()
 {
   posePairs_.pop_back();
   if( rotationEstimates_EH_.size()>=1 ) rotationEstimates_EH_.pop_back();
@@ -97,7 +95,7 @@ void DualQuaternionTransformationEstimator::deleteLastAddedPosePair()
 }
 
 
-void DualQuaternionTransformationEstimator::calculateTransformation( bool _suppressWarnings )
+void TransformationEstimator::calculateTransformation( bool _suppressWarnings )
 {
   ROS_INFO("Calculating hand-eye transformation...");
   
@@ -258,9 +256,9 @@ void DualQuaternionTransformationEstimator::calculateTransformation( bool _suppr
 }
 
 
-geometry_msgs::Pose DualQuaternionTransformationEstimator::getHandToEye()
+geometry_msgs::Pose TransformationEstimator::getHandToEye()
 {
-  if( !transformationCalculated_ ) ROS_WARN("DualQuaternionTransformationEstimator::getTransformation() called but no transformation has been computed yet. The retrieved transformation has no significance.");
+  if( !transformationCalculated_ ) ROS_WARN("TransformationEstimator::getTransformation() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   
   geometry_msgs::Pose estimatedTransformation;
   
@@ -276,37 +274,37 @@ geometry_msgs::Pose DualQuaternionTransformationEstimator::getHandToEye()
 }
 
 
-Matrix3d DualQuaternionTransformationEstimator::rotH2E()
+Matrix3d TransformationEstimator::rotH2E()
 {
-  if( !transformationCalculated_ ) ROS_WARN("DualQuaternionTransformationEstimator::rotH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
+  if( !transformationCalculated_ ) ROS_WARN("TransformationEstimator::rotH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   return rot_EH_.toRotationMatrix();
 }
 
 
-Matrix3d DualQuaternionTransformationEstimator::rotE2H()
+Matrix3d TransformationEstimator::rotE2H()
 {
-  if( !transformationCalculated_ ) ROS_WARN("DualQuaternionTransformationEstimator::rotE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
+  if( !transformationCalculated_ ) ROS_WARN("TransformationEstimator::rotE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   return rot_EH_.inverse().toRotationMatrix();
 }
 
 
-Vector3d DualQuaternionTransformationEstimator::transH2E()
+Vector3d TransformationEstimator::transH2E()
 {
-  if( !transformationCalculated_ ) ROS_WARN("DualQuaternionTransformationEstimator::transH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
+  if( !transformationCalculated_ ) ROS_WARN("TransformationEstimator::transH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   return E_trans_EH_;
 }
 
 
-Vector3d DualQuaternionTransformationEstimator::transE2H()
+Vector3d TransformationEstimator::transE2H()
 {
-  if( !transformationCalculated_ ) ROS_WARN("DualQuaternionTransformationEstimator::transE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
+  if( !transformationCalculated_ ) ROS_WARN("TransformationEstimator::transE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   return -(rotH2E()*E_trans_EH_);
 }
 
 
-Matrix<double,4,4> DualQuaternionTransformationEstimator::matrixH2E()
+Matrix<double,4,4> TransformationEstimator::matrixH2E()
 {
-  if( !transformationCalculated_ ) ROS_WARN("DualQuaternionTransformationEstimator::matrixH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
+  if( !transformationCalculated_ ) ROS_WARN("TransformationEstimator::matrixH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   Matrix<double,4,4> mH2E;
   
   Vector3d E_t_EH = E_trans_EH_;
@@ -317,9 +315,9 @@ Matrix<double,4,4> DualQuaternionTransformationEstimator::matrixH2E()
 }
 
 
-Matrix<double,4,4> DualQuaternionTransformationEstimator::matrixE2H()
+Matrix<double,4,4> TransformationEstimator::matrixE2H()
 {
-  if( !transformationCalculated_ ) ROS_WARN("DualQuaternionTransformationEstimator::matrixE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
+  if( !transformationCalculated_ ) ROS_WARN("TransformationEstimator::matrixE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   Matrix<double,4,4> mE2H;
   
   Vector3d H_t_HE = - rotE2H()*E_trans_EH_;
@@ -330,7 +328,7 @@ Matrix<double,4,4> DualQuaternionTransformationEstimator::matrixE2H()
 }
 
 
-void DualQuaternionTransformationEstimator::clearAll()
+void TransformationEstimator::clearAll()
 {
   ROS_INFO("Deleting all buffered hand-eye pose pairs.");
   posePairs_.clear();
@@ -340,7 +338,21 @@ void DualQuaternionTransformationEstimator::clearAll()
 }
 
 
-void DualQuaternionTransformationEstimator::handListening( const geometry_msgs::PoseConstPtr& _newPose )
+void TransformationEstimator::startListening()
+{
+  handSubscriber_ = rosNode_->subscribe("/hec/hand_position",1,&TransformationEstimator::handListening,this);
+  eyeSubscriber_ = rosNode_->subscribe("/hec/eye_position",1,&TransformationEstimator::eyeListening,this);
+}
+    
+
+void TransformationEstimator::stopListening()
+{
+  handSubscriber_.shutdown();
+  eyeSubscriber_.shutdown();
+}
+
+
+void TransformationEstimator::handListening( const geometry_msgs::PoseConstPtr& _newPose )
 {  
   bufferedHand_ = *_newPose;
   handRecorded_ = true;
@@ -349,7 +361,7 @@ void DualQuaternionTransformationEstimator::handListening( const geometry_msgs::
 }
 
 
-void DualQuaternionTransformationEstimator::eyeListening( const geometry_msgs::PoseConstPtr& _newPose )
+void TransformationEstimator::eyeListening( const geometry_msgs::PoseConstPtr& _newPose )
 {  
   bufferedEye_ = *_newPose;
   eyeRecorded_ = true;
@@ -358,14 +370,14 @@ void DualQuaternionTransformationEstimator::eyeListening( const geometry_msgs::P
 }
 
 
-int DualQuaternionTransformationEstimator::count()
+int TransformationEstimator::count()
 {
   return posePairs_.size();
 }
 
 
 
-bool DualQuaternionTransformationEstimator::roots( double _aCoeff, double _bCoeff, double _cCoeff, pair<double,double>& _roots )
+bool TransformationEstimator::roots( double _aCoeff, double _bCoeff, double _cCoeff, pair<double,double>& _roots )
 {
   double discriminant = sqrt( _bCoeff*_bCoeff - 4*_aCoeff*_cCoeff );
   
@@ -378,7 +390,7 @@ bool DualQuaternionTransformationEstimator::roots( double _aCoeff, double _bCoef
 
 
 
-bool DualQuaternionTransformationEstimator::printToFile( string fileName_ )
+bool TransformationEstimator::printToFile( string fileName_ )
 {
   // create Mat arrays with the poses of hand and eye_position
   
@@ -426,7 +438,7 @@ bool DualQuaternionTransformationEstimator::printToFile( string fileName_ )
   }
   catch(...)
   {
-    ROS_ERROR("DualQuaternionTransformationEstimator::printToFile::failed.");
+    ROS_ERROR("TransformationEstimator::printToFile::failed.");
     return 0;
   }
   
@@ -435,7 +447,7 @@ bool DualQuaternionTransformationEstimator::printToFile( string fileName_ )
 
 
 
-bool DualQuaternionTransformationEstimator::loadFromFile( string fileName_, bool destroyOldData_ )
+bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldData_ )
 {
   try
   {
@@ -451,7 +463,7 @@ bool DualQuaternionTransformationEstimator::loadFromFile( string fileName_, bool
     
     if( handPoses.cols!=eyePoses.cols || handPoses.rows!=7 || eyePoses.rows!=7 || handPoses.cols==0 || estimatedTransformations.rows!=7 || estimatedTransformations.cols!=(handPoses.cols-1) )
     {
-       ROS_ERROR("DualQuaternionTransformationEstimator::loadFromFile::failed::The input file %s did not contain valid cv::Mat matrices.",fileName_.c_str() );
+       ROS_ERROR("TransformationEstimator::loadFromFile::failed::The input file %s did not contain valid cv::Mat matrices.",fileName_.c_str() );
        return 0;
     }
     
@@ -504,7 +516,7 @@ bool DualQuaternionTransformationEstimator::loadFromFile( string fileName_, bool
   }
   catch(...)
   {
-    ROS_ERROR("DualQuaternionTransformationEstimator::loadFromFile::failed.");
+    ROS_ERROR("TransformationEstimator::loadFromFile::failed.");
     return 0;
   }
   return 1;
@@ -512,7 +524,7 @@ bool DualQuaternionTransformationEstimator::loadFromFile( string fileName_, bool
 
 
 
-Matrix3d DualQuaternionTransformationEstimator::crossProdMatrix( Vector3d _vec )
+Matrix3d TransformationEstimator::crossProdMatrix( Vector3d _vec )
 {
   Matrix3d ret;
   ret<< 0,		-_vec.z(),	_vec.y(),
@@ -522,7 +534,7 @@ Matrix3d DualQuaternionTransformationEstimator::crossProdMatrix( Vector3d _vec )
 }
 
 
-Eigen::Vector3d DualQuaternionTransformationEstimator::geometryToEigen( const geometry_msgs::Point& _vec )
+Eigen::Vector3d TransformationEstimator::geometryToEigen( const geometry_msgs::Point& _vec )
 {
   Eigen::Vector3d output;
   output.x() = _vec.x;
@@ -532,7 +544,7 @@ Eigen::Vector3d DualQuaternionTransformationEstimator::geometryToEigen( const ge
 }
 
 
-Eigen::Quaterniond DualQuaternionTransformationEstimator::geometryToEigen( const geometry_msgs::Quaternion& _quat )
+Eigen::Quaterniond TransformationEstimator::geometryToEigen( const geometry_msgs::Quaternion& _quat )
 {
   Eigen::Quaterniond output;
   output.x() = _quat.x;
@@ -543,7 +555,7 @@ Eigen::Quaterniond DualQuaternionTransformationEstimator::geometryToEigen( const
 }
 
 
-pair<Eigen::Quaterniond,Eigen::Quaterniond> DualQuaternionTransformationEstimator::dualQuaternion( Eigen::Quaterniond _rot, Eigen::Vector3d _trans )
+pair<Eigen::Quaterniond,Eigen::Quaterniond> TransformationEstimator::dualQuaternion( Eigen::Quaterniond _rot, Eigen::Vector3d _trans )
 {
   Eigen::Quaterniond q, qPrime;
   
