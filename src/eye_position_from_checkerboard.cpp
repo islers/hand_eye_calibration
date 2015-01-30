@@ -162,7 +162,7 @@ void EyePositionFromCheckerboard::cameraInfoUpdate( const sensor_msgs::CameraInf
 
 bool EyePositionFromCheckerboard::serviceCameraPoseRequest( hand_eye_calibration::CameraPose::Request& _req, hand_eye_calibration::CameraPose::Response& _res )
 {
-  unsigned int request_id = _req.request.request_id;
+  ros::Time request_stamp = _req.request.request_stamp;
   ros::Duration max_wait_time = _req.request.max_wait_time.data;
   ros::Time request_time = ros::Time::now();
   
@@ -181,7 +181,7 @@ bool EyePositionFromCheckerboard::serviceCameraPoseRequest( hand_eye_calibration
       if( chessboardFound )
       {
 	_res.description.stamp = ros::Time::now();
-	_res.description.request_id = request_id;
+	_res.description.request_stamp = request_stamp;
 	_res.description.pose_found = true;
 	
 	std::vector<hand_eye_calibration::Point2D> checkerboard_corners;
@@ -210,7 +210,7 @@ bool EyePositionFromCheckerboard::serviceCameraPoseRequest( hand_eye_calibration
   
   // time exceeded, failed to extract new pose
   _res.description.stamp = ros::Time::now();
-  _res.description.request_id = request_id;
+  _res.description.request_stamp = request_stamp;
   _res.description.pose_found = false;
   ROS_INFO("hand_eye_camera_pose service was called but unable to retrieve an image frame within the given time limit");
   

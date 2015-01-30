@@ -5,18 +5,18 @@
 *
 *
 * This class reads tf arm joint transformations between the links specified on
-* the parameter server and republishes them on the /hec/eye_position topic.
+* the parameter server and republishes them on the /hec/eye_position topic along with advertising it as a service.
 * 
 * subscribes:	- /tf [expecting tf2_msgs/TFMessage]
 * 
 * publishes:	- /hec/eye_position [geometry_msgs/Pose]: transformation base_link ->end_link (hand)
 * 		 thus: rotation R_BH (rotation hand->base) and translation t_BH in B coordinates
 * services provided:
-* 	- hand_eye_hand_pose [HandPose.srv]
+* 	- hec_hand_pose [HandPose.srv]
 * 
 * expects on parameter server:
 * 	- hec/hand/base_link
-* 	- hand/end_link
+* 	- hec/hand/end_link
 * 
 * 
 * Released under the GNU Lesser General Public License v3 (LGPLv3), see www.gnu.org

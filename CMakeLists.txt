@@ -83,16 +83,25 @@ add_dependencies(eye_position_from_checkerboard
  ${PROJECT_NAME}_generate_messages_cpp
 )
 
-add_executable(dual_quaternion_transformation_estimator src/dual_quaternion_transformation_estimator.cpp src/dual_quaternion_estimation_node.cpp)
+add_executable(dual_quaternion_transformation_estimator
+  src/transformation_estimator.cpp
+  src/dual_quaternion_transformation_estimator.cpp
+  src/dual_quaternion_estimation_node.cpp)
 
 target_link_libraries(dual_quaternion_transformation_estimator
   ${catkin_LIBRARIES}
+)
+
+add_dependencies(dual_quaternion_transformation_estimator
+ ${catkin_EXPORTED_TARGETS}
+ ${PROJECT_NAME}_generate_messages_cpp
 )
 
 add_executable(autonomous_hand_eye_calibration
   src/autonomous_calibration.cpp
   src/autonomous_hand_eye_calibrator.cpp
   src/dual_quaternion_transformation_estimator.cpp
+  src/transformation_estimator.cpp
 )
 
 target_link_libraries(autonomous_hand_eye_calibration

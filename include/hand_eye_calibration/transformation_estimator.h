@@ -28,12 +28,20 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 #include <opencv2/opencv.hpp>
 
+#include "hand_eye_calibration/HandPose.h"
+#include "hand_eye_calibration/CameraPose.h"
 
+/// abstract base class for transformation estimators
 class TransformationEstimator
 {
   public:
     TransformationEstimator( ros::NodeHandle* _n );
     ~TransformationEstimator();
+    
+    /** requests new hand and eye poses from the hec_eye_pose and hec_hand_pose services, adds this pair calculates a new transformation estimate
+     * @return bool true if a new pose pair was successfully obtained and added
+     */
+    virtual bool addNewPosePair();
     
     /** adds the next eye- and the next hand-position to the list of
      * pose pairs which will be used for estimation and calculates a new transformation estimate which is stored in the respective vector*/
@@ -43,7 +51,7 @@ class TransformationEstimator
     virtual void deleteLastAddedPosePair();
     
     /** calculates the transformation estimate */
-    virtual void calculateTransformation(bool _suppressWarnings=false );
+    virtual void calculateTransformation(bool _suppressWarnings=false )=0;
     
     /** returns the calculated transformation */
     virtual geometry_msgs::Pose getHandToEye();
@@ -68,6 +76,11 @@ class TransformationEstimator
     
     /** clears all data to restart recording */
     virtual void clearAll();
+    
+    /** sets a new service wait time: the time services have to answer the request
+     * @param _wait_time the new wait time in ms
+     */
+    virtual void setNewServiceWaitTime( unsigned int _wait_time );
     
     /** starts listening to pose topics */
     virtual void startListening();
@@ -96,6 +109,8 @@ class TransformationEstimator
     ros::Subscriber handSubscriber_;
     ros::Subscriber eyeSubscriber_;
     
+    ros::Duration max_service_wait_time_; /// max time the pose services have to answer the request, default is 30 ms
+    
     std::vector< std::pair<geometry_msgs::Pose, geometry_msgs::Pose> > posePairs_; //pairs: hand,cam
     
     /** simple solver for the quadratic equation a*x² + bx + c = 0
@@ -108,10 +123,10 @@ class TransformationEstimator
     bool handRecorded_, eyeRecorded_;
     ros::Time recordedHandTimeStamp_, recordedEyeTimeStamp_;
     
-    Eigen::Quaterniond rot_EH_; // current estimated rotation from hand to eye
-    Eigen::Vector3d E_trans_EH_; // current estimated position of H (hand) origin in E (eye) coordinates
-    std::vector<Eigen::Quaterniond, Eigen::aligned_allocator<Eigen::Quaterniond> > rotationEstimates_EH_; // estimated rotations for data subsets
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > translationEstimates_E_t_EH_; //estimated translations for data subsets
+    Eigen::Quaterniond rot_EH_; /// current estimated rotation from hand to eye
+    Eigen::Vector3d E_trans_EH_; /// current estimated position of H (hand) origin in E (eye) coordinates
+    std::vector<Eigen::Quaterniond, Eigen::aligned_allocator<Eigen::Quaterniond> > rotationEstimates_EH_; /// estimated rotations for data subsets
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > translationEstimates_E_t_EH_; ///estimated translations for data subsets
     
     Eigen::Matrix3d crossProdMatrix( Eigen::Vector3d _vec );
     Eigen::Vector3d geometryToEigen( const geometry_msgs::Point& _vec );

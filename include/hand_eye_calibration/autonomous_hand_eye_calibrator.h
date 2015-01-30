@@ -66,7 +66,7 @@ private:
   
   bool cam_info_gathered_; /// whether camera infor has been retrieved or not
   Eigen::Matrix<double,3,4> projection_; /// camera projection matrix
-  Eigen::Matrix<double,4,Eigen::Dynamic> pattern_coordinates_; // coordinates of the pattern used for calibration in its own 3d coordinate frame
+  Eigen::Matrix<double,4,Eigen::Dynamic> pattern_coordinates_; /// coordinates of the pattern used for calibration in its own 3d coordinate frame
   
   st_is::ContinuousXDimSpaceIterator< st_is::NumericIterator<double> > joint_position_; // current joint configuration of the robot
   DualQuaternionTransformationEstimator daniilidis_estimator_;

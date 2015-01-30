@@ -5,7 +5,7 @@
 time stamp
 
 #Id for answer to specific requests
-uint32 request_id
+time request_stamp
 
 #Whether or not a pose was found at the time of a request
 bool pose_found

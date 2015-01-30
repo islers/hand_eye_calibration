@@ -26,7 +26,7 @@ tf2Listener_(tfCore_)
   posePublisher_ = rosNode_->advertise<geometry_msgs::Pose>("/hec/hand_position",10);
   hand_position_server_ = rosNode_->advertiseService("hec_hand_pose", &TF2Republisher::serviceHandPoseRequest, this );
   
-  if( !rosNode_->getParam("hand/base_link",base_link_) )
+  if( !rosNode_->getParam("hec/hand/base_link",base_link_) )
   {
     std::string error = "TF2Republisher::TF2Republisher::line "+std::to_string(__LINE__)+"::No base link name provided on 'hec/hand/base_link'. Shutting down node.";
     ROS_FATAL("%s",error.c_str());
@@ -81,7 +81,7 @@ bool TF2Republisher::serviceHandPoseRequest( hand_eye_calibration::HandPose::Req
   ros::Time time_limit = request_time+max_wait_time;
   
   _res.description.stamp = request_time;
-  _res.description.request_id = _req.request.request_id;
+  _res.description.request_stamp = _req.request.request_stamp;
   
   geometry_msgs::Pose newPose;
   ros::Rate rate(5.0);

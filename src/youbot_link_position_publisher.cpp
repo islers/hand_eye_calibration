@@ -84,7 +84,7 @@ bool YoubotLinkPositionPublisher::serviceHandPoseRequest( hand_eye_calibration::
   ros::Time time_limit = request_time+max_wait_time;
   
   _res.description.stamp = request_time;
-  _res.description.request_id = _req.request.request_id;
+  _res.description.request_stamp = _req.request.request_stamp;
   
   geometry_msgs::Pose newPose;
   ros::Rate rate(5.0);
