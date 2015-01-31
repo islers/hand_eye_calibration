@@ -53,4 +53,5 @@ class DualQuaternionTransformationEstimator:public TransformationEstimator
     
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   private:
+    std::pair<Eigen::Quaterniond,Eigen::Quaterniond> dualQuaternion( Eigen::Quaterniond _rot, Eigen::Vector3d _trans );
 };

@@ -19,21 +19,21 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 
 TF2Republisher::TF2Republisher( ros::NodeHandle* _n ):
-tf2Listener_(tfCore_)
+tf2_listener_(tf_core_)
 {
-  rosNode_ = _n;
+  ros_node_ = _n;
   
-  posePublisher_ = rosNode_->advertise<geometry_msgs::Pose>("/hec/hand_position",10);
-  hand_position_server_ = rosNode_->advertiseService("hec_hand_pose", &TF2Republisher::serviceHandPoseRequest, this );
+  pose_publisher_ = ros_node_->advertise<geometry_msgs::Pose>("/hec/hand_position",10);
+  hand_position_server_ = ros_node_->advertiseService("hec_hand_pose", &TF2Republisher::serviceHandPoseRequest, this );
   
-  if( !rosNode_->getParam("hec/hand/base_link",base_link_) )
+  if( !ros_node_->getParam("hec/hand/base_link",base_link_) )
   {
     std::string error = "TF2Republisher::TF2Republisher::line "+std::to_string(__LINE__)+"::No base link name provided on 'hec/hand/base_link'. Shutting down node.";
     ROS_FATAL("%s",error.c_str());
     ros::shutdown();
     return;
   }
-  if( !rosNode_->getParam("hec/hand/end_link",end_link_) )
+  if( !ros_node_->getParam("hec/hand/end_link",end_link_) )
   {
     std::string error = "TF2Republisher::TF2Republisher::line "+std::to_string(__LINE__)+"::No end link name provided on 'hand/end_link'. Shutting down node.";
     ROS_FATAL("%s",error.c_str());
@@ -53,7 +53,7 @@ void TF2Republisher::run()
   cout<<endl<<"TF2Republisher:: starting transformation calculation from "<<base_link_<<" to "<<end_link_<<"."<<endl;
   
   ros::Rate rate(30.0);
-  while( rosNode_->ok() )
+  while( ros_node_->ok() )
   {    
     geometry_msgs::Pose newPose;
     if( calculateTransformation(newPose) )
@@ -63,7 +63,7 @@ void TF2Republisher::run()
       cout<<endl<<newPose.position<<endl<<endl;
       cout<<endl<<"The rotation vector is:"<<endl<<newPose.orientation<<endl;
       
-      posePublisher_.publish(newPose);
+      pose_publisher_.publish(newPose);
     }
     
     rate.sleep();
@@ -76,7 +76,7 @@ void TF2Republisher::run()
 bool TF2Republisher::serviceHandPoseRequest( hand_eye_calibration::HandPose::Request& _req, hand_eye_calibration::HandPose::Response& _res )
 {
   ros::Time request_time = ros::Time::now();
-  ros::Duration max_wait_time = _req.request.max_wait_time.data;
+  ros::Duration max_wait_time = _req.request.max_wait_time;
   
   ros::Time time_limit = request_time+max_wait_time;
   
@@ -109,7 +109,7 @@ bool TF2Republisher::calculateTransformation( geometry_msgs::Pose& _hand_pose )
   try
   { /* use tf2 features to calculate the wanted transformation
     This gives the pose of the targetFrame (end effector) in the source's (arm base) coordinates. */
-    transformation = tfCore_.lookupTransform( base_link_, end_link_, ros::Time(0) );
+    transformation = tf_core_.lookupTransform( base_link_, end_link_, ros::Time(0) );
   }
   catch( tf2::TransformException& ex)
   {

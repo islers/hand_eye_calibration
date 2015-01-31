@@ -21,12 +21,12 @@ using namespace Eigen;
 TransformationEstimator::TransformationEstimator( ros::NodeHandle* _n ):
 max_service_wait_time_(0,30000000)
 {
-  rosNode_ = _n;
+  ros_node_ = _n;
   
   
-  handRecorded_ = false;
-  eyeRecorded_ = false;
-  transformationCalculated_ = false;
+  hand_recorded_ = false;
+  eye_recorded_ = false;
+  transformation_calculated_ = false;
 }
 
 
@@ -42,6 +42,25 @@ bool TransformationEstimator::addNewPosePair()
   hand_eye_calibration::HandPose hand_pose_request;
   
   ros::Time current_stamp = ros::Time::now();
+  
+  cam_pose_request.request.request.request_stamp = current_stamp;
+  cam_pose_request.request.request.max_wait_time = max_service_wait_time_;
+  hand_pose_request.request.request.request_stamp = current_stamp;
+  hand_pose_request.request.request.max_wait_time = max_service_wait_time_;
+  
+  if( !ros::service::call("hec_eye_pose",cam_pose_request) )
+  {
+    ROS_ERROR("TransformationEstimator::addNewPosePair(): Unable to contact 'hec_eye_pose' service. Cannot add new pose pair.");
+    return false;
+  }
+  else if( !ros::service::call("hec_hand_pose",hand_pose_request) )
+  {
+    ROS_ERROR("TransformationEstimator::addNewPosePair(): Unable to contact 'hec_hand_pose' service. Cannot add new pose pair.");
+    return false;
+  }
+  //// to do neeeeeeeeeeeeext ///////////////////////////////////////////////////////////
+  
+  return true;
 }
 
 
@@ -54,39 +73,39 @@ void TransformationEstimator::addLastRetrievedPosePair()
   {
     ros::spinOnce();
     
-    if( !handRecorded_ )
+    if( !hand_recorded_ )
     {
       ROS_INFO("No hand pose retrieved yet. Waiting...");
     }
-    if( !eyeRecorded_ )
+    if( !eye_recorded_ )
     {
       ROS_INFO("No eye pose retrieved yet. Waiting...");
     }
     if( trialCount++>=3 ) break;
-    else if( !handRecorded_ || !eyeRecorded_ ) ROS_INFO("%i attempts remaining",3-trialCount);
+    else if( !hand_recorded_ || !eye_recorded_ ) ROS_INFO("%i attempts remaining",3-trialCount);
     
-  }while( rosNode_->ok() && ( !handRecorded_ || !eyeRecorded_ ) );
+  }while( ros_node_->ok() && ( !hand_recorded_ || !eye_recorded_ ) );
   
-  if( handRecorded_ && eyeRecorded_ )
+  if( hand_recorded_ && eye_recorded_ )
   {
     ros::Time currentTime = ros::Time::now();
     
-    if( (currentTime - recordedHandTimeStamp_) >= ros::Duration(5.0) )
+    if( (currentTime - recorded_hand_time_stamp_) >= ros::Duration(5.0) )
     {
-      ROS_WARN("Adding hand pose that has been recorded %f seconds ago.", (currentTime-recordedHandTimeStamp_).toSec() );
+      ROS_WARN("Adding hand pose that has been recorded %f seconds ago.", (currentTime-recorded_hand_time_stamp_).toSec() );
     }
-    if( (currentTime - recordedEyeTimeStamp_) >= ros::Duration(5.0) )
+    if( (currentTime - recorded_eye_time_stamp_) >= ros::Duration(5.0) )
     {
-      ROS_WARN("Adding eye pose that has been recorded %f seconds ago.", (currentTime-recordedHandTimeStamp_).toSec() );
+      ROS_WARN("Adding eye pose that has been recorded %f seconds ago.", (currentTime-recorded_hand_time_stamp_).toSec() );
     }
     
-    posePairs_.push_back( pair<geometry_msgs::Pose, geometry_msgs::Pose>(bufferedHand_,bufferedEye_) );
+    pose_pairs_.push_back( pair<geometry_msgs::Pose, geometry_msgs::Pose>(buffered_hand_,buffered_eye_) );
     
-    if( posePairs_.size()>=2 ) //estimation is possible
+    if( pose_pairs_.size()>=2 ) //estimation is possible
     {
       calculateTransformation(true);
-      rotationEstimates_EH_.push_back( rot_EH_ );
-      translationEstimates_E_t_EH_.push_back( E_trans_EH_ );
+      rotation_estimates_EH_.push_back( rot_EH_ );
+      translation_estimates_E_t_EH_.push_back( E_trans_EH_ );
     }
   }
   
@@ -98,16 +117,16 @@ void TransformationEstimator::addLastRetrievedPosePair()
 
 void TransformationEstimator::deleteLastAddedPosePair()
 {
-  posePairs_.pop_back();
-  if( rotationEstimates_EH_.size()>=1 ) rotationEstimates_EH_.pop_back();
-  if( translationEstimates_E_t_EH_.size()>=1 ) translationEstimates_E_t_EH_.pop_back();
+  pose_pairs_.pop_back();
+  if( rotation_estimates_EH_.size()>=1 ) rotation_estimates_EH_.pop_back();
+  if( translation_estimates_E_t_EH_.size()>=1 ) translation_estimates_E_t_EH_.pop_back();
   return;
 }
 
 
 geometry_msgs::Pose TransformationEstimator::getHandToEye()
 {
-  if( !transformationCalculated_ ) ROS_WARN("TransformationEstimator::getTransformation() called but no transformation has been computed yet. The retrieved transformation has no significance.");
+  if( !transformation_calculated_ ) ROS_WARN("TransformationEstimator::getTransformation() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   
   geometry_msgs::Pose estimatedTransformation;
   
@@ -125,35 +144,35 @@ geometry_msgs::Pose TransformationEstimator::getHandToEye()
 
 Matrix3d TransformationEstimator::rotH2E()
 {
-  if( !transformationCalculated_ ) ROS_WARN("TransformationEstimator::rotH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
+  if( !transformation_calculated_ ) ROS_WARN("TransformationEstimator::rotH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   return rot_EH_.toRotationMatrix();
 }
 
 
 Matrix3d TransformationEstimator::rotE2H()
 {
-  if( !transformationCalculated_ ) ROS_WARN("TransformationEstimator::rotE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
+  if( !transformation_calculated_ ) ROS_WARN("TransformationEstimator::rotE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   return rot_EH_.inverse().toRotationMatrix();
 }
 
 
 Vector3d TransformationEstimator::transH2E()
 {
-  if( !transformationCalculated_ ) ROS_WARN("TransformationEstimator::transH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
+  if( !transformation_calculated_ ) ROS_WARN("TransformationEstimator::transH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   return E_trans_EH_;
 }
 
 
 Vector3d TransformationEstimator::transE2H()
 {
-  if( !transformationCalculated_ ) ROS_WARN("TransformationEstimator::transE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
+  if( !transformation_calculated_ ) ROS_WARN("TransformationEstimator::transE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   return -(rotH2E()*E_trans_EH_);
 }
 
 
 Matrix<double,4,4> TransformationEstimator::matrixH2E()
 {
-  if( !transformationCalculated_ ) ROS_WARN("TransformationEstimator::matrixH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
+  if( !transformation_calculated_ ) ROS_WARN("TransformationEstimator::matrixH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   Matrix<double,4,4> mH2E;
   
   Vector3d E_t_EH = E_trans_EH_;
@@ -166,7 +185,7 @@ Matrix<double,4,4> TransformationEstimator::matrixH2E()
 
 Matrix<double,4,4> TransformationEstimator::matrixE2H()
 {
-  if( !transformationCalculated_ ) ROS_WARN("TransformationEstimator::matrixE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
+  if( !transformation_calculated_ ) ROS_WARN("TransformationEstimator::matrixE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
   Matrix<double,4,4> mE2H;
   
   Vector3d H_t_HE = - rotE2H()*E_trans_EH_;
@@ -180,8 +199,8 @@ Matrix<double,4,4> TransformationEstimator::matrixE2H()
 void TransformationEstimator::clearAll()
 {
   ROS_INFO("Deleting all buffered hand-eye pose pairs.");
-  posePairs_.clear();
-  ROS_INFO_STREAM("Number of pose pairs now available for computation: "<<posePairs_.size() );
+  pose_pairs_.clear();
+  ROS_INFO_STREAM("Number of pose pairs now available for computation: "<<pose_pairs_.size() );
   
   return;
 }
@@ -196,39 +215,39 @@ void TransformationEstimator::setNewServiceWaitTime( unsigned int _wait_time )
 
 void TransformationEstimator::startListening()
 {
-  handSubscriber_ = rosNode_->subscribe("/hec/hand_position",1,&TransformationEstimator::handListening,this);
-  eyeSubscriber_ = rosNode_->subscribe("/hec/eye_position",1,&TransformationEstimator::eyeListening,this);
+  hand_subscriber_ = ros_node_->subscribe("/hec/hand_position",1,&TransformationEstimator::handListening,this);
+  eye_subscriber_ = ros_node_->subscribe("/hec/eye_position",1,&TransformationEstimator::eyeListening,this);
 }
     
 
 void TransformationEstimator::stopListening()
 {
-  handSubscriber_.shutdown();
-  eyeSubscriber_.shutdown();
+  hand_subscriber_.shutdown();
+  eye_subscriber_.shutdown();
 }
 
 
 void TransformationEstimator::handListening( const geometry_msgs::PoseConstPtr& _newPose )
 {  
-  bufferedHand_ = *_newPose;
-  handRecorded_ = true;
-  recordedHandTimeStamp_ = ros::Time::now();
+  buffered_hand_ = *_newPose;
+  hand_recorded_ = true;
+  recorded_hand_time_stamp_ = ros::Time::now();
   return;
 }
 
 
 void TransformationEstimator::eyeListening( const geometry_msgs::PoseConstPtr& _newPose )
 {  
-  bufferedEye_ = *_newPose;
-  eyeRecorded_ = true;
-  recordedEyeTimeStamp_ = ros::Time::now();
+  buffered_eye_ = *_newPose;
+  eye_recorded_ = true;
+  recorded_eye_time_stamp_ = ros::Time::now();
   return;
 }
 
 
 int TransformationEstimator::count()
 {
-  return posePairs_.size();
+  return pose_pairs_.size();
 }
 
 
@@ -252,38 +271,38 @@ bool TransformationEstimator::printToFile( string fileName_ )
   
   try
   {
-    cv::Mat handPoses(7,posePairs_.size() ,CV_64FC1);
-    cv::Mat eyePoses(7,posePairs_.size() ,CV_64FC1);
+    cv::Mat handPoses(7,pose_pairs_.size() ,CV_64FC1);
+    cv::Mat eyePoses(7,pose_pairs_.size() ,CV_64FC1);
     
-    for( int i=0; i<posePairs_.size(); i++ )
+    for( int i=0; i<pose_pairs_.size(); i++ )
     {
-      handPoses.at<double>(0,i) = posePairs_[i].first.orientation.x;
-      handPoses.at<double>(1,i) = posePairs_[i].first.orientation.y;
-      handPoses.at<double>(2,i) = posePairs_[i].first.orientation.z;
-      handPoses.at<double>(3,i) = posePairs_[i].first.orientation.w;
-      handPoses.at<double>(4,i) = posePairs_[i].first.position.x;
-      handPoses.at<double>(5,i) = posePairs_[i].first.position.y;
-      handPoses.at<double>(6,i) = posePairs_[i].first.position.z;
+      handPoses.at<double>(0,i) = pose_pairs_[i].first.orientation.x;
+      handPoses.at<double>(1,i) = pose_pairs_[i].first.orientation.y;
+      handPoses.at<double>(2,i) = pose_pairs_[i].first.orientation.z;
+      handPoses.at<double>(3,i) = pose_pairs_[i].first.orientation.w;
+      handPoses.at<double>(4,i) = pose_pairs_[i].first.position.x;
+      handPoses.at<double>(5,i) = pose_pairs_[i].first.position.y;
+      handPoses.at<double>(6,i) = pose_pairs_[i].first.position.z;
       
-      eyePoses.at<double>(0,i) = posePairs_[i].second.orientation.x;
-      eyePoses.at<double>(1,i) = posePairs_[i].second.orientation.y;
-      eyePoses.at<double>(2,i) = posePairs_[i].second.orientation.z;
-      eyePoses.at<double>(3,i) = posePairs_[i].second.orientation.w;
-      eyePoses.at<double>(4,i) = posePairs_[i].second.position.x;
-      eyePoses.at<double>(5,i) = posePairs_[i].second.position.y;
-      eyePoses.at<double>(6,i) = posePairs_[i].second.position.z;
+      eyePoses.at<double>(0,i) = pose_pairs_[i].second.orientation.x;
+      eyePoses.at<double>(1,i) = pose_pairs_[i].second.orientation.y;
+      eyePoses.at<double>(2,i) = pose_pairs_[i].second.orientation.z;
+      eyePoses.at<double>(3,i) = pose_pairs_[i].second.orientation.w;
+      eyePoses.at<double>(4,i) = pose_pairs_[i].second.position.x;
+      eyePoses.at<double>(5,i) = pose_pairs_[i].second.position.y;
+      eyePoses.at<double>(6,i) = pose_pairs_[i].second.position.z;
     }
     
-    cv::Mat estimatedTransformations( 7, rotationEstimates_EH_.size(), CV_64FC1 );
-    for( int i=0; i<rotationEstimates_EH_.size(); i++ )
+    cv::Mat estimatedTransformations( 7, rotation_estimates_EH_.size(), CV_64FC1 );
+    for( int i=0; i<rotation_estimates_EH_.size(); i++ )
     {
-      estimatedTransformations.at<double>(0,i) = rotationEstimates_EH_[i].x();
-      estimatedTransformations.at<double>(1,i) = rotationEstimates_EH_[i].y();
-      estimatedTransformations.at<double>(2,i) = rotationEstimates_EH_[i].z();
-      estimatedTransformations.at<double>(3,i) = rotationEstimates_EH_[i].w();
-      estimatedTransformations.at<double>(4,i) = translationEstimates_E_t_EH_[i].x();
-      estimatedTransformations.at<double>(5,i) = translationEstimates_E_t_EH_[i].y();
-      estimatedTransformations.at<double>(6,i) = translationEstimates_E_t_EH_[i].z();
+      estimatedTransformations.at<double>(0,i) = rotation_estimates_EH_[i].x();
+      estimatedTransformations.at<double>(1,i) = rotation_estimates_EH_[i].y();
+      estimatedTransformations.at<double>(2,i) = rotation_estimates_EH_[i].z();
+      estimatedTransformations.at<double>(3,i) = rotation_estimates_EH_[i].w();
+      estimatedTransformations.at<double>(4,i) = translation_estimates_E_t_EH_[i].x();
+      estimatedTransformations.at<double>(5,i) = translation_estimates_E_t_EH_[i].y();
+      estimatedTransformations.at<double>(6,i) = translation_estimates_E_t_EH_[i].z();
     }
     
     cv::FileStorage outputFile( fileName_, cv::FileStorage::WRITE );
@@ -325,9 +344,9 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
     
     if( destroyOldData_ )
     {
-      posePairs_.clear();
-      rotationEstimates_EH_.clear();
-      translationEstimates_E_t_EH_.clear();
+      pose_pairs_.clear();
+      rotation_estimates_EH_.clear();
+      translation_estimates_E_t_EH_.clear();
     }
     
     for( int i=0; i<handPoses.cols; i++ )
@@ -350,7 +369,7 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
      eyePoseToAdd.position.y = eyePoses.at<double>(5,i);
      eyePoseToAdd.position.z = eyePoses.at<double>(6,i);
       
-      posePairs_.push_back( pair<geometry_msgs::Pose, geometry_msgs::Pose>( handPoseToAdd,eyePoseToAdd ) );
+      pose_pairs_.push_back( pair<geometry_msgs::Pose, geometry_msgs::Pose>( handPoseToAdd,eyePoseToAdd ) );
     }
     for( int i=0; i<estimatedTransformations.cols; i++ )
     {
@@ -364,8 +383,8 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
       newTranslationEstimate.y() = estimatedTransformations.at<double>(5,i);
       newTranslationEstimate.z() = estimatedTransformations.at<double>(6,i);
       
-      rotationEstimates_EH_.push_back(newRotationEstimate);
-      translationEstimates_E_t_EH_.push_back(newTranslationEstimate);
+      rotation_estimates_EH_.push_back(newRotationEstimate);
+      translation_estimates_E_t_EH_.push_back(newTranslationEstimate);
       
     }
     
@@ -408,33 +427,4 @@ Eigen::Quaterniond TransformationEstimator::geometryToEigen( const geometry_msgs
   output.z() = _quat.z;
   output.w() = _quat.w;
   return output;
-}
-
-
-pair<Eigen::Quaterniond,Eigen::Quaterniond> TransformationEstimator::dualQuaternion( Eigen::Quaterniond _rot, Eigen::Vector3d _trans )
-{
-  Eigen::Quaterniond q, qPrime;
-  
-  q = _rot.normalized(); // just to ensure normalization
-  
-  // by the screw congruence theorem q and q' one must be equal for hand eye calibration for both the eye and the hand movement. since the rotation represented by quaternion q is equal to -q, enforcing q_1>=0
-  if( q.w()<0 )
-  {
-    q.w() = - q.w();
-    q.x() = -q.x();
-    q.y() = -q.y();
-    q.z() = -q.z();
-  }
-  
-  Vector3d qAxis = q.vec();
-  
-  Vector3d qPrimeAxis = 0.5*( q.w()*_trans + _trans.cross(qAxis) );
-  double qPrimeW = -0.5*qAxis.dot(_trans);
-  
-  qPrime.x() = qPrimeAxis.x();
-  qPrime.y() = qPrimeAxis.y();
-  qPrime.z() = qPrimeAxis.z();
-  qPrime.w() = qPrimeW;
-  
-  return pair<Quaterniond,Quaterniond>(q,qPrime);
 }

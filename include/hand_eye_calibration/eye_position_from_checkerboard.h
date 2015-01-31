@@ -86,11 +86,11 @@ class EyePositionFromCheckerboard
     bool serviceCameraPoseRequest( hand_eye_calibration::CameraPose::Request& _req, hand_eye_calibration::CameraPose::Response& _res );
     bool serviceCameraPoseInfoRequest( hand_eye_calibration::CameraPoseInfo::Request& _req, hand_eye_calibration::CameraPoseInfo::Response& _res );
   private:
-    ros::Publisher posePublisher_;
-    ros::Subscriber cameraStream_;
-    ros::Subscriber cameraInfoSubscriber_;
-    ros::ServiceServer eyePositionServer_;
-    ros::ServiceServer eyePositionInfoServer_;
+    ros::Publisher pose_publisher_;
+    ros::Subscriber camera_stream_;
+    ros::Subscriber camera_info_subscriber_;
+    ros::ServiceServer eye_position_server_;
+    ros::ServiceServer eye_position_info_server_;
     
     /// locates the checkerboard corners in the given image
     /** The function locates the checkerboard corners in the given image, writing their coordinates
@@ -116,20 +116,20 @@ class EyePositionFromCheckerboard
      */
     geometry_msgs::Pose geometryPoseFromVectors( cv::Mat& _rotation_vector, cv::Mat& _translation_vector );
     
-    bool newImageLoaded_; // whether a new image has been loaded
-    ros::Time lastImageRetrieval_; // time stamp of the last retrieved image
+    bool new_image_loaded_; // whether a new image has been loaded
+    ros::Time last_image_retrieval_; // time stamp of the last retrieved image
     
-    cv_bridge::CvImage currentImage_;
+    cv_bridge::CvImage current_image_;
     bool camera_data_retrieved_;
-    cv::Mat cameraMatrix_;
+    cv::Mat camera_matrix_;
     sensor_msgs::CameraInfo camera_info_;
-    cv::Mat distortionCoefficients_; // plumb_bob model
-    cv::Size patternSize_;
-    std::vector<cv::Point3f> objectPointCoordinates_; // coordinates of to-be-detected checkerboard points in checkerboard frame
+    cv::Mat distortion_coefficients_; // plumb_bob model
+    cv::Size pattern_size_;
+    std::vector<cv::Point3f> object_point_coordinates_; // coordinates of to-be-detected checkerboard points in checkerboard frame
     
-    bool initSuccess_; // indicates successful initialization of all parameters
+    bool init_success_; // indicates successful initialization of all parameters
     
     bool init(); //initializes (loads) parameters from parameter server
         
-    ros::NodeHandle* rosNode_;
+    ros::NodeHandle* ros_node_;
 }; 

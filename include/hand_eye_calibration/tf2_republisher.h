@@ -67,11 +67,9 @@ class TF2Republisher
 
     bool serviceHandPoseRequest( hand_eye_calibration::HandPose::Request& _req, hand_eye_calibration::HandPose::Response& _res );
   private:
-    ros::Publisher posePublisher_;
+    ros::Publisher pose_publisher_;
     ros::ServiceServer hand_position_server_;
-    
-    int sourceFrameId_, targetFrameId_;
-    
+        
     std::string base_link_, end_link_;
     
     /// calculates the transformation between the specified links
@@ -81,8 +79,8 @@ class TF2Republisher
      */
     bool calculateTransformation( geometry_msgs::Pose& _hand_pose );
     
-    tf2_ros::Buffer tfCore_; // object that can be queried for specific transformations
-    tf2_ros::TransformListener tf2Listener_;
+    tf2_ros::Buffer tf_core_; // object that can be queried for specific transformations
+    tf2_ros::TransformListener tf2_listener_;
         
-    ros::NodeHandle* rosNode_;
+    ros::NodeHandle* ros_node_;
 };

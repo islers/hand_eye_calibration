@@ -106,12 +106,12 @@ class TransformationEstimator
     
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   protected:
-    ros::Subscriber handSubscriber_;
-    ros::Subscriber eyeSubscriber_;
+    ros::Subscriber hand_subscriber_;
+    ros::Subscriber eye_subscriber_;
     
     ros::Duration max_service_wait_time_; /// max time the pose services have to answer the request, default is 30 ms
     
-    std::vector< std::pair<geometry_msgs::Pose, geometry_msgs::Pose> > posePairs_; //pairs: hand,cam
+    std::vector< std::pair<geometry_msgs::Pose, geometry_msgs::Pose> > pose_pairs_; //pairs: hand,cam
     
     /** simple solver for the quadratic equation a*x² + bx + c = 0
      *  Returns false if the roots are imaginary, otherwhise the two roots are stored in _roots - twice
@@ -119,21 +119,20 @@ class TransformationEstimator
      */
     bool roots( double _aCoeff, double _bCoeff, double _cCoeff, std::pair<double,double>& _roots );
         
-    bool transformationCalculated_;
-    bool handRecorded_, eyeRecorded_;
-    ros::Time recordedHandTimeStamp_, recordedEyeTimeStamp_;
+    bool transformation_calculated_;
+    bool hand_recorded_, eye_recorded_;
+    ros::Time recorded_hand_time_stamp_, recorded_eye_time_stamp_;
     
     Eigen::Quaterniond rot_EH_; /// current estimated rotation from hand to eye
     Eigen::Vector3d E_trans_EH_; /// current estimated position of H (hand) origin in E (eye) coordinates
-    std::vector<Eigen::Quaterniond, Eigen::aligned_allocator<Eigen::Quaterniond> > rotationEstimates_EH_; /// estimated rotations for data subsets
-    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > translationEstimates_E_t_EH_; ///estimated translations for data subsets
+    std::vector<Eigen::Quaterniond, Eigen::aligned_allocator<Eigen::Quaterniond> > rotation_estimates_EH_; /// estimated rotations for data subsets
+    std::vector<Eigen::Vector3d, Eigen::aligned_allocator<Eigen::Vector3d> > translation_estimates_E_t_EH_; ///estimated translations for data subsets
     
     Eigen::Matrix3d crossProdMatrix( Eigen::Vector3d _vec );
     Eigen::Vector3d geometryToEigen( const geometry_msgs::Point& _vec );
     Eigen::Quaterniond geometryToEigen( const geometry_msgs::Quaternion& _quat );
-    std::pair<Eigen::Quaterniond,Eigen::Quaterniond> dualQuaternion( Eigen::Quaterniond _rot, Eigen::Vector3d _trans );
     
-    geometry_msgs::Pose bufferedHand_, bufferedEye_;
+    geometry_msgs::Pose buffered_hand_, buffered_eye_;
         
-    ros::NodeHandle* rosNode_;
+    ros::NodeHandle* ros_node_;
 };

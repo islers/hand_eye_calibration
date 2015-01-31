@@ -21,18 +21,18 @@ using namespace std;
 EyePositionFromCheckerboard::EyePositionFromCheckerboard( ros::NodeHandle* _n ):
 camera_data_retrieved_(false)
 {
-  rosNode_ = _n;
+  ros_node_ = _n;
   
-  posePublisher_ = rosNode_->advertise<geometry_msgs::Pose>("/hec/eye_position",10);
-  cameraStream_ = rosNode_->subscribe("/camera/image_rect",1, &EyePositionFromCheckerboard::imageLoader, this );
-  cameraInfoSubscriber_ = rosNode_->subscribe("/camera/camera_info",1,&EyePositionFromCheckerboard::cameraInfoUpdate, this );
+  pose_publisher_ = ros_node_->advertise<geometry_msgs::Pose>("/hec/eye_position",10);
+  camera_stream_ = ros_node_->subscribe("/camera/image_rect",1, &EyePositionFromCheckerboard::imageLoader, this );
+  camera_info_subscriber_ = ros_node_->subscribe("/camera/camera_info",1,&EyePositionFromCheckerboard::cameraInfoUpdate, this );
   
-  eyePositionServer_ = rosNode_->advertiseService("hec_eye_pose", &EyePositionFromCheckerboard::serviceCameraPoseRequest, this );
-  eyePositionInfoServer_ = rosNode_->advertiseService("hec_eye_node_info", &EyePositionFromCheckerboard::serviceCameraPoseInfoRequest, this );
+  eye_position_server_ = ros_node_->advertiseService("hec_eye_pose", &EyePositionFromCheckerboard::serviceCameraPoseRequest, this );
+  eye_position_info_server_ = ros_node_->advertiseService("hec_eye_node_info", &EyePositionFromCheckerboard::serviceCameraPoseInfoRequest, this );
   
-  initSuccess_ = false;
-  newImageLoaded_ = false;
-  distortionCoefficients_ = cv::Mat();
+  init_success_ = false;
+  new_image_loaded_ = false;
+  distortion_coefficients_ = cv::Mat();
   
   return;
 }
@@ -48,29 +48,29 @@ EyePositionFromCheckerboard::~EyePositionFromCheckerboard()
 void EyePositionFromCheckerboard::run()
 {
   ros::Rate rate(1.0); // once per sec
-  while( !initSuccess_ && rosNode_->ok() ) // initalize all needed parameters
+  while( !init_success_ && ros_node_->ok() ) // initalize all needed parameters
   {
-    initSuccess_ = init();
-    if( !initSuccess_ && rosNode_->ok() ) rate.sleep();
+    init_success_ = init();
+    if( !init_success_ && ros_node_->ok() ) rate.sleep();
   }
   
   
-  while( rosNode_->ok() )
+  while( ros_node_->ok() )
   {
     ros::spinOnce();
     
-    if( !currentImage_.image.empty() && newImageLoaded_ ) // if an image is available
+    if( !current_image_.image.empty() && new_image_loaded_ ) // if an image is available
     {
       cv::vector<cv::Point2f> chkbrdCorners;
             
-      bool chessboardFound = calculateChessboardCorners( currentImage_.image, chkbrdCorners );
+      bool chessboardFound = calculateChessboardCorners( current_image_.image, chkbrdCorners );
       
       if( chessboardFound )
       {
-	drawChessboardCorners( currentImage_.image, patternSize_, chkbrdCorners, chessboardFound );
+	drawChessboardCorners( current_image_.image, pattern_size_, chkbrdCorners, chessboardFound );
       }
       
-      cv::imshow( "Checkerboard corner detection", currentImage_.image );
+      cv::imshow( "Checkerboard corner detection", current_image_.image );
       
       
       if( chessboardFound )
@@ -85,14 +85,14 @@ void EyePositionFromCheckerboard::run()
 	  cout<<endl<<"The translation vector is:"<<endl<<translation_vector<<endl<<endl<<"which has a length of "<<cv::norm( translation_vector, cv::NORM_L2 )<<" m."<<endl;
 	  cout<<endl<<"The rotation vector is "<<endl<<rotation_vector<<endl;
 	  
-	  posePublisher_.publish( cameraPose );
+	  pose_publisher_.publish( cameraPose );
       }
       else
       {
 	ROS_INFO("Chessboard wasn't found in the given image");
       }
       
-      newImageLoaded_ = false;
+      new_image_loaded_ = false;
       
       cv::waitKey(20); //wait x ms and let opencv display the mat
     }
@@ -120,10 +120,10 @@ void EyePositionFromCheckerboard::imageLoader(  const sensor_msgs::ImageConstPtr
     return;
   }
   
-  currentImage_ = *cv_ptr;
+  current_image_ = *cv_ptr;
   
-  newImageLoaded_ = true;
-  lastImageRetrieval_ = _newImage->header.stamp;
+  new_image_loaded_ = true;
+  last_image_retrieval_ = _newImage->header.stamp;
   
   return;
 }
@@ -144,16 +144,16 @@ void EyePositionFromCheckerboard::cameraInfoUpdate( const sensor_msgs::CameraInf
     ROS_ERROR("The distortion model of the published camera_info data is unknown. It is '%s' but should be 'plumb_bob'",_newCamInfo->distortion_model.c_str());
     return;
   }
-  distortionCoefficients_ = cv::Mat(5, 1, CV_64F);
+  distortion_coefficients_ = cv::Mat(5, 1, CV_64F);
   
-  for( int i=0;i<5;i++ ) distortionCoefficients_.at<double>(i) = _newCamInfo->D[i];
+  for( int i=0;i<5;i++ ) distortion_coefficients_.at<double>(i) = _newCamInfo->D[i];
     
-  cameraMatrix_ = cv::Mat::zeros(3,3,CV_64FC1);
-  cameraMatrix_.at<double>(0,0) = fx;
-  cameraMatrix_.at<double>(1,1) = fy;
-  cameraMatrix_.at<double>(2,2) = 1;
-  cameraMatrix_.at<double>(0,2) = cx;
-  cameraMatrix_.at<double>(1,2) = cy;
+  camera_matrix_ = cv::Mat::zeros(3,3,CV_64FC1);
+  camera_matrix_.at<double>(0,0) = fx;
+  camera_matrix_.at<double>(1,1) = fy;
+  camera_matrix_.at<double>(2,2) = 1;
+  camera_matrix_.at<double>(0,2) = cx;
+  camera_matrix_.at<double>(1,2) = cy;
   
   camera_data_retrieved_ = true;
   
@@ -163,7 +163,7 @@ void EyePositionFromCheckerboard::cameraInfoUpdate( const sensor_msgs::CameraInf
 bool EyePositionFromCheckerboard::serviceCameraPoseRequest( hand_eye_calibration::CameraPose::Request& _req, hand_eye_calibration::CameraPose::Response& _res )
 {
   ros::Time request_stamp = _req.request.request_stamp;
-  ros::Duration max_wait_time = _req.request.max_wait_time.data;
+  ros::Duration max_wait_time = _req.request.max_wait_time;
   ros::Time request_time = ros::Time::now();
   
   ros::Time time_limit = request_time+max_wait_time;
@@ -171,12 +171,12 @@ bool EyePositionFromCheckerboard::serviceCameraPoseRequest( hand_eye_calibration
   ros::Rate rate(5.0);
   while( ros::Time::now() <= time_limit )
   {
-    if( lastImageRetrieval_ >= request_time ) // new image retrieved after service call
+    if( last_image_retrieval_ >= request_time ) // new image retrieved after service call
     {
       cv::vector<cv::Point2f> chkbrdCorners;            
-      bool chessboardFound = calculateChessboardCorners( currentImage_.image, chkbrdCorners );
+      bool chessboardFound = calculateChessboardCorners( current_image_.image, chkbrdCorners );
       
-      currentImage_.toImageMsg( _res.description.image );
+      current_image_.toImageMsg( _res.description.image );
 	
       if( chessboardFound )
       {
@@ -222,12 +222,12 @@ bool EyePositionFromCheckerboard::serviceCameraPoseInfoRequest( hand_eye_calibra
   _res.info.camera_info = camera_info_;
   
   std::vector<geometry_msgs::Point> pattern_coordinates;
-  for( unsigned int i=0; i<objectPointCoordinates_.size(); i++ )
+  for( unsigned int i=0; i<object_point_coordinates_.size(); i++ )
   {
     geometry_msgs::Point point;
-    point.x = objectPointCoordinates_[i].x;
-    point.y = objectPointCoordinates_[i].y;
-    point.z = objectPointCoordinates_[i].z;
+    point.x = object_point_coordinates_[i].x;
+    point.y = object_point_coordinates_[i].y;
+    point.z = object_point_coordinates_[i].z;
     pattern_coordinates.push_back( point );
   }
   _res.info.pattern_coordinates = pattern_coordinates;
@@ -236,7 +236,7 @@ bool EyePositionFromCheckerboard::serviceCameraPoseInfoRequest( hand_eye_calibra
 
 bool EyePositionFromCheckerboard::calculateChessboardCorners( cv::Mat& _image, cv::vector<cv::Point2f>& _chkbrdCorners )
 {
-  bool chessboardFound = cv::findChessboardCorners( _image, patternSize_, _chkbrdCorners, cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE | cv::CALIB_CB_FAST_CHECK );
+  bool chessboardFound = cv::findChessboardCorners( _image, pattern_size_, _chkbrdCorners, cv::CALIB_CB_ADAPTIVE_THRESH | cv::CALIB_CB_NORMALIZE_IMAGE | cv::CALIB_CB_FAST_CHECK );
   
   // refine the positions of the found corners
   if( chessboardFound )
@@ -254,7 +254,7 @@ void EyePositionFromCheckerboard::calculatePose( cv::vector<cv::Point2f>& _chkbr
 {
   
   // finds object pose from 3D-2D point correspondences: tvecs: position of the object origin in camera coordinates, rotation_vector: represents R_CO (rotation matrix from object to camera coordinates)
-  cv::solvePnP( objectPointCoordinates_, _chkbrdCorners, cameraMatrix_, distortionCoefficients_, _rotation_vector, _translation_vector );
+  cv::solvePnP( object_point_coordinates_, _chkbrdCorners, camera_matrix_, distortion_coefficients_, _rotation_vector, _translation_vector );
   return;
 }
 
@@ -298,39 +298,39 @@ bool EyePositionFromCheckerboard::init()
     {
       initialized =  false;
     }
-    if( !rosNode_->getParam("/hec/checkerboard/squares_per_column",sPc) )
+    if( !ros_node_->getParam("/hec/checkerboard/squares_per_column",sPc) )
     {
       ROS_WARN("EyePositionFromCheckerboard::initialization failed - missing squares_per_column parameter on /hec/checkerboard/squares_per_column");
       initialized =  false;
     }
-    if( !rosNode_->getParam("/hec/checkerboard/squares_per_row",sPr) )
+    if( !ros_node_->getParam("/hec/checkerboard/squares_per_row",sPr) )
     {
       ROS_WARN("EyePositionFromCheckerboard::initialization failed - missing squares_per_row parameter on /hec/checkerboard/squares_per_row");
       initialized =  false;
     }
-    if( !rosNode_->getParam("/hec/checkerboard/square_size",squareSize) )
+    if( !ros_node_->getParam("/hec/checkerboard/square_size",squareSize) )
     {
       ROS_WARN("EyePositionFromCheckerboard::initialization failed - missing square_size parameter on /hec/checkerboard/square_size");
       initialized =  false;
     }
     if(!initialized) rate.sleep();
-  }while( !initialized && rosNode_->ok() );
+  }while( !initialized && ros_node_->ok() );
   
-  cameraInfoSubscriber_.shutdown();
+  camera_info_subscriber_.shutdown();
   
   
-  patternSize_ = cv::Size( sPr, sPc );
+  pattern_size_ = cv::Size( sPr, sPc );
   
   /* coordinates of the checkerboard points in checkerboard coordinate system (in which the pose will be estimated)
    the OpenCV findChessboardCorners-function orders the point sequentially in an array row by row, left to right in every row.
    x-axis along rows, y-axis along columns, z-axis perpendicular to it */
   
-  objectPointCoordinates_;
-  for( int i=0; i<patternSize_.height; i++ )
+  object_point_coordinates_;
+  for( int i=0; i<pattern_size_.height; i++ )
   {
-    for( int j=0; j<patternSize_.width; j++ )
+    for( int j=0; j<pattern_size_.width; j++ )
     {
-      objectPointCoordinates_.push_back( cv::Point3f( j*squareSize, i*squareSize, 0 ) ); // x,y,z
+      object_point_coordinates_.push_back( cv::Point3f( j*squareSize, i*squareSize, 0 ) ); // x,y,z
     }
   }
   
