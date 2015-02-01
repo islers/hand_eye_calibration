@@ -38,8 +38,10 @@ int main(int argc, char **argv)
     
     switch(user_input)
     {
-      case 'a': estimator.addLastRetrievedPosePair(); break;
-      case 'e': estimator.calculateTransformation(); 
+      case 'a': estimator.addLastRetrievedPosePair();
+		estimator.createAndAddNewEstimation(); // create an estimation for it
+		break;
+      case 'e': estimator.calculateTransformation();
 		
 		cout<<endl<<"The calculated transformation matrix from hand coordinates to eye coordinates is:"<<endl;
 		

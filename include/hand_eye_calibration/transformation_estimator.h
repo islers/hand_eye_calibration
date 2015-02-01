@@ -36,17 +36,8 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 /// abstract base class for transformation estimators
 class TransformationEstimator
 {
-  struct EstimationData
-  {
-    // hand-eye estimation
-    Eigen::Quaterniond rot_EH;
-    Eigen::Vector3d E_trans_EH;
-    
-    // error measures for the estimation
-    double reprojection_error;
-    double euler_rms_error;
-    double relative_translation_error;
-  };
+  class EstimationData; /// describes an estimation
+  struct PoseData; /// describes one measured hand-eye pose pair
   
   public:
     TransformationEstimator( ros::NodeHandle* _n );
@@ -75,9 +66,26 @@ class TransformationEstimator
     /** calculates the transformation estimate */
     virtual void calculateTransformation(bool _suppressWarnings=false )=0;
     
-    /** calculates a reprojection error measure for current estimate based on data available (pattern_coordinate sets)
+    /** creates a new estimation and adds it to the internal estimation list */
+    void createAndAddNewEstimation();
+    
+    /** creates a new estimation based on all currently available data, including error estimates */
+    EstimationData getNewEstimation();
+    
+    /** calculates a reprojection error measure for given estimate based on all data currently available (pattern_coordinate sets)
+     * 
+     * @param _estimation_data the estimation - error data is not overwritten
+     * 
      */
-    double getReprojectionError();
+    double getReprojectionError( EstimationData const& _estimation_data );
+    
+    /** calculates transformation error measures for given estimate based on all data currently available (pose pairs)
+     * 
+     * @param _estimation_data the estimation - error data is not overwritten
+     * @return pair with euler_angle_rms_error(first) and relative_translation_error(second)
+     * 
+     */
+    std::pair<double,double> getTransformationError( EstimationData const& _estimation_data );
     
     /** returns the calculated transformation */
     virtual geometry_msgs::Pose getHandToEye();
@@ -125,8 +133,9 @@ class TransformationEstimator
      * saves:
      * 		- pose_pairs_
      * 		- calib_pattern_image_coordinates_
-     * 		- rotation_estimates_EH_
-     * 		- translation_estimates_E_t_EH_
+     * 		- transformation_estimates_t
+     * 
+     * Errors are set to -1000 if they haven't been calculated for an estimate
      */
     virtual bool printToFile( std::string fileName_ );
     
@@ -143,13 +152,11 @@ class TransformationEstimator
     
     ros::Duration max_service_wait_time_; /// max time the pose services have to answer the request, default is 30 ms
     
-    std::vector< std::pair<geometry_msgs::Pose, geometry_msgs::Pose> > pose_pairs_; /// pairs: hand,cam
-    std::vector< std::vector<hand_eye_calibration::Point2D> > calib_pattern_image_coordinates_; /// coordinates of calibration pattern image coordinates (x,y) for each pose pair: If no coordinates are available for a set an empty vector is added at that position
-    std::vector< cv::Mat > calibration_images_; // the images for which calibration is attempted: if not available an empty cv::Mat is added - this is for convenience only, no function actually performs any task on these images, but keeping them allows saving them to disk for further usages by the user
+    std::vector<PoseData> pose_data_; /// stores all poses and related data
     
-    std::vector< std::pair<geometry_msgs::Pose, geometry_msgs::Pose> > del_pose_pairs_; /// deleted pose pair backup
-    std::vector< std::vector<hand_eye_calibration::Point2D> > del_calib_pattern_image_coordinates_; //deleted pattern image coordinates
-    std::vector<cv::Mat> del_calibration_images_; /// deleted calibration images
+    
+    std::vector<PoseData> del_pose_data_; /// trash bin for pose data
+    
     
     void dumpTrash(); /// deletes all contente of the del_* vectors
     
@@ -174,4 +181,44 @@ class TransformationEstimator
     geometry_msgs::Pose buffered_hand_, buffered_eye_;
         
     ros::NodeHandle* ros_node_;
+      
+  
+};
+
+class TransformationEstimator::EstimationData
+{
+  public:
+    EstimationData();
+    
+    // hand-eye estimation
+    Eigen::Quaterniond rot_EH;
+    Eigen::Vector3d E_trans_EH;
+    
+    void setReprojectionError( double _error );
+    void setTransformationErrors( double _euler_angle_rms_error, double _relative_translation_error );
+    void setTransformationErrors( std::pair<double,double> _errors ); // pair<euler_angle_rms_error,relative_translation_error>
+    
+    /// returns true if a reprojection_error is available and writes the value to the argument
+    bool reprojectionError( double& _reprojection_error );
+    /// returns true if a euler_angle_rms_error is available and writes the value to the argument
+    bool eulerAngleRmsError( double& _euler_angle_rms_error );
+    /// returns true if a relative_translation_error is available and writes the value to the argument
+    bool relativeTranslationError( double& _relative_translation_error );
+    
+  private:
+    // error measures for the estimation
+    bool has_reprojection_error_;
+    double reprojection_error_;
+    bool has_transformation_error_;
+    double euler_angle_rms_error_;
+    double relative_translation_error_;
+};
+
+struct TransformationEstimator::PoseData
+{
+  geometry_msgs::Pose hand_pose;
+  geometry_msgs::Pose eye_pose;
+  
+  std::vector<hand_eye_calibration::Point2D> calibration_pattern_coordinates;
+  cv::Mat eye_image;
 };

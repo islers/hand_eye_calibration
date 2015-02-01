@@ -35,17 +35,17 @@ void DualQuaternionTransformationEstimator::calculateTransformation( bool _suppr
 {
   ROS_INFO("Calculating hand-eye transformation...");
   
-  if( pose_pairs_.size()<=1 )
+  if( pose_data_.size()<=1 )
   {
     ROS_ERROR("At least two hand-eye pose pairs are necessary for computation.");
-    ROS_INFO("Number of pose pairs currently available for computation: %i", (int)pose_pairs_.size() );
+    ROS_INFO("Number of pose pairs currently available for computation: %i", (int)pose_data_.size() );
     ROS_ERROR("Aborting transformation computation.");
     return;
   }
-  else if( pose_pairs_.size()<20 )
+  else if( pose_data_.size()<20 )
   {
     ROS_WARN("For good results more than 20 hand-eye pose pairs are recommended. The computed transformation might be inaccurate.");
-    ROS_INFO("Number of pose pairs currently available for computation: %i", (int)pose_pairs_.size() );
+    ROS_INFO("Number of pose pairs currently available for computation: %i", (int)pose_data_.size() );
     ROS_INFO("Going on with calculation...");
   }
   
@@ -59,14 +59,14 @@ void DualQuaternionTransformationEstimator::calculateTransformation( bool _suppr
    *  dual quaternions are then hQ[i].first + epsilon*hQ[i].second
   */
   vector< pair<Eigen::Quaterniond,Eigen::Quaterniond>, Eigen::aligned_allocator<pair<Quaterniond, Quaterniond> > > hQ, cQ;
-  for( int i=0; i<pose_pairs_.size()-1; i++ )
+  for( int i=0; i<pose_data_.size()-1; i++ )
   {
     // transformation hand pose 1 (H1) -_> hand pose 2 (H2)
     
-    Quaterniond rot_BH1 = geometryToEigen( pose_pairs_[i].first.orientation );
-    Vector3d B_trans_BH1 = geometryToEigen( pose_pairs_[i].first.position );
-    Quaterniond rot_H2B = geometryToEigen( pose_pairs_[i+1].first.orientation ).inverse();
-    Vector3d B_trans_BH2 = geometryToEigen( pose_pairs_[i+1].first.position );
+    Quaterniond rot_BH1 = geometryToEigen( pose_data_[i].hand_pose.orientation );
+    Vector3d B_trans_BH1 = geometryToEigen( pose_data_[i].hand_pose.position );
+    Quaterniond rot_H2B = geometryToEigen( pose_data_[i+1].hand_pose.orientation ).inverse();
+    Vector3d B_trans_BH2 = geometryToEigen( pose_data_[i+1].hand_pose.position );
     
     Quaterniond rot_H2H1 = rot_H2B * rot_BH1;
     Vector3d H2_trans_H2H1 = rot_H2B * ( B_trans_BH1-B_trans_BH2 );
@@ -76,10 +76,10 @@ void DualQuaternionTransformationEstimator::calculateTransformation( bool _suppr
     
     //transformation cam pose 1 (E1) -> cam pose 2 (E2)
     
-    Quaterniond rot_GC1 = geometryToEigen( pose_pairs_[i].second.orientation ).inverse();
-    Vector3d C1_trans_C1G = geometryToEigen( pose_pairs_[i].second.position );
-    Quaterniond rot_C2G = geometryToEigen( pose_pairs_[i+1].second.orientation );
-    Vector3d C2_trans_C2G = geometryToEigen( pose_pairs_[i+1].second.position );
+    Quaterniond rot_GC1 = geometryToEigen( pose_data_[i].eye_pose.orientation ).inverse();
+    Vector3d C1_trans_C1G = geometryToEigen( pose_data_[i].eye_pose.position );
+    Quaterniond rot_C2G = geometryToEigen( pose_data_[i+1].eye_pose.orientation );
+    Vector3d C2_trans_C2G = geometryToEigen( pose_data_[i+1].eye_pose.position );
     
     Quaterniond rot_C2C1 = rot_C2G * rot_GC1;
     Vector3d C2_trans_C2C1 = C2_trans_C2G - rot_C2C1*C1_trans_C1G;

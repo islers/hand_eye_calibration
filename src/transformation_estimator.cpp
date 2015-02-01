@@ -69,40 +69,32 @@ bool TransformationEstimator::addNewPosePair()
      ROS_WARN("TransformationEstimator::addNewPosePair(): The contacted 'hec_hand_pose' service was not able to calculate the location of the hand, no pose retrieved in time. Cannot add new pose pair.");
      return false;
   }
+  
+  PoseData new_data;
+  
   // load camera pose information
-  geometry_msgs::Pose cam_pose = cam_pose_request.response.description.pose;
+  new_data.eye_pose = cam_pose_request.response.description.pose;
+  
   sensor_msgs::Image cam_image = cam_pose_request.response.description.image;
-  std::vector<hand_eye_calibration::Point2D> cam_pattern_coordinates = cam_pose_request.response.description.point_coordinates;
- 
-  // load hand pose information
-  geometry_msgs::Pose hand_pose = hand_pose_request.response.description.pose;
-  
-  pose_pairs_.push_back( std::pair<geometry_msgs::Pose, geometry_msgs::Pose>(hand_pose,cam_pose) );
-  calib_pattern_image_coordinates_.push_back( cam_pattern_coordinates );
-  
   cv_bridge::CvImagePtr cv_ptr;
   try
   {
     cv_ptr = cv_bridge::toCvCopy(cam_image, sensor_msgs::image_encodings::BGR8);
     cv::Mat cv_cam_image = (*cv_ptr).image;
-    calibration_images_.push_back( cv_cam_image );
+    new_data.eye_image = cv_cam_image;
   }
   catch( cv_bridge::Exception& e )
   {
     ROS_WARN_STREAM("TransformationEstimator::addNewPosePair()::cv_bridge exception: "<<e.what()<<". No image is added." );
-    calibration_images_.push_back( cv::Mat() );
   }
+  new_data.calibration_pattern_coordinates = cam_pose_request.response.description.point_coordinates;
+ 
+  // load hand pose information
+  new_data.hand_pose = hand_pose_request.response.description.pose;
   
-  if( pose_pairs_.size()>=2 ) //estimation is possible
-  {
-    calculateTransformation(true);
-    
-    EstimationData new_estimate;
-    new_estimate.rot_EH = rot_EH_;
-    new_estimate.E_trans_EH = E_trans_EH_;
-    
-    transformation_estimates_.push_back(new_estimate);
-  }
+  
+  pose_data_.push_back( new_data );
+  
     
   return true;
 }
@@ -143,21 +135,10 @@ void TransformationEstimator::addLastRetrievedPosePair()
       ROS_WARN("Adding eye pose that has been recorded %f seconds ago.", (currentTime-recorded_hand_time_stamp_).toSec() );
     }
     
-    pose_pairs_.push_back( pair<geometry_msgs::Pose, geometry_msgs::Pose>(buffered_hand_,buffered_eye_) );
+    PoseData new_data;
+    new_data.hand_pose = buffered_hand_;
+    new_data.eye_pose = buffered_eye_;
     
-    calib_pattern_image_coordinates_.push_back( std::vector<hand_eye_calibration::Point2D>() );
-    calibration_images_.push_back( cv::Mat() );
-    
-    if( pose_pairs_.size()>=2 ) //estimation is possible
-    {
-      calculateTransformation(true);
-      
-      EstimationData new_estimate;
-      new_estimate.rot_EH = rot_EH_;
-      new_estimate.E_trans_EH = E_trans_EH_;
-      
-      transformation_estimates_.push_back(new_estimate);
-    }
   }
   
   
@@ -167,25 +148,15 @@ void TransformationEstimator::addLastRetrievedPosePair()
 
 void TransformationEstimator::deleteLastAddedPosePair()
 {
-  if( pose_pairs_.size()>= 1)
+  if( pose_data_.size()>= 1)
   {
-    del_pose_pairs_.push_back( pose_pairs_.back() );
-    pose_pairs_.pop_back();
+    del_pose_data_.push_back( pose_data_.back() );
+    pose_data_.pop_back();
   }
-  if( transformation_estimates_.size()>=1 )
+  /*if( transformation_estimates_.size()>=1 )
   {
-    transformation_estimates_.pop_back();
-  }
-  if( calib_pattern_image_coordinates_.size()>= 1 )
-  {
-    del_calib_pattern_image_coordinates_.push_back( calib_pattern_image_coordinates_.back() );
-    calib_pattern_image_coordinates_.pop_back();
-  }
-  if( calibration_images_.size()>=1 )
-  {
-    del_calibration_images_.push_back( calibration_images_.back() );
-    calibration_images_.pop_back();
-  }
+    transformation_estimates_.pop_back(); /// add function to delete estimates............................/////////////////////////////////////////////////////////
+  }*/
   
   return;
 }
@@ -193,38 +164,47 @@ void TransformationEstimator::deleteLastAddedPosePair()
 
 void TransformationEstimator::restoreLastDeletedPosePair()
 {
-  if( del_pose_pairs_.size()>= 1)
+  if( del_pose_data_.size()>= 1)
   {
-    pose_pairs_.push_back( del_pose_pairs_.back() );
-    del_pose_pairs_.pop_back();
-  }
-  if( del_calib_pattern_image_coordinates_.size()>= 1 )
-  {
-    calib_pattern_image_coordinates_.push_back( del_calib_pattern_image_coordinates_.back() );
-    del_calib_pattern_image_coordinates_.pop_back();
-  }
-  if( del_calibration_images_.size()>=1 )
-  {
-    calibration_images_.push_back( del_calibration_images_.back() );
-    del_calibration_images_.pop_back();
+    pose_data_.push_back( del_pose_data_.back() );
+    del_pose_data_.pop_back();
   }
   
-  if( pose_pairs_.size()>=2 ) //estimation is possible
-  {
-    calculateTransformation(true);
-    
-    EstimationData new_estimate;
-    new_estimate.rot_EH = rot_EH_;
-    new_estimate.E_trans_EH = E_trans_EH_;
-    
-    transformation_estimates_.push_back(new_estimate);
-  }
   return;
 }
 
-double TransformationEstimator::getReprojectionError()
+
+void TransformationEstimator::createAndAddNewEstimation()
 {
+  transformation_estimates_.push_back( getNewEstimation() );
+  return;
+}
+
+TransformationEstimator::EstimationData TransformationEstimator::getNewEstimation()
+{
+  if( pose_data_.size()<2 ) //estimation is NOT possible
+  {
+    
+  }
+    
+  calculateTransformation(true);
   
+  EstimationData new_estimate;
+  new_estimate.rot_EH = rot_EH_;
+  new_estimate.E_trans_EH = E_trans_EH_;
+  // unfinished:: include error calculations but handle cases when calculation is not possible (e.g. because no calibration_point_coordinates are given ///////////////////////////////////////////////
+      
+  return EstimationData();
+}
+
+double TransformationEstimator::getReprojectionError( EstimationData const& _estimation_data )
+{
+  // unfinished &///////////////////////////////////////////////////////////////////////////
+}
+
+std::pair<double,double> TransformationEstimator::getTransformationError( EstimationData const& _estimation_data )
+{
+  return std::pair<double,double>(); // unfinished &///////////////////////////////////////////////////////////////////////////
 }
 
 
@@ -304,28 +284,16 @@ void TransformationEstimator::clearAll()
 {
   ROS_INFO("Deleting all buffered hand-eye pose pairs and associated data.");
   
-  for( unsigned int i = 0; i<pose_pairs_.size(); i++ )
+  for( unsigned int i = 0; i<pose_data_.size(); i++ )
   {
-    del_pose_pairs_.push_back( pose_pairs_[i] );
+    del_pose_data_.push_back( pose_data_[i] );
   }
-  pose_pairs_.clear();
-  
-  for( unsigned int i = 0; i<calib_pattern_image_coordinates_.size(); i++ )
-  {
-    del_calib_pattern_image_coordinates_.push_back( calib_pattern_image_coordinates_[i] );
-  }
-  calib_pattern_image_coordinates_.clear();
-  
-  for( unsigned int i = 0; i<calibration_images_.size(); i++ )
-  {
-    del_calibration_images_.push_back( calibration_images_[i] );
-  }
-  calibration_images_.clear();
+  pose_data_.clear();
     
   transformation_estimates_.clear();
   
   
-  ROS_INFO_STREAM("Number of pose pairs now available for computation: "<<pose_pairs_.size() );
+  ROS_INFO_STREAM("Number of pose pairs now available for computation: "<<pose_data_.size() );
   
   return;
 }
@@ -372,15 +340,13 @@ void TransformationEstimator::eyeListening( const geometry_msgs::PoseConstPtr& _
 
 int TransformationEstimator::count()
 {
-  return pose_pairs_.size();
+  return pose_data_.size();
 }
 
 
 void TransformationEstimator::dumpTrash()
 {
-  del_pose_pairs_.clear();
-  del_calib_pattern_image_coordinates_.clear();
-  del_calibration_images_.clear();
+  del_pose_data_.clear();
 }
 
 
@@ -404,50 +370,37 @@ bool TransformationEstimator::printToFile( string fileName_ )
   
   try
   {
-    cv::Mat hand_poses(7,pose_pairs_.size() ,CV_64FC1);
-    cv::Mat eye_poses(7,pose_pairs_.size() ,CV_64FC1);
+    
+    // write pose data -------------------------------------
+    cv::Mat hand_poses(7,pose_data_.size() ,CV_64FC1);
+    cv::Mat eye_poses(7,pose_data_.size() ,CV_64FC1);
         
     
-    for( int i=0; i<pose_pairs_.size(); i++ )
+    for( int i=0; i<pose_data_.size(); i++ )
     {
-      hand_poses.at<double>(0,i) = pose_pairs_[i].first.orientation.x;
-      hand_poses.at<double>(1,i) = pose_pairs_[i].first.orientation.y;
-      hand_poses.at<double>(2,i) = pose_pairs_[i].first.orientation.z;
-      hand_poses.at<double>(3,i) = pose_pairs_[i].first.orientation.w;
-      hand_poses.at<double>(4,i) = pose_pairs_[i].first.position.x;
-      hand_poses.at<double>(5,i) = pose_pairs_[i].first.position.y;
-      hand_poses.at<double>(6,i) = pose_pairs_[i].first.position.z;
+      hand_poses.at<double>(0,i) = pose_data_[i].hand_pose.orientation.x;
+      hand_poses.at<double>(1,i) = pose_data_[i].hand_pose.orientation.y;
+      hand_poses.at<double>(2,i) = pose_data_[i].hand_pose.orientation.z;
+      hand_poses.at<double>(3,i) = pose_data_[i].hand_pose.orientation.w;
+      hand_poses.at<double>(4,i) = pose_data_[i].hand_pose.position.x;
+      hand_poses.at<double>(5,i) = pose_data_[i].hand_pose.position.y;
+      hand_poses.at<double>(6,i) = pose_data_[i].hand_pose.position.z;
       
-      eye_poses.at<double>(0,i) = pose_pairs_[i].second.orientation.x;
-      eye_poses.at<double>(1,i) = pose_pairs_[i].second.orientation.y;
-      eye_poses.at<double>(2,i) = pose_pairs_[i].second.orientation.z;
-      eye_poses.at<double>(3,i) = pose_pairs_[i].second.orientation.w;
-      eye_poses.at<double>(4,i) = pose_pairs_[i].second.position.x;
-      eye_poses.at<double>(5,i) = pose_pairs_[i].second.position.y;
-      eye_poses.at<double>(6,i) = pose_pairs_[i].second.position.z;
-    }
-    
-    cv::Mat estimated_transformations( 10, transformation_estimates_.size(), CV_64FC1 );
-    for( int i=0; i<transformation_estimates_.size(); i++ )
-    {
-      estimated_transformations.at<double>(0,i) = transformation_estimates_[i].rot_EH.x();
-      estimated_transformations.at<double>(1,i) = transformation_estimates_[i].rot_EH.y();
-      estimated_transformations.at<double>(2,i) = transformation_estimates_[i].rot_EH.z();
-      estimated_transformations.at<double>(3,i) = transformation_estimates_[i].rot_EH.w();
-      estimated_transformations.at<double>(4,i) = transformation_estimates_[i].E_trans_EH.x();
-      estimated_transformations.at<double>(5,i) = transformation_estimates_[i].E_trans_EH.y();
-      estimated_transformations.at<double>(6,i) = transformation_estimates_[i].E_trans_EH.z();
-      estimated_transformations.at<double>(7,i) = transformation_estimates_[i].reprojection_error;
-      estimated_transformations.at<double>(8,i) = transformation_estimates_[i].euler_rms_error;
-      estimated_transformations.at<double>(9,i) = transformation_estimates_[i].relative_translation_error;
+      eye_poses.at<double>(0,i) = pose_data_[i].eye_pose.orientation.x;
+      eye_poses.at<double>(1,i) = pose_data_[i].eye_pose.orientation.y;
+      eye_poses.at<double>(2,i) = pose_data_[i].eye_pose.orientation.z;
+      eye_poses.at<double>(3,i) = pose_data_[i].eye_pose.orientation.w;
+      eye_poses.at<double>(4,i) = pose_data_[i].eye_pose.position.x;
+      eye_poses.at<double>(5,i) = pose_data_[i].eye_pose.position.y;
+      eye_poses.at<double>(6,i) = pose_data_[i].eye_pose.position.z;
     }
     
     unsigned int pattern_coordinate_size=0;
-    for( int i=0; i< calib_pattern_image_coordinates_.size(); i++ )
+    for( int i=0; i< pose_data_.size(); i++ )
     {
-      if( calib_pattern_image_coordinates_[i].size()!=0 )
+      if( pose_data_[i].calibration_pattern_coordinates.size()!=0 )
       {
-	pattern_coordinate_size = calib_pattern_image_coordinates_[i].size();
+	pattern_coordinate_size = pose_data_[i].calibration_pattern_coordinates.size();
 	break;
       }
     }
@@ -455,17 +408,17 @@ bool TransformationEstimator::printToFile( string fileName_ )
     
     // saving each pattern_coordinates set in two rows, the first for the x, the second for the y values, -1000 is a placeholder for unknown coordinates (since they're always in the image, they're always positive if known)
     cv::Mat pattern_coordinates( pattern_coordinate_size, 0, CV_64FC1);
-    for( unsigned int i=0; i<calib_pattern_image_coordinates_.size(); i++ )
+    for( unsigned int i=0; i<pose_data_.size(); i++ )
     {
-      if( calib_pattern_image_coordinates_[i].size()!=0 )
+      if( pose_data_[i].calibration_pattern_coordinates.size()!=0 )
       {
 	cv::Mat x_row( pattern_coordinate_size, 1, CV_64FC1);
 	cv::Mat y_row( pattern_coordinate_size, 1, CV_64FC1);
 	
-	for( int j=0; j<calib_pattern_image_coordinates_[i].size(); j++ )
+	for( int j=0; j<pose_data_[i].calibration_pattern_coordinates.size(); j++ )
 	{
-	  x_row.at<double>(j,0) = calib_pattern_image_coordinates_[i][j].x;
-	  y_row.at<double>(j,0) = calib_pattern_image_coordinates_[i][j].y;
+	  x_row.at<double>(j,0) = pose_data_[i].calibration_pattern_coordinates[j].x;
+	  y_row.at<double>(j,0) = pose_data_[i].calibration_pattern_coordinates[j].y;
 	}
 	pattern_coordinates.push_back(x_row);
 	pattern_coordinates.push_back(y_row);
@@ -475,6 +428,29 @@ bool TransformationEstimator::printToFile( string fileName_ )
 	pattern_coordinates.push_back( pattern_placeholder );
 	pattern_coordinates.push_back( pattern_placeholder );
       }
+    }
+    
+    // write estimation data -----------------------------------------
+    cv::Mat estimated_transformations( 10, transformation_estimates_.size(), CV_64FC1 );
+    double reprojection_error, euler_rms_error, relative_translation_error;
+    for( int i=0; i<transformation_estimates_.size(); i++ )
+    {
+      estimated_transformations.at<double>(0,i) = transformation_estimates_[i].rot_EH.x();
+      estimated_transformations.at<double>(1,i) = transformation_estimates_[i].rot_EH.y();
+      estimated_transformations.at<double>(2,i) = transformation_estimates_[i].rot_EH.z();
+      estimated_transformations.at<double>(3,i) = transformation_estimates_[i].rot_EH.w();
+      estimated_transformations.at<double>(4,i) = transformation_estimates_[i].E_trans_EH.x();
+      estimated_transformations.at<double>(5,i) = transformation_estimates_[i].E_trans_EH.y();
+      estimated_transformations.at<double>(6,i) = transformation_estimates_[i].E_trans_EH.z();
+      if( transformation_estimates_[i].reprojectionError( reprojection_error ) )
+	estimated_transformations.at<double>(7,i) = reprojection_error;
+      else estimated_transformations.at<double>(7,i) = -1000;
+      if( transformation_estimates_[i].eulerAngleRmsError( euler_rms_error ) )
+	estimated_transformations.at<double>(8,i) = euler_rms_error;
+      else estimated_transformations.at<double>(8,i) = -1000;
+      if( transformation_estimates_[i].relativeTranslationError( relative_translation_error ) )
+	estimated_transformations.at<double>(9,i) = relative_translation_error;
+      else estimated_transformations.at<double>(9,i) = -1000;
     }
     
     cv::FileStorage outputFile( fileName_, cv::FileStorage::WRITE );
@@ -511,7 +487,7 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
     inputFile["estimated_transformations"] >> estimated_transformations;
     inputFile["pattern_coordinates"] >> pattern_coordinates;
     
-    if( hand_poses.cols!=eye_poses.cols || hand_poses.rows!=7 || eye_poses.rows!=7 || hand_poses.cols==0 || estimated_transformations.rows!=10 || estimated_transformations.cols!=(hand_poses.cols-1) || (pattern_coordinates.rows%2)!=0 )
+    if( hand_poses.cols!=eye_poses.cols || hand_poses.rows!=7 || eye_poses.rows!=7 || hand_poses.cols==0 || estimated_transformations.rows!=10 || estimated_transformations.cols!=(hand_poses.cols-1) || (pattern_coordinates.rows!=2*hand_poses.cols)&&(pattern_coordinates.rows!=0) )
     {
        ROS_ERROR("TransformationEstimator::loadFromFile::failed::The input file %s did not contain valid cv::Mat matrices.",fileName_.c_str() );
        return 0;
@@ -519,34 +495,48 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
     
     if( destroyOldData_ )
     {
-      pose_pairs_.clear();
+      pose_data_.clear();
       transformation_estimates_.clear();
-      del_pose_pairs_.clear();
-      del_calib_pattern_image_coordinates_.clear();
-      del_calibration_images_.clear();
+      del_pose_data_.clear();
     }
     
     for( int i=0; i<hand_poses.cols; i++ )
     {
-     geometry_msgs::Pose handPoseToAdd, eyePoseToAdd;
-     
-     handPoseToAdd.orientation.x = hand_poses.at<double>(0,i);
-     handPoseToAdd.orientation.y = hand_poses.at<double>(1,i);
-     handPoseToAdd.orientation.z = hand_poses.at<double>(2,i);
-     handPoseToAdd.orientation.w = hand_poses.at<double>(3,i);
-     handPoseToAdd.position.x = hand_poses.at<double>(4,i);
-     handPoseToAdd.position.y = hand_poses.at<double>(5,i);
-     handPoseToAdd.position.z = hand_poses.at<double>(6,i);
-     
-     eyePoseToAdd.orientation.x = eye_poses.at<double>(0,i);
-     eyePoseToAdd.orientation.y = eye_poses.at<double>(1,i);
-     eyePoseToAdd.orientation.z = eye_poses.at<double>(2,i);
-     eyePoseToAdd.orientation.w = eye_poses.at<double>(3,i);
-     eyePoseToAdd.position.x = eye_poses.at<double>(4,i);
-     eyePoseToAdd.position.y = eye_poses.at<double>(5,i);
-     eyePoseToAdd.position.z = eye_poses.at<double>(6,i);
+      PoseData new_data;
+      geometry_msgs::Pose handPoseToAdd, eyePoseToAdd;
       
-      pose_pairs_.push_back( pair<geometry_msgs::Pose, geometry_msgs::Pose>( handPoseToAdd,eyePoseToAdd ) );
+      new_data.hand_pose.orientation.x = hand_poses.at<double>(0,i);
+      new_data.hand_pose.orientation.y = hand_poses.at<double>(1,i);
+      new_data.hand_pose.orientation.z = hand_poses.at<double>(2,i);
+      new_data.hand_pose.orientation.w = hand_poses.at<double>(3,i);
+      new_data.hand_pose.position.x = hand_poses.at<double>(4,i);
+      new_data.hand_pose.position.y = hand_poses.at<double>(5,i);
+      new_data.hand_pose.position.z = hand_poses.at<double>(6,i);
+      
+      new_data.eye_pose.orientation.x = eye_poses.at<double>(0,i);
+      new_data.eye_pose.orientation.y = eye_poses.at<double>(1,i);
+      new_data.eye_pose.orientation.z = eye_poses.at<double>(2,i);
+      new_data.eye_pose.orientation.w = eye_poses.at<double>(3,i);
+      new_data.eye_pose.position.x = eye_poses.at<double>(4,i);
+      new_data.eye_pose.position.y = eye_poses.at<double>(5,i);
+      new_data.eye_pose.position.z = eye_poses.at<double>(6,i);
+      
+      if( pattern_coordinates.rows!=0 )
+      {
+	if( pattern_coordinates.at<double>(i*2,0)!=-1000 ) //placeholder for unknown data
+	{
+	  std::vector<hand_eye_calibration::Point2D> new_pattern_coordinates;
+	  for( int j=0; j<pattern_coordinates.cols; j++ )
+	  {
+	    hand_eye_calibration::Point2D new_point;
+	    new_point.x = pattern_coordinates.at<double>(i*2,j);
+	    new_point.y = pattern_coordinates.at<double>(i*2+1,j);
+	    new_data.calibration_pattern_coordinates.push_back(new_point);
+	  }
+	}
+      }
+      
+      pose_data_.push_back(new_data);
     }
     for( int i=0; i<estimated_transformations.cols; i++ )
     {
@@ -561,31 +551,15 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
       new_estimate.E_trans_EH.y() = estimated_transformations.at<double>(5,i);
       new_estimate.E_trans_EH.z() = estimated_transformations.at<double>(6,i);
       
-      new_estimate.reprojection_error = estimated_transformations.at<double>(7,i);
-      new_estimate.euler_rms_error = estimated_transformations.at<double>(8,i);
-      new_estimate.relative_translation_error = estimated_transformations.at<double>(9,i);
+      if( estimated_transformations.at<double>(7,i)!=-1000 )
+	new_estimate.setReprojectionError( estimated_transformations.at<double>(7,i) );
+      if( estimated_transformations.at<double>(8,i)!=-1000 )
+      {
+	new_estimate.setTransformationErrors( estimated_transformations.at<double>(8,i), estimated_transformations.at<double>(9,i) );
+      }
       
       transformation_estimates_.push_back(new_estimate);
       
-    }
-    for( int i=0; i<pattern_coordinates.rows; i+=2 )
-    {
-      if( pattern_coordinates.at<double>(i,0)==-1000 ) //placeholder for unknown data
-      {
-	calib_pattern_image_coordinates_.push_back( std::vector<hand_eye_calibration::Point2D>() );
-      }
-      else
-      {
-	std::vector<hand_eye_calibration::Point2D> new_pattern_coordinates;
-	for( int j=0; j<pattern_coordinates.cols; j++ )
-	{
-	  hand_eye_calibration::Point2D new_point;
-	  new_point.x = pattern_coordinates.at<double>(i,j);
-	  new_point.y = pattern_coordinates.at<double>(i+1,j);
-	  new_pattern_coordinates.push_back(new_point);
-	}
-	calib_pattern_image_coordinates_.push_back(new_pattern_coordinates);
-      }
     }
     
   }
@@ -627,4 +601,59 @@ Eigen::Quaterniond TransformationEstimator::geometryToEigen( const geometry_msgs
   output.z() = _quat.z;
   output.w() = _quat.w;
   return output;
+}
+
+
+TransformationEstimator::EstimationData::EstimationData():
+  has_reprojection_error_(false),
+  has_transformation_error_(false)
+{
+  
+}
+
+
+void TransformationEstimator::EstimationData::setReprojectionError( double _error )
+{
+  has_reprojection_error_ = true;
+  reprojection_error_ = _error;
+}
+
+
+void TransformationEstimator::EstimationData::setTransformationErrors( double _euler_angle_rms_error, double _relative_translation_error )
+{
+  has_transformation_error_ = true;
+  euler_angle_rms_error_ = _euler_angle_rms_error;
+  relative_translation_error_ = _relative_translation_error;
+}
+
+
+void TransformationEstimator::EstimationData::setTransformationErrors( std::pair<double,double> _errors )
+{
+  setTransformationErrors(_errors.first,_errors.second);
+}
+
+
+bool TransformationEstimator::EstimationData::reprojectionError( double& _reprojection_error )
+{
+  if(!has_reprojection_error_) return false;
+  
+  _reprojection_error = reprojection_error_;
+  return true;
+}
+
+
+bool TransformationEstimator::EstimationData::eulerAngleRmsError( double& _euler_angle_rms_error )
+{
+  if(!has_transformation_error_) return false;
+  
+  _euler_angle_rms_error = euler_angle_rms_error_;
+  return true;
+}
+
+bool TransformationEstimator::EstimationData::relativeTranslationError( double& _relative_translation_error )
+{
+  if(!has_transformation_error_) return false;
+  
+  _relative_translation_error = relative_translation_error_;
+  return true;
 }
