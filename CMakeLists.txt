@@ -51,7 +51,7 @@ include_directories(include
   ${Eigen_INCLUDE_DIRS}
 )
 
-add_executable(youbot_link_position_publisher src/youbot_link_position_publisher.cpp src/youbot_link_position_publisher_node.cpp)
+add_executable(youbot_link_position_publisher src/hand_eye_calibration/youbot_link_position_publisher.cpp src/hand_eye_calibration/youbot_link_position_publisher_node.cpp)
 
 target_link_libraries(youbot_link_position_publisher
   ${catkin_LIBRARIES}
@@ -61,7 +61,7 @@ add_dependencies(youbot_link_position_publisher
  ${catkin_EXPORTED_TARGETS}
 )
 
-add_executable(tf2_republisher src/tf2_republisher.cpp src/tf2_republisher_node.cpp)
+add_executable(tf2_republisher src/hand_eye_calibration/tf2_republisher.cpp src/hand_eye_calibration/tf2_republisher_node.cpp)
 
 target_link_libraries(tf2_republisher
   ${catkin_LIBRARIES}
@@ -72,7 +72,7 @@ add_dependencies(tf2_republisher
  ${PROJECT_NAME}_generate_messages_cpp
 )
 
-add_executable(eye_position_from_checkerboard src/eye_position_from_checkerboard.cpp src/eye_position_from_checkerboard_node.cpp)
+add_executable(eye_position_from_checkerboard src/hand_eye_calibration/eye_position_from_checkerboard.cpp src/hand_eye_calibration/eye_position_from_checkerboard_node.cpp)
 
 target_link_libraries(eye_position_from_checkerboard
   ${catkin_LIBRARIES}
@@ -84,9 +84,14 @@ add_dependencies(eye_position_from_checkerboard
 )
 
 add_executable(dual_quaternion_transformation_estimator
-  src/transformation_estimator.cpp
-  src/dual_quaternion_transformation_estimator.cpp
-  src/dual_quaternion_estimation_node.cpp)
+  src/hand_eye_calibration/transformation_estimator.cpp
+  src/hand_eye_calibration/calibration_setup.cpp
+  src/hand_eye_calibration/dual_quaternion_transformation_estimator.cpp
+  src/hand_eye_calibration/dual_quaternion_estimation_node.cpp
+  src/utils/eigen_utils.cpp
+  src/utils/math.cpp
+  src/utils/ros_eigen.cpp
+)
 
 target_link_libraries(dual_quaternion_transformation_estimator
   ${catkin_LIBRARIES}
@@ -98,10 +103,14 @@ add_dependencies(dual_quaternion_transformation_estimator
 )
 
 add_executable(autonomous_hand_eye_calibration
-  src/autonomous_calibration.cpp
-  src/autonomous_hand_eye_calibrator.cpp
-  src/dual_quaternion_transformation_estimator.cpp
-  src/transformation_estimator.cpp
+  src/hand_eye_calibration/autonomous_calibration.cpp
+  src/hand_eye_calibration/autonomous_hand_eye_calibrator.cpp
+  src/hand_eye_calibration/dual_quaternion_transformation_estimator.cpp
+  src/hand_eye_calibration/transformation_estimator.cpp
+  src/hand_eye_calibration/calibration_setup.cpp
+  src/utils/eigen_utils.cpp
+  src/utils/math.cpp
+  src/utils/ros_eigen.cpp
 )
 
 target_link_libraries(autonomous_hand_eye_calibration

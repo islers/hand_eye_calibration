@@ -15,6 +15,10 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "hand_eye_calibration/dual_quaternion_transformation_estimator.h" 
+#include "utils/eigen_utils.h"
+#include "utils/math.h"
+#include "utils/ros_eigen.h"
+
 using namespace std;
 using namespace Eigen;
 
@@ -58,32 +62,32 @@ void DualQuaternionTransformationEstimator::calculateTransformation( bool _suppr
    * 
    *  dual quaternions are then hQ[i].first + epsilon*hQ[i].second
   */
-  vector< pair<Eigen::Quaterniond,Eigen::Quaterniond>, Eigen::aligned_allocator<pair<Quaterniond, Quaterniond> > > hQ, cQ;
+  vector<st_is::DualQuaternion> hQ, cQ;
   for( int i=0; i<pose_data_.size()-1; i++ )
   {
     // transformation hand pose 1 (H1) -_> hand pose 2 (H2)
     
-    Quaterniond rot_BH1 = geometryToEigen( pose_data_[i].hand_pose.orientation );
-    Vector3d B_trans_BH1 = geometryToEigen( pose_data_[i].hand_pose.position );
-    Quaterniond rot_H2B = geometryToEigen( pose_data_[i+1].hand_pose.orientation ).inverse();
-    Vector3d B_trans_BH2 = geometryToEigen( pose_data_[i+1].hand_pose.position );
+    Quaterniond rot_BH1 = st_is::geometryToEigen( pose_data_[i].hand_pose.orientation );
+    Vector3d B_trans_BH1 = st_is::geometryToEigen( pose_data_[i].hand_pose.position );
+    Quaterniond rot_H2B = st_is::geometryToEigen( pose_data_[i+1].hand_pose.orientation ).inverse();
+    Vector3d B_trans_BH2 = st_is::geometryToEigen( pose_data_[i+1].hand_pose.position );
     
     Quaterniond rot_H2H1 = rot_H2B * rot_BH1;
     Vector3d H2_trans_H2H1 = rot_H2B * ( B_trans_BH1-B_trans_BH2 );
-    pair<Quaterniond,Quaterniond> dualQuat_H2H1 = dualQuaternion( rot_H2H1, H2_trans_H2H1 );
+    st_is::DualQuaternion dualQuat_H2H1( rot_H2H1, H2_trans_H2H1 );
     
     hQ.push_back( dualQuat_H2H1 );
     
     //transformation cam pose 1 (E1) -> cam pose 2 (E2)
     
-    Quaterniond rot_GC1 = geometryToEigen( pose_data_[i].eye_pose.orientation ).inverse();
-    Vector3d C1_trans_C1G = geometryToEigen( pose_data_[i].eye_pose.position );
-    Quaterniond rot_C2G = geometryToEigen( pose_data_[i+1].eye_pose.orientation );
-    Vector3d C2_trans_C2G = geometryToEigen( pose_data_[i+1].eye_pose.position );
+    Quaterniond rot_GC1 = st_is::geometryToEigen( pose_data_[i].eye_pose.orientation ).inverse();
+    Vector3d C1_trans_C1G = st_is::geometryToEigen( pose_data_[i].eye_pose.position );
+    Quaterniond rot_C2G = st_is::geometryToEigen( pose_data_[i+1].eye_pose.orientation );
+    Vector3d C2_trans_C2G = st_is::geometryToEigen( pose_data_[i+1].eye_pose.position );
     
     Quaterniond rot_C2C1 = rot_C2G * rot_GC1;
     Vector3d C2_trans_C2C1 = C2_trans_C2G - rot_C2C1*C1_trans_C1G;
-    pair<Quaterniond,Quaterniond> dualQuat_C2C1 = dualQuaternion( rot_C2C1, C2_trans_C2C1 );
+    st_is::DualQuaternion dualQuat_C2C1( rot_C2C1, C2_trans_C2C1 );
     
     cQ.push_back( dualQuat_C2C1 );
   }
@@ -95,8 +99,8 @@ void DualQuaternionTransformationEstimator::calculateTransformation( bool _suppr
   for( unsigned int i=0; i<hQ.size(); i++ )
   {
     Matrix<double,6,8> S_i;
-    S[i] <<	hQ[i].first.vec()-cQ[i].first.vec()		,crossProdMatrix( hQ[i].first.vec()+cQ[i].first.vec() )		,Matrix<double,3,1>::Zero()			,Matrix<double,3,3>::Zero()
-		,hQ[i].second.vec()-cQ[i].second.vec()		,crossProdMatrix( hQ[i].second.vec()+cQ[i].second.vec() )	,hQ[i].first.vec()-cQ[i].first.vec()		,crossProdMatrix( hQ[i].first.vec()+cQ[i].first.vec());
+    S[i] <<	hQ[i].q.vec()-cQ[i].q.vec()		,st_is::crossProdMatrix( hQ[i].q.vec()+cQ[i].q.vec() )		,Matrix<double,3,1>::Zero()			,Matrix<double,3,3>::Zero()
+		,hQ[i].q_prime.vec()-cQ[i].q_prime.vec()		,st_is::crossProdMatrix( hQ[i].q_prime.vec()+cQ[i].q_prime.vec() )	,hQ[i].q.vec()-cQ[i].q.vec()		,st_is::crossProdMatrix( hQ[i].q.vec()+cQ[i].q.vec());
   }
   
   // build T
@@ -148,7 +152,7 @@ void DualQuaternionTransformationEstimator::calculateTransformation( bool _suppr
   double c = (u_2.transpose() * v_2)[0];
   
   // equation has two real solutions of opposite sign (see paper)
-  roots(a,b,c,s);
+  st_is::roots(a,b,c,s);
   
   // using 2nd equation:
   double leftSideCandidate_1 = (s.first*s.first*u_1.transpose()*u_1 + 2*s.first*u_1.transpose()*u_2 + u_2.transpose()*u_2)[0];
@@ -189,33 +193,4 @@ void DualQuaternionTransformationEstimator::calculateTransformation( bool _suppr
   
   transformation_calculated_ = true;
   return;
-}
-
-
-pair<Eigen::Quaterniond,Eigen::Quaterniond> DualQuaternionTransformationEstimator::dualQuaternion( Eigen::Quaterniond _rot, Eigen::Vector3d _trans )
-{
-  Eigen::Quaterniond q, qPrime;
-  
-  q = _rot.normalized(); // just to ensure normalization
-  
-  // by the screw congruence theorem q and q' one must be equal for hand eye calibration for both the eye and the hand movement. since the rotation represented by quaternion q is equal to -q, enforcing q_1>=0
-  if( q.w()<0 )
-  {
-    q.w() = - q.w();
-    q.x() = -q.x();
-    q.y() = -q.y();
-    q.z() = -q.z();
-  }
-  
-  Vector3d qAxis = q.vec();
-  
-  Vector3d qPrimeAxis = 0.5*( q.w()*_trans + _trans.cross(qAxis) );
-  double qPrimeW = -0.5*qAxis.dot(_trans);
-  
-  qPrime.x() = qPrimeAxis.x();
-  qPrime.y() = qPrimeAxis.y();
-  qPrime.z() = qPrimeAxis.z();
-  qPrime.w() = qPrimeW;
-  
-  return pair<Quaterniond,Quaterniond>(q,qPrime);
 }

@@ -153,10 +153,6 @@ void TransformationEstimator::deleteLastAddedPosePair()
     del_pose_data_.push_back( pose_data_.back() );
     pose_data_.pop_back();
   }
-  /*if( transformation_estimates_.size()>=1 )
-  {
-    transformation_estimates_.pop_back(); /// add function to delete estimates............................/////////////////////////////////////////////////////////
-  }*/
   
   return;
 }
@@ -174,17 +170,36 @@ void TransformationEstimator::restoreLastDeletedPosePair()
 }
 
 
+bool TransformationEstimator::estimationPossible()
+{
+  return pose_data_.size()>=2;
+}
+
+
 void TransformationEstimator::createAndAddNewEstimation()
 {
   transformation_estimates_.push_back( getNewEstimation() );
   return;
 }
 
+void TransformationEstimator::clearEstimations()
+{
+  transformation_estimates_.clear();
+}
+
+void TransformationEstimator::deleteLastEstimation()
+{
+  transformation_estimates_.pop_back();
+}
+
 TransformationEstimator::EstimationData TransformationEstimator::getNewEstimation()
 {
-  if( pose_data_.size()<2 ) //estimation is NOT possible
+  if( !estimationPossible() ) //estimation is NOT possible
   {
-    
+    std::string error_message = "TransformationEstimator::getNewEstimation:: estimation is not possible since not enough data is available.";
+    ROS_ERROR_STREAM( error_message );
+    std::runtime_error e( error_message );
+    throw e;
   }
     
   calculateTransformation(true);
@@ -192,13 +207,26 @@ TransformationEstimator::EstimationData TransformationEstimator::getNewEstimatio
   EstimationData new_estimate;
   new_estimate.rot_EH = rot_EH_;
   new_estimate.E_trans_EH = E_trans_EH_;
-  // unfinished:: include error calculations but handle cases when calculation is not possible (e.g. because no calibration_point_coordinates are given ///////////////////////////////////////////////
-      
-  return EstimationData();
+  
+  double reprojection_error;
+  if( getReprojectionError(new_estimate,reprojection_error) )
+  {
+    new_estimate.setReprojectionError(reprojection_error);
+  }
+  
+  std::pair<double,double> transformation_error = getTransformationError(new_estimate);
+  new_estimate.setTransformationErrors( transformation_error );
+  
+  return new_estimate;
 }
 
-double TransformationEstimator::getReprojectionError( EstimationData const& _estimation_data )
+bool TransformationEstimator::getReprojectionError( EstimationData const& _estimation_data, double& _reprojection_error )
 {
+  if( !calibration_configuration_.isSetup() )
+  {
+    ROS_WARN("TransformationEstimator::getReprojectionError::Called but cannot calculate reprojection error since calibration setup configuration hasn't been setup, no camera and/or calibration pattern world coordinates are given.");
+    return false;
+  }
   // unfinished &///////////////////////////////////////////////////////////////////////////
 }
 
@@ -347,19 +375,6 @@ int TransformationEstimator::count()
 void TransformationEstimator::dumpTrash()
 {
   del_pose_data_.clear();
-}
-
-
-
-bool TransformationEstimator::roots( double _aCoeff, double _bCoeff, double _cCoeff, pair<double,double>& _roots )
-{
-  double discriminant = sqrt( _bCoeff*_bCoeff - 4*_aCoeff*_cCoeff );
-  
-  if( discriminant<0 ) return false;
-  
-  _roots.first = (-_bCoeff + discriminant ) / (2*_aCoeff);
-  _roots.second = (-_bCoeff - discriminant ) / (2*_aCoeff);
-  return true;
 }
 
 
@@ -569,38 +584,6 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
     return 0;
   }
   return 1;
-}
-
-
-
-Matrix3d TransformationEstimator::crossProdMatrix( Vector3d _vec )
-{
-  Matrix3d ret;
-  ret<< 0,		-_vec.z(),	_vec.y(),
-	_vec.z(),	0,		-_vec.x(),
-	-_vec.y(),	_vec.x(),	0;
-  return ret;
-}
-
-
-Eigen::Vector3d TransformationEstimator::geometryToEigen( const geometry_msgs::Point& _vec )
-{
-  Eigen::Vector3d output;
-  output.x() = _vec.x;
-  output.y() = _vec.y;
-  output.z() = _vec.z;
-  return output;
-}
-
-
-Eigen::Quaterniond TransformationEstimator::geometryToEigen( const geometry_msgs::Quaternion& _quat )
-{
-  Eigen::Quaterniond output;
-  output.x() = _quat.x;
-  output.y() = _quat.y;
-  output.z() = _quat.z;
-  output.w() = _quat.w;
-  return output;
 }
 
 

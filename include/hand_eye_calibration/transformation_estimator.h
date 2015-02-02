@@ -32,6 +32,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 #include "hand_eye_calibration/HandPose.h"
 #include "hand_eye_calibration/CameraPose.h"
+#include "hand_eye_calibration/calibration_setup.h"
 
 /// abstract base class for transformation estimators
 class TransformationEstimator
@@ -66,18 +67,37 @@ class TransformationEstimator
     /** calculates the transformation estimate */
     virtual void calculateTransformation(bool _suppressWarnings=false )=0;
     
-    /** creates a new estimation and adds it to the internal estimation list */
+    /** returns true if estimating is possible
+     */
+    bool estimationPossible();
+    
+    /** creates a new estimation and adds it to the internal estimation list 
+     * @throws std::runtime_error if the method is called but no estimation can be done because not enough data is available
+     */
     void createAndAddNewEstimation();
     
-    /** creates a new estimation based on all currently available data, including error estimates */
+    
+    /** deletes all estimations
+     */
+    void clearEstimations();
+    
+    /** deletes last estimation
+     */
+    void deleteLastEstimation();
+    
+    /** creates a new estimation based on all currently available data, including error estimates
+     * @throws std::runtime_error if the method is called but no estimation can be done because not enough data is available
+     */
     EstimationData getNewEstimation();
     
     /** calculates a reprojection error measure for given estimate based on all data currently available (pattern_coordinate sets)
      * 
      * @param _estimation_data the estimation - error data is not overwritten
+     * @param _reprojection_error to return the calculated reprojection error
+     * @return true if calculating a reprojection error was possible
      * 
      */
-    double getReprojectionError( EstimationData const& _estimation_data );
+    bool getReprojectionError( EstimationData const& _estimation_data, double& _reprojection_error );
     
     /** calculates transformation error measures for given estimate based on all data currently available (pose pairs)
      * 
@@ -152,32 +172,21 @@ class TransformationEstimator
     
     ros::Duration max_service_wait_time_; /// max time the pose services have to answer the request, default is 30 ms
     
-    std::vector<PoseData> pose_data_; /// stores all poses and related data
-    
-    
+    std::vector<PoseData> pose_data_; /// stores all poses and related data    
     std::vector<PoseData> del_pose_data_; /// trash bin for pose data
-    
-    
-    void dumpTrash(); /// deletes all contente of the del_* vectors
-    
-    /** simple solver for the quadratic equation a*x² + bx + c = 0
-     *  Returns false if the roots are imaginary, otherwhise the two roots are stored in _roots - twice
-     *  the same value if only one root exists.
-     */
-    bool roots( double _aCoeff, double _bCoeff, double _cCoeff, std::pair<double,double>& _roots );
-        
-    bool transformation_calculated_;
-    bool hand_recorded_, eye_recorded_;
-    ros::Time recorded_hand_time_stamp_, recorded_eye_time_stamp_;
     
     Eigen::Quaterniond rot_EH_; /// current estimated rotation from hand to eye
     Eigen::Vector3d E_trans_EH_; /// current estimated position of H (hand) origin in E (eye) coordinates
     std::vector<EstimationData> transformation_estimates_; // holds different estimations along with their errors, updated when new data is added
     
-    Eigen::Matrix3d crossProdMatrix( Eigen::Vector3d _vec );
-    Eigen::Vector3d geometryToEigen( const geometry_msgs::Point& _vec );
-    Eigen::Quaterniond geometryToEigen( const geometry_msgs::Quaternion& _quat );
+    CalibrationSetup calibration_configuration_;
     
+    void dumpTrash(); /// deletes all contente of the del_* vectors
+            
+    bool transformation_calculated_;
+    bool hand_recorded_, eye_recorded_;
+    ros::Time recorded_hand_time_stamp_, recorded_eye_time_stamp_;
+        
     geometry_msgs::Pose buffered_hand_, buffered_eye_;
         
     ros::NodeHandle* ros_node_;
