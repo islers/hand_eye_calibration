@@ -37,4 +37,18 @@ Eigen::Quaterniond geometryToEigen( const geometry_msgs::Quaternion& _quat )
   output.w() = _quat.w;
   return output;
 }
+
+
+Eigen::Matrix<double,3,4> transformationMatrix( geometry_msgs::Pose& _pose )
+{
+  Eigen::Matrix<double,3,4> transformation_matrix;
+  Eigen::Vector3d translation = geometryToEigen( _pose.position );
+  Eigen::Quaterniond rotation = geometryToEigen( _pose.orientation );
+  
+  transformation_matrix.leftCols<3>() = rotation.matrix();
+  transformation_matrix.rightCols<1>() = translation;
+  
+  return transformation_matrix;
+}
+
 }

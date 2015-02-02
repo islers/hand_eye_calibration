@@ -52,15 +52,23 @@ public:
   /// returns the projected image coordinates for a point given the pose of the calibration pattern world relative to the camera
   /**
    * @param _i index of the point to be projected
-   * @param _camera_pose The transformation from calibration pattern world coordinates (O) to eye coordinates (E): the rotation R_EO and the translation vector E_t_EO,
+   * @param _camera_pose The transformation from calibration pattern world coordinates (O) to eye coordinates (E): the rotation R_EO and the translation vector E_t_EO, Therefore, a transformation O->E would be carried out through: x_E = R_EO*x_O + E_t_EO
+   * @throws runtime_error if the object hasn't been setup yet
    */
   hand_eye_calibration::Point2D getProjectedPointCoordinates( unsigned int _i, geometry_msgs::Pose _camera_pose );
   
-  // returns a vector with all projected coordinates given the pose of the calibration pattern world relative to the camera
+  /// returns a vector with all projected coordinates given the pose of the calibration pattern world relative to the camera
   /**
-   * @param _camera_pose The transformation from calibration pattern world coordinates (O) to eye coordinates (E): the rotation R_EO and the translation vector E_t_EO,
+   * @param _camera_pose The transformation from calibration pattern world coordinates (O) to eye coordinates (E): the rotation R_EO and the translation vector E_t_EO,  Therefore, a transformation O->E would be carried out through: x_E = R_EO*x_O + E_t_EO
+   * @throws runtime_error if the object hasn't been setup yet
    */
   std::vector<hand_eye_calibration::Point2D> getProjectedCoordinates( geometry_msgs::Pose _camera_pose );
+  
+  /** returns the full projection matrix including the given pose and the camera matrix K
+   * @param _camera_pose The transformation from calibration pattern world coordinates (O) to eye coordinates (E): the rotation R_EO and the translation vector E_t_EO,  Therefore, a transformation O->E would be carried out through: x_E = R_EO*x_O + E_t_EO
+   * @throws runtime_error if the object hasn't been setup yet
+   */
+  Eigen::Matrix<double,3,4> fullProjectionMatrix( geometry_msgs::Pose _camera_pose );
   
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 private:
