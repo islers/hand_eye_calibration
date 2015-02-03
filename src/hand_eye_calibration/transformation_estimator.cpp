@@ -14,9 +14,14 @@ You should have received a copy of the GNU Lesser General Public License
 along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "hand_eye_calibration/transformation_estimator.h" 
 #include <sstream>
 #include <boost/foreach.hpp>
+
+#include "hand_eye_calibration/transformation_estimator.h" 
+#include "hand_eye_calibration/transformation_estimation_method.h"
+#include "hand_eye_calibration/estimation_data.h" 
+#include "hand_eye_calibration/CameraPoseInfo.h"
+
 #include "utils/ros_eigen.h"
 
 using namespace std;
@@ -30,13 +35,27 @@ max_service_wait_time_(0,30000000)
   
   hand_recorded_ = false;
   eye_recorded_ = false;
-  transformation_calculated_ = false;
 }
 
 
 TransformationEstimator::~TransformationEstimator()
 {
   
+}
+
+
+std::string TransformationEstimator::estimationMethod()
+{
+  if( estimation_methods_.empty() ) return "none";
+  
+  return estimation_methods_[0]->estimationMethod();
+}
+
+
+void TransformationEstimator::setEstimationMethod( boost::shared_ptr<EstimationMethod> _new_method )
+{
+  if( estimation_methods_.empty() ) estimation_methods_.push_back( _new_method );
+  else estimation_methods_[0] = _new_method;
 }
 
 
@@ -95,12 +114,21 @@ bool TransformationEstimator::addNewPosePair()
  
   // load hand pose information
   new_data.hand_pose = hand_pose_request.response.description.pose;
-  
-  
+   
   pose_data_.push_back( new_data );
-  
-    
+      
   return true;
+}
+
+bool TransformationEstimator::addAndEstimate()
+{
+  bool return_value = addNewPosePair();
+  return_value = return_value && estimationPossible();
+  
+  if( estimationPossible() )
+    createAndAddNewEstimation();
+  
+  return return_value;
 }
 
 
@@ -143,6 +171,7 @@ void TransformationEstimator::addLastRetrievedPosePair()
     new_data.hand_pose = buffered_hand_;
     new_data.eye_pose = buffered_eye_;
     
+    pose_data_.push_back( new_data );
   }
   
   
@@ -176,7 +205,16 @@ void TransformationEstimator::restoreLastDeletedPosePair()
 
 bool TransformationEstimator::estimationPossible()
 {
-  return pose_data_.size()>=2;
+  return pose_data_.size()>=2 && !estimation_methods_.empty();
+}
+
+TransformationEstimator::EstimationData TransformationEstimator::estimate()
+{
+  if( transformation_estimates_.size()==0 )
+  {
+    return getNewEstimation();
+  }
+  else return transformation_estimates_.back();
 }
 
 
@@ -200,31 +238,27 @@ TransformationEstimator::EstimationData TransformationEstimator::getNewEstimatio
 {
   if( !estimationPossible() ) //estimation is NOT possible
   {
-    std::string error_message = "TransformationEstimator::getNewEstimation:: estimation is not possible since not enough data is available.";
+    std::string error_message = "TransformationEstimator::getNewEstimation:: estimation is not possible since not enough data is available or not estimation method was specified.";
     ROS_ERROR_STREAM( error_message );
     std::runtime_error e( error_message );
     throw e;
   }
     
-  calculateTransformation(true);
-  
-  EstimationData new_estimate;
-  new_estimate.rot_EH = rot_EH_;
-  new_estimate.E_trans_EH = E_trans_EH_;
-  
+  EstimationData new_estimate = (*estimation_methods_[0])(pose_data_,true);
+    
   st_is::StdError reprojection_error;
   if( getReprojectionError(new_estimate,reprojection_error) )
   {
     new_estimate.setReprojectionError(reprojection_error);
   }
   
-  std::pair<st_is::StdError,st_is::StdError> transformation_error = getTransformationError(new_estimate);
+  TransformationError transformation_error = getTransformationError(new_estimate);
   new_estimate.setTransformationErrors( transformation_error );
   
   return new_estimate;
 }
 
-bool TransformationEstimator::getReprojectionError( EstimationData const& _estimation_data, st_is::StdError& _reprojection_error )
+bool TransformationEstimator::getReprojectionError( EstimationData& _estimation_data, st_is::StdError& _reprojection_error )
 {
   if( !calibration_configuration_.isSetup() )
   {
@@ -255,7 +289,7 @@ bool TransformationEstimator::getReprojectionError( EstimationData const& _estim
   return true;
 }
 
-double TransformationEstimator::reprojectionErrorForTime( unsigned int _i, EstimationData const& _estimation_data )
+double TransformationEstimator::reprojectionErrorForTime( unsigned int _i, EstimationData& _estimation_data )
 {
   if( pose_data_.size()>=_i )
   {
@@ -283,7 +317,7 @@ double TransformationEstimator::reprojectionErrorForTime( unsigned int _i, Estim
   return accumulated_error/number_of_pattern_points;
 }
 
-double TransformationEstimator::reprojectionErrorForTimeAndPoint( unsigned int _i, unsigned int _j, EstimationData const& _estimation_data )
+double TransformationEstimator::reprojectionErrorForTimeAndPoint( unsigned int _i, unsigned int _j, EstimationData& _estimation_data )
 {
   if( pose_data_[_i].calibration_pattern_coordinates.size()>=_j )
   {
@@ -295,7 +329,7 @@ double TransformationEstimator::reprojectionErrorForTimeAndPoint( unsigned int _
   double accumulated_error = 0;
   double number_of_poses = pose_data_.size();
   
-  st_is::CoordinateTransformation t_EH( _estimation_data.rot_EH, _estimation_data.E_trans_EH ); // hand eye transformation estimate
+  st_is::CoordinateTransformation t_EH( _estimation_data.rot_EH(), _estimation_data.E_trans_EH() ); // hand eye transformation estimate
   st_is::CoordinateTransformation t_HE = t_EH.inv();
   st_is::CoordinateTransformation t_BH_i( st_is::geometryToEigen(pose_data_[_i].hand_pose.orientation), st_is::geometryToEigen(pose_data_[_i].hand_pose.position) ); // hand to base at time i
   
@@ -336,7 +370,7 @@ double TransformationEstimator::reprojectionErrorForTimeAndPointGivenProjection(
   return error;
 }
 
-std::pair<st_is::StdError,st_is::StdError> TransformationEstimator::getTransformationError( EstimationData const& _estimation_data )
+TransformationEstimator::TransformationError TransformationEstimator::getTransformationError( EstimationData& _estimation_data )
 {
   std::vector<double> absolut_euler_angle_errors; // euler angle: z,x,z
   std::vector<double> relative_translation_errors;
@@ -364,13 +398,14 @@ std::pair<st_is::StdError,st_is::StdError> TransformationEstimator::getTransform
     relative_translation_errors.push_back(rel_translation_error);
   }
   
-  st_is::StdError euler_angle_error(absolut_euler_angle_errors);
-  st_is::StdError relative_translation_error(relative_translation_errors);
+  TransformationError transformation_error;
+  transformation_error.euler_angle_error = st_is::StdError(absolut_euler_angle_errors);
+  transformation_error.relative_translation_error = st_is::StdError(relative_translation_errors);
   
-  return std::pair<st_is::StdError,st_is::StdError>(euler_angle_error,relative_translation_error);
+  return transformation_error;
 }
 
-st_is::CoordinateTransformation TransformationEstimator::getCalibrationPatternPoseEstimate( EstimationData const& _estimation_data )
+st_is::CoordinateTransformation TransformationEstimator::getCalibrationPatternPoseEstimate( EstimationData& _estimation_data )
 {
   if( pose_data_.empty() )
   {
@@ -382,7 +417,7 @@ st_is::CoordinateTransformation TransformationEstimator::getCalibrationPatternPo
   Eigen::Matrix<double,4,1> rotation_accumulator = Eigen::MatrixXd::Zero(4,1);
   Eigen::Vector3d translation_accumulator = Eigen::MatrixXd::Zero(3,1);
   
-  st_is::CoordinateTransformation t_HE = st_is::CoordinateTransformation( _estimation_data.rot_EH, _estimation_data.E_trans_EH ).inv(); // inverse of hand eye transformation estimate
+  st_is::CoordinateTransformation t_HE = st_is::CoordinateTransformation( _estimation_data.rot_EH(), _estimation_data.E_trans_EH() ).inv(); // inverse of hand eye transformation estimate
   
   BOOST_FOREACH( PoseData pose_data, pose_data_ )
   {
@@ -415,85 +450,77 @@ st_is::CoordinateTransformation TransformationEstimator::getCalibrationPatternPo
   return st_is::CoordinateTransformation( mean_rotation, mean_translation );
 }
 
-st_is::CoordinateTransformation TransformationEstimator::camPoseEstimateForPoseData( PoseData& _pose, EstimationData const& _estimation_data )
+CalibrationSetup TransformationEstimator::getCalibrationSetup()
 {
-  st_is::CoordinateTransformation t_EH( _estimation_data.rot_EH, _estimation_data.E_trans_EH ); // inverse of hand eye transformation estimate
-  st_is::CoordinateTransformation t_BO = getCalibrationPatternPoseEstimate( _estimation_data ); // robot base O, calibration pattern coordinate system O
+  return calibration_configuration_;
+}
+
+void TransformationEstimator::setCalibrationConfiguration( CalibrationSetup& _new_configuration )
+{
+  calibration_configuration_=_new_configuration;
+}
+
+void TransformationEstimator::setCalibrationConfiguration( Eigen::Matrix<double,3,4>& _projection_matrix, std::vector<geometry_msgs::Point>& _calibration_pattern_world_coordinates )
+{
+  calibration_configuration_.setData( _projection_matrix, _calibration_pattern_world_coordinates );
+}
+
+bool TransformationEstimator::loadCalibrationConfigurationFromService()
+{
+    
+  hand_eye_calibration::CameraPoseInfo cam_pose_info;
+  if( !ros::service::call("hec_eye_node_info",cam_pose_info) )
+  {
+    std::string warning = "TransformationEstimator::loadCalibrationConfigurationFromService::could not contact 'hec_eye_node_info'-service of cam pose publisher node. Thus no new information about the calibration setup is available.";
+    ROS_WARN("%s",warning.c_str());
+    return false;
+  }
+  else
+  {
+    ROS_INFO("Successfully contacted 'hec_eye_node_info' service.");
+    
+    
+    if( cam_pose_info.response.info.camera_info.P.size()!=12 )
+    {
+      ROS_ERROR("The projection matrix provided by the 'hec_eye_node_info' service is invalid or empty. Cannot setup calibration configuration.");
+      return false;
+    }
+    if( cam_pose_info.response.info.pattern_coordinates.size()==0 )
+    {
+      ROS_ERROR("No calibraton pattern coordinates are provided by the 'hec_eye_nod_info' service. Cannot setup calibration configuration.");
+      return false;
+    }
+    
+    Eigen::Matrix<double,3,4> projection_matrix;
+    int i = 0;
+    for( unsigned int row=0; row<3; row++ )
+    {
+      for( unsigned int col=0; col<4; col++, i++ )
+      {
+	projection_matrix(row,col) = cam_pose_info.response.info.camera_info.P[i];
+      }
+    }
+    ROS_INFO_STREAM("The projection matrix is:"<<std::endl<<std::endl<<projection_matrix<<std::endl);
+    
+    std::vector<geometry_msgs::Point> calibration_pattern_world_coordinates = cam_pose_info.response.info.pattern_coordinates;
+    
+    ROS_INFO_STREAM("Calibration pattern retrieved with "<<calibration_pattern_world_coordinates.size()<<" points.");
+    ROS_INFO_STREAM("Successfully retrieved all data needed from 'hec_eye_node_info' topic.");
+    
+    calibration_configuration_.setData( projection_matrix, calibration_pattern_world_coordinates );
+    
+    return true;
+  }
+}
+
+st_is::CoordinateTransformation TransformationEstimator::camPoseEstimateForPoseData( PoseData& _pose, EstimationData& _estimation_data )
+{
+  st_is::CoordinateTransformation t_EH( _estimation_data.rot_EH(), _estimation_data.E_trans_EH() ); // inverse of hand eye transformation estimate
+  st_is::CoordinateTransformation t_BO = getCalibrationPatternPoseEstimate( _estimation_data ); // robot base B, calibration pattern coordinate system O
   
   st_is::CoordinateTransformation t_HB_i = st_is::CoordinateTransformation( st_is::geometryToEigen(_pose.hand_pose.orientation), st_is::geometryToEigen(_pose.hand_pose.position) ).inv();
   
   return t_EH*t_HB_i*t_BO;
-}
-
-geometry_msgs::Pose TransformationEstimator::getHandToEye()
-{
-  if( !transformation_calculated_ ) ROS_WARN("TransformationEstimator::getTransformation() called but no transformation has been computed yet. The retrieved transformation has no significance.");
-  
-  geometry_msgs::Pose estimatedTransformation;
-  
-  estimatedTransformation.position.x = E_trans_EH_[0];
-  estimatedTransformation.position.y = E_trans_EH_[1];
-  estimatedTransformation.position.z = E_trans_EH_[2];
-  estimatedTransformation.orientation.x = rot_EH_.x();
-  estimatedTransformation.orientation.y = rot_EH_.y();
-  estimatedTransformation.orientation.z = rot_EH_.z();
-  estimatedTransformation.orientation.w = rot_EH_.w();
-  
-  return estimatedTransformation;
-}
-
-
-Matrix3d TransformationEstimator::rotH2E()
-{
-  if( !transformation_calculated_ ) ROS_WARN("TransformationEstimator::rotH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
-  return rot_EH_.toRotationMatrix();
-}
-
-
-Matrix3d TransformationEstimator::rotE2H()
-{
-  if( !transformation_calculated_ ) ROS_WARN("TransformationEstimator::rotE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
-  return rot_EH_.inverse().toRotationMatrix();
-}
-
-
-Vector3d TransformationEstimator::transH2E()
-{
-  if( !transformation_calculated_ ) ROS_WARN("TransformationEstimator::transH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
-  return E_trans_EH_;
-}
-
-
-Vector3d TransformationEstimator::transE2H()
-{
-  if( !transformation_calculated_ ) ROS_WARN("TransformationEstimator::transE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
-  return -(rotH2E()*E_trans_EH_);
-}
-
-
-Matrix<double,4,4> TransformationEstimator::matrixH2E()
-{
-  if( !transformation_calculated_ ) ROS_WARN("TransformationEstimator::matrixH2E() called but no transformation has been computed yet. The retrieved transformation has no significance.");
-  Matrix<double,4,4> mH2E;
-  
-  Vector3d E_t_EH = E_trans_EH_;
-  
-  mH2E<<rotH2E(), E_t_EH, 0, 0, 0, 1;
-  
-  return mH2E;
-}
-
-
-Matrix<double,4,4> TransformationEstimator::matrixE2H()
-{
-  if( !transformation_calculated_ ) ROS_WARN("TransformationEstimator::matrixE2H() called but no transformation has been computed yet. The retrieved transformation has no significance.");
-  Matrix<double,4,4> mE2H;
-  
-  Vector3d H_t_HE = - rotE2H()*E_trans_EH_;
-  
-  mE2H<<rotE2H(), H_t_HE, 0, 0, 0, 1;
-  
-  return mE2H;
 }
 
 
@@ -574,6 +601,40 @@ bool TransformationEstimator::printToFile( string fileName_ )
   
   try
   {
+    cv::FileStorage outputFile( fileName_, cv::FileStorage::WRITE );
+     
+    
+    // write calibration setup data
+    outputFile<<"calibration_setup_is_setup"<<calibration_configuration_.isSetup();
+    
+    if( calibration_configuration_.isSetup() )
+    {
+      cv::Mat camera_projection_matrix_buff(3,4,CV_64FC1);
+      Eigen::Matrix<double,3,4> camera_projection_matrix = calibration_configuration_.cameraProjectionMatrix();
+      
+      for( unsigned int row=0; row<3; row++ )
+      {
+	for( unsigned int col=0; col<4; col++ )
+	{
+	  camera_projection_matrix_buff.at<double>(row,col) = camera_projection_matrix(row,col);
+	}
+      }
+      
+      std::vector<geometry_msgs::Point> calibration_pattern_world_coordinates = calibration_configuration_.patternWorldCoordinates();
+      cv::Mat calibration_pattern_world_coordinates_buff( 3,calibration_pattern_world_coordinates.size(),CV_64FC1 );
+      
+      for( unsigned int i=0; i<calibration_pattern_world_coordinates.size(); i++ )
+      {
+	calibration_pattern_world_coordinates_buff.at<double>(0,i) = calibration_pattern_world_coordinates[i].x;
+	calibration_pattern_world_coordinates_buff.at<double>(1,i) = calibration_pattern_world_coordinates[i].y;
+	calibration_pattern_world_coordinates_buff.at<double>(2,i) = calibration_pattern_world_coordinates[i].z;
+      }
+      
+      outputFile<<"camera_projection_matrix"<<camera_projection_matrix_buff;
+      outputFile<<"calibration_pattern_world_coordinates"<<calibration_pattern_world_coordinates_buff;
+      
+    }
+    
     
     // write pose data -------------------------------------
     cv::Mat hand_poses(7,pose_data_.size() ,CV_64FC1);
@@ -635,17 +696,21 @@ bool TransformationEstimator::printToFile( string fileName_ )
     }
     
     // write estimation data -----------------------------------------
+    
+    std::string estimation_method = estimation_methods_[0]->estimationMethod();
+    
     cv::Mat estimated_transformations( 13, transformation_estimates_.size(), CV_64FC1 );
     st_is::StdError reprojection_error, euler_angle_error, relative_translation_error;
+    
     for( int i=0; i<transformation_estimates_.size(); i++ )
     {
-      estimated_transformations.at<double>(0,i) = transformation_estimates_[i].rot_EH.x();
-      estimated_transformations.at<double>(1,i) = transformation_estimates_[i].rot_EH.y();
-      estimated_transformations.at<double>(2,i) = transformation_estimates_[i].rot_EH.z();
-      estimated_transformations.at<double>(3,i) = transformation_estimates_[i].rot_EH.w();
-      estimated_transformations.at<double>(4,i) = transformation_estimates_[i].E_trans_EH.x();
-      estimated_transformations.at<double>(5,i) = transformation_estimates_[i].E_trans_EH.y();
-      estimated_transformations.at<double>(6,i) = transformation_estimates_[i].E_trans_EH.z();
+      estimated_transformations.at<double>(0,i) = transformation_estimates_[i].rot_EH().x();
+      estimated_transformations.at<double>(1,i) = transformation_estimates_[i].rot_EH().y();
+      estimated_transformations.at<double>(2,i) = transformation_estimates_[i].rot_EH().z();
+      estimated_transformations.at<double>(3,i) = transformation_estimates_[i].rot_EH().w();
+      estimated_transformations.at<double>(4,i) = transformation_estimates_[i].E_trans_EH().x();
+      estimated_transformations.at<double>(5,i) = transformation_estimates_[i].E_trans_EH().y();
+      estimated_transformations.at<double>(6,i) = transformation_estimates_[i].E_trans_EH().z();
       if( transformation_estimates_[i].reprojectionError( reprojection_error ) )
       {
 	estimated_transformations.at<double>(7,i) = reprojection_error.mean;
@@ -678,10 +743,9 @@ bool TransformationEstimator::printToFile( string fileName_ )
       }
     }
     
-    cv::FileStorage outputFile( fileName_, cv::FileStorage::WRITE );
-    
     outputFile<<"hand_poses"<<hand_poses;
     outputFile<<"eye_poses"<<eye_poses;
+    outputFile<<"estimation_method"<<estimation_method;
     outputFile<<"estimated_transformations"<<estimated_transformations;
     outputFile<<"pattern_coordinates"<<pattern_coordinates;
   }
@@ -723,6 +787,9 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
       pose_data_.clear();
       transformation_estimates_.clear();
       del_pose_data_.clear();
+      
+      // deletes old calibration setup data
+      calibration_configuration_ = CalibrationSetup();
     }
     
     for( int i=0; i<hand_poses.cols; i++ )
@@ -763,18 +830,27 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
       
       pose_data_.push_back(new_data);
     }
+    
+    
+    std::string estimation_method;
+    inputFile["estimation_method"] >> estimation_method;
+    
     for( int i=0; i<estimated_transformations.cols; i++ )
     {
-      EstimationData new_estimate;
       
-      new_estimate.rot_EH.x() = estimated_transformations.at<double>(0,i);
-      new_estimate.rot_EH.y() = estimated_transformations.at<double>(1,i);
-      new_estimate.rot_EH.z() = estimated_transformations.at<double>(2,i);
-      new_estimate.rot_EH.w() = estimated_transformations.at<double>(3,i);
+      Eigen::Quaterniond rot_EH;
+      Eigen::Vector3d E_trans_EH;
       
-      new_estimate.E_trans_EH.x() = estimated_transformations.at<double>(4,i);
-      new_estimate.E_trans_EH.y() = estimated_transformations.at<double>(5,i);
-      new_estimate.E_trans_EH.z() = estimated_transformations.at<double>(6,i);
+      rot_EH.x() = estimated_transformations.at<double>(0,i);
+      rot_EH.y() = estimated_transformations.at<double>(1,i);
+      rot_EH.z() = estimated_transformations.at<double>(2,i);
+      rot_EH.w() = estimated_transformations.at<double>(3,i);
+      
+      E_trans_EH.x() = estimated_transformations.at<double>(4,i);
+      E_trans_EH.y() = estimated_transformations.at<double>(5,i);
+      E_trans_EH.z() = estimated_transformations.at<double>(6,i);
+      
+      EstimationData new_estimate(estimation_method, rot_EH, E_trans_EH );
       
       if( estimated_transformations.at<double>(7,i)!=-1000 )
       {
@@ -800,6 +876,55 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
       
     }
     
+    
+    // load calibration setup data if available
+    bool calibration_was_setup=false;;
+    inputFile["calibration_setup_is_setup"] >> calibration_was_setup;
+    
+    if( calibration_was_setup )
+    {
+      ROS_INFO("TransformationEstimator::loadFromFile::Calibration was setup. Loading camera projection matrix and calibration pattern world coordinates.");
+      
+      
+      cv::Mat camera_projection_matrix_buff( cv::Size(), CV_64FC1 );
+      cv::Mat calibration_pattern_world_coordinates_buff( cv::Size(), CV_64FC1 );
+      
+      inputFile["camera_projection_matrix"] >> camera_projection_matrix_buff;
+      inputFile["calibration_pattern_world_coordinates"] >> calibration_pattern_world_coordinates_buff;
+      
+      if( camera_projection_matrix_buff.rows!=3 || camera_projection_matrix_buff.cols!=4 || calibration_pattern_world_coordinates_buff.rows!=3 )
+      {
+	ROS_ERROR("TransformationEstimator::loadFromFile::the projection matrix or the coordinate matrix are ill formed. Cannot setup the calibration data. Check your data file.");
+      }
+      else
+      {
+	
+	Eigen::Matrix<double,3,4> camera_projection_matrix;
+	
+	for( unsigned int row=0; row<3; row++ )
+	{
+	  for( unsigned int col=0; col<4; col++ )
+	  {
+	    camera_projection_matrix(row,col) = camera_projection_matrix_buff.at<double>(row,col);
+	  }
+	}
+	
+	std::vector<geometry_msgs::Point> calibration_pattern_world_coordinates;
+	
+	for( unsigned int i=0; i<calibration_pattern_world_coordinates.size(); i++ )
+	{
+	  geometry_msgs::Point calibration_point;
+	  calibration_point.x = calibration_pattern_world_coordinates_buff.at<double>(0,i);
+	  calibration_point.y = calibration_pattern_world_coordinates_buff.at<double>(1,i);
+	  calibration_point.z = calibration_pattern_world_coordinates_buff.at<double>(2,i);
+	  calibration_pattern_world_coordinates.push_back( calibration_point );
+	}
+
+	calibration_configuration_.setData( camera_projection_matrix, calibration_pattern_world_coordinates );
+	
+      }
+    }
+    
   }
   catch(...)
   {
@@ -810,56 +935,3 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
 }
 
 
-TransformationEstimator::EstimationData::EstimationData():
-  has_reprojection_error_(false),
-  has_transformation_error_(false)
-{
-  
-}
-
-
-void TransformationEstimator::EstimationData::setReprojectionError( st_is::StdError _error )
-{
-  has_reprojection_error_ = true;
-  reprojection_error_ = _error;
-}
-
-
-void TransformationEstimator::EstimationData::setTransformationErrors( st_is::StdError _euler_angle_error, st_is::StdError _relative_translation_error )
-{
-  has_transformation_error_ = true;
-  euler_angle_error_ = _euler_angle_error;
-  relative_translation_error_ = _relative_translation_error;
-}
-
-
-void TransformationEstimator::EstimationData::setTransformationErrors( std::pair<st_is::StdError,st_is::StdError> _errors )
-{
-  setTransformationErrors(_errors.first,_errors.second);
-}
-
-
-bool TransformationEstimator::EstimationData::reprojectionError( st_is::StdError& _reprojection_error )
-{
-  if(!has_reprojection_error_) return false;
-  
-  _reprojection_error = reprojection_error_;
-  return true;
-}
-
-
-bool TransformationEstimator::EstimationData::eulerAngleError( st_is::StdError& _euler_angle_error )
-{
-  if(!has_transformation_error_) return false;
-  
-  _euler_angle_error = euler_angle_error_;
-  return true;
-}
-
-bool TransformationEstimator::EstimationData::relativeTranslationError( st_is::StdError& _relative_translation_error )
-{
-  if(!has_transformation_error_) return false;
-  
-  _relative_translation_error = relative_translation_error_;
-  return true;
-}

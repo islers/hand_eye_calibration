@@ -53,6 +53,11 @@ public:
    */
   double maxRelEstimateChange();
   
+  /** Sets a new image border tolerance. The tolerance is used when deciding whether projected image coordinates of calibration pattern points are expected to be visible in the image or not. Default is 50.
+   * @param _tolerance the border tolerance
+   */
+  void setImageBorderTolerance( double _tolerance );
+  
   /// writes all data to a file
   bool printToFile( std::string _filename );
   
@@ -63,15 +68,13 @@ private:
   
   boost::shared_ptr<planning_scene_monitor::PlanningSceneMonitor> scene_;
   boost::shared_ptr<moveit::planning_interface::MoveGroup> robot_;
-  
-  bool cam_info_gathered_; /// whether camera infor has been retrieved or not
-  Eigen::Matrix<double,3,4> projection_; /// camera projection matrix
-  Eigen::Matrix<double,4,Eigen::Dynamic> pattern_coordinates_; /// coordinates of the pattern used for calibration in its own 3d coordinate frame
-  
+    
   st_is::ContinuousXDimSpaceIterator< st_is::NumericIterator<double> > joint_position_; // current joint configuration of the robot
-  DualQuaternionTransformationEstimator daniilidis_estimator_;
+  std::list< boost::shared_ptr<TransformationEstimator> > estimators_; // container for all estimators that are to be used, the first one is used as source for calculations
   std::vector< std::string > joint_names_;
-  bool position_initialized_;
+  bool position_initialized_; /// true if the initializePosition()-method was successfully run
+  
+  double image_border_tolerance_; /// by what value [px] the border of the image shall be enlarged when deciding whether a projected calibration pattern point might be part of the image or not
   
   /// loads the joint dimension names, limits and step sizes, initializes joint_position_ accordingly
   /** @throws ROS_FATAL if a correct configuration wasn't found on the parameter server and shuts down the node

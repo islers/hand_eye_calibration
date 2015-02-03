@@ -25,9 +25,8 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
   ros_node_(_n),
-  daniilidis_estimator_(_n),
   position_initialized_(false),
-  cam_info_gathered_(false)
+  image_border_tolerance_(50)
 {
   initializeJointSpace();
   
@@ -39,6 +38,12 @@ AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
     ros::shutdown();
     return;
   }
+  
+  // initialize estimators
+  boost::shared_ptr<TransformationEstimator> daniilidis_estimator( new TransformationEstimator(_n) );
+  boost::shared_ptr<TransformationEstimator::EstimationMethod> daniilidis( new DaniilidisDualQuaternionEstimation() );
+  daniilidis_estimator->setEstimationMethod(daniilidis);
+  estimators_.push_back( daniilidis_estimator );
   
   scene_ = boost::shared_ptr<planning_scene_monitor::PlanningSceneMonitor>( new planning_scene_monitor::PlanningSceneMonitor("robot_description") );
   scene_->startStateMonitor();
@@ -104,6 +109,11 @@ bool AutonomousHandEyeCalibrator::runSingleIteration()
 double AutonomousHandEyeCalibrator::maxRelEstimateChange()
 {
   return 1.0; /////////////////////////////////////////////////////// dummy
+}
+
+void AutonomousHandEyeCalibrator::setImageBorderTolerance( double _tolerance )
+{
+  image_border_tolerance_ = _tolerance;
 }
 
 bool AutonomousHandEyeCalibrator::printToFile( std::string _filename )
@@ -296,7 +306,7 @@ bool AutonomousHandEyeCalibrator::calibrationPatternExpectedVisible( robot_state
 {
   if( !cameraPubNodeInfoAvailable() )
   {
-    ROS_INFO("Still no camera calibration info available. Going on with blind iteration.");
+    ROS_INFO("No camera calibration info available. Going on with blind iteration.");
     return true;
   }
   return true; /////////////////////////////////////////////////////////////////////// dummy
@@ -404,54 +414,8 @@ void AutonomousHandEyeCalibrator::setRobotStateToCurrentJointPosition( robot_sta
 
 bool AutonomousHandEyeCalibrator::cameraPubNodeInfoAvailable()
 {
-  if( cam_info_gathered_ )
+  if( estimators_.front()->getCalibrationSetup().isSetup() )
     return true;
   
-    
-  hand_eye_calibration::CameraPoseInfo cam_pose_info;
-  if( !ros::service::call("hec_eye_node_info",cam_pose_info) )
-  {
-    std::string warning = "AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator::could not contact 'hec_eye_node_info'-service of cam pose publisher node. AutonomousHandEyeCalibrator will iterate without any knowledge of the position of the calibration target if you proceed.";
-    ROS_WARN("%s",warning.c_str());
-    return false;
-  }
-  else
-  {
-    ROS_INFO("Successfully contacted 'hec_eye_node_info' service.");
-    
-    
-    if( cam_pose_info.response.info.camera_info.P.size()!=12 )
-    {
-      ROS_ERROR("The projection matrix provided by the 'hec_eye_node_info' service is invalid or empty. Calibration pattern pose estimation not possible.");
-      return false;
-    }
-    if( cam_pose_info.response.info.pattern_coordinates.size()==0 )
-    {
-      ROS_ERROR("No calibraton pattern coordinates are provided by the 'hec_eye_nod_info' service. Calibration pattern pose estimation not possible.");
-      return false;
-    }
-    
-    int i = 0;
-    for( unsigned int row=0; row<3; row++ )
-    {
-      for( unsigned int col=0; col<4; col++, i++ )
-      {
-	projection_(row,col) = cam_pose_info.response.info.camera_info.P[i];
-      }
-    }
-    ROS_INFO_STREAM("The projection matrix is:"<<std::endl<<std::endl<<projection_<<std::endl);
-    
-    pattern_coordinates_.resize( 4, cam_pose_info.response.info.pattern_coordinates.size() );
-    for( unsigned int i=0; i<cam_pose_info.response.info.pattern_coordinates.size(); i++ )
-    {
-      pattern_coordinates_.col(i) << cam_pose_info.response.info.pattern_coordinates[i].x , cam_pose_info.response.info.pattern_coordinates[i].y, cam_pose_info.response.info.pattern_coordinates[i].z, 1.0;
-    }
-    
-    ROS_INFO_STREAM("Calibration pattern retrieved with "<<pattern_coordinates_.cols()<<" points.");
-    ROS_INFO_STREAM("Successfully retrieved all data needed from 'hec_eye_node_info' topic.");
-    
-    cam_info_gathered_ = true;
-    
-    return true;
-  }
+  return estimators_.front()->loadCalibrationConfigurationFromService();
 }

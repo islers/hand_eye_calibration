@@ -16,6 +16,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 
 #include "hand_eye_calibration/dual_quaternion_transformation_estimator.h"
+#include "hand_eye_calibration/estimation_data.h"
 using namespace std;
 
 int main(int argc, char **argv)
@@ -23,8 +24,7 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "dual_quaternion_transformation_estimator");
   ros::NodeHandle n;
   
-  DualQuaternionTransformationEstimator estimator( &n );
-  
+  TransformationEstimator estimator( &n );////////////////////////////////////////////////////////////////////////////////////////////////////
   ROS_INFO("Successfully started dual quaternion hand-eye calibration node");
   
   while( n.ok() )
@@ -41,11 +41,12 @@ int main(int argc, char **argv)
       case 'a': estimator.addLastRetrievedPosePair();
 		estimator.createAndAddNewEstimation(); // create an estimation for it
 		break;
-      case 'e': estimator.calculateTransformation();
+      case 'e': cout<<endl<<"The calculated transformation matrix from hand coordinates to eye coordinates is:"<<endl;
 		
-		cout<<endl<<"The calculated transformation matrix from hand coordinates to eye coordinates is:"<<endl;
-		
-		cout<<estimator.matrixH2E();
+		if(estimator.estimationPossible())
+		  cout<<estimator.getNewEstimation().matrixH2E();
+		else
+		  cout<<"Couldn't calculate estimate since data available was insufficient.";
       
 		break;
       case 'd': estimator.deleteLastAddedPosePair(); break;

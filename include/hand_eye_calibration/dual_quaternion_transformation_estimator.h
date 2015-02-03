@@ -40,16 +40,32 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 #include <iostream>
 
-#include "hand_eye_calibration/transformation_estimator.h"
+#include "hand_eye_calibration/transformation_estimation_method.h"
 
 
-class DualQuaternionTransformationEstimator:public TransformationEstimator
+class DaniilidisDualQuaternionEstimation:public TransformationEstimator::EstimationMethod
 {
-  public:
-    DualQuaternionTransformationEstimator( ros::NodeHandle* _n );
-    ~DualQuaternionTransformationEstimator();    /** calculates the transformation estimate */
-    
-    void calculateTransformation(bool _suppressWarnings=false );
-    
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+public:
+  
+  /** Returns the name of the method */
+  virtual std::string estimationMethod();
+  
+  /** calculates the transformation estimate
+   * @param _pose_data data on which the estimation will be calculated
+   * @param _suppressWarnings whether warnings are displayed or not
+   * @return EstimationData with estimated transformation but without error estimates
+   */
+  virtual TransformationEstimator::EstimationData calculateTransformation( std::vector<TransformationEstimator::PoseData>& _pose_data, bool _suppressWarnings=false );
+  
+  /** alias function to calculate the transformation estimate
+   * @param _pose_data data on which the estimation will be calculated
+   * @param _suppressWarnings whether warnings are displayed or not
+   * @throws std::runtime_error If the given pose_data is insufficient for hand-eye estimation
+   * @return EstimationData without error estimates
+   */
+  virtual TransformationEstimator::EstimationData operator()( std::vector<TransformationEstimator::PoseData>& _pose_data, bool _suppressWarnings=false );
+  
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+private:
+  static std::string g_method_name_;
 };

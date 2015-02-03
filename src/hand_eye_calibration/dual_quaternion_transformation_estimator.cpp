@@ -15,6 +15,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "hand_eye_calibration/dual_quaternion_transformation_estimator.h" 
+#include "hand_eye_calibration/estimation_data.h" 
 #include "utils/eigen_utils.h"
 #include "utils/math.h"
 #include "utils/ros_eigen.h"
@@ -22,34 +23,30 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 using namespace Eigen;
 
-DualQuaternionTransformationEstimator::DualQuaternionTransformationEstimator( ros::NodeHandle* _n ):
-TransformationEstimator(_n)
+
+std::string DaniilidisDualQuaternionEstimation::estimationMethod()
 {
-  
+  return g_method_name_;
 }
 
-
-DualQuaternionTransformationEstimator::~DualQuaternionTransformationEstimator()
-{
-  
-}
+std::string DaniilidisDualQuaternionEstimation::g_method_name_ = "dual_quaternion_estimation_daniilidis_1998";
 
 
-void DualQuaternionTransformationEstimator::calculateTransformation( bool _suppressWarnings )
+TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calculateTransformation( std::vector<TransformationEstimator::PoseData>& _pose_data, bool _suppressWarnings )
 {
   ROS_INFO("Calculating hand-eye transformation...");
   
-  if( pose_data_.size()<=1 )
+  if( _pose_data.size()<=1 )
   {
-    ROS_ERROR("At least two hand-eye pose pairs are necessary for computation.");
-    ROS_INFO("Number of pose pairs currently available for computation: %i", (int)pose_data_.size() );
-    ROS_ERROR("Aborting transformation computation.");
-    return;
+    std::stringstream msg;
+    msg<<"DaniilidisDualQuaternionEstimation::calculateTransformation:: At least two hand-eye pose pairs are necessary for computation."<<"Number of pose pairs currently available for computation: "<<(int)_pose_data.size()<<" Aborting transformation computation.";
+    ROS_ERROR_STREAM(msg.str());
+    throw std::runtime_error(msg.str());
   }
-  else if( pose_data_.size()<20 )
+  else if( _pose_data.size()<20 )
   {
     ROS_WARN("For good results more than 20 hand-eye pose pairs are recommended. The computed transformation might be inaccurate.");
-    ROS_INFO("Number of pose pairs currently available for computation: %i", (int)pose_data_.size() );
+    ROS_INFO("Number of pose pairs currently available for computation: %i", (int)_pose_data.size() );
     ROS_INFO("Going on with calculation...");
   }
   
@@ -63,14 +60,14 @@ void DualQuaternionTransformationEstimator::calculateTransformation( bool _suppr
    *  dual quaternions are then hQ[i].first + epsilon*hQ[i].second
   */
   vector<st_is::DualQuaternion> hQ, cQ;
-  for( int i=0; i<pose_data_.size()-1; i++ )
+  for( int i=0; i<_pose_data.size()-1; i++ )
   {
     // transformation hand pose 1 (H1) -_> hand pose 2 (H2)
     
-    Quaterniond rot_BH1 = st_is::geometryToEigen( pose_data_[i].hand_pose.orientation );
-    Vector3d B_trans_BH1 = st_is::geometryToEigen( pose_data_[i].hand_pose.position );
-    Quaterniond rot_H2B = st_is::geometryToEigen( pose_data_[i+1].hand_pose.orientation ).inverse();
-    Vector3d B_trans_BH2 = st_is::geometryToEigen( pose_data_[i+1].hand_pose.position );
+    Quaterniond rot_BH1 = st_is::geometryToEigen( _pose_data[i].hand_pose.orientation );
+    Vector3d B_trans_BH1 = st_is::geometryToEigen( _pose_data[i].hand_pose.position );
+    Quaterniond rot_H2B = st_is::geometryToEigen( _pose_data[i+1].hand_pose.orientation ).inverse();
+    Vector3d B_trans_BH2 = st_is::geometryToEigen( _pose_data[i+1].hand_pose.position );
     
     Quaterniond rot_H2H1 = rot_H2B * rot_BH1;
     Vector3d H2_trans_H2H1 = rot_H2B * ( B_trans_BH1-B_trans_BH2 );
@@ -80,10 +77,10 @@ void DualQuaternionTransformationEstimator::calculateTransformation( bool _suppr
     
     //transformation cam pose 1 (E1) -> cam pose 2 (E2)
     
-    Quaterniond rot_GC1 = st_is::geometryToEigen( pose_data_[i].eye_pose.orientation ).inverse();
-    Vector3d C1_trans_C1G = st_is::geometryToEigen( pose_data_[i].eye_pose.position );
-    Quaterniond rot_C2G = st_is::geometryToEigen( pose_data_[i+1].eye_pose.orientation );
-    Vector3d C2_trans_C2G = st_is::geometryToEigen( pose_data_[i+1].eye_pose.position );
+    Quaterniond rot_GC1 = st_is::geometryToEigen( _pose_data[i].eye_pose.orientation ).inverse();
+    Vector3d C1_trans_C1G = st_is::geometryToEigen( _pose_data[i].eye_pose.position );
+    Quaterniond rot_C2G = st_is::geometryToEigen( _pose_data[i+1].eye_pose.orientation );
+    Vector3d C2_trans_C2G = st_is::geometryToEigen( _pose_data[i+1].eye_pose.position );
     
     Quaterniond rot_C2C1 = rot_C2G * rot_GC1;
     Vector3d C2_trans_C2C1 = C2_trans_C2G - rot_C2C1*C1_trans_C1G;
@@ -186,11 +183,16 @@ void DualQuaternionTransformationEstimator::calculateTransformation( bool _suppr
   Quaterniond t_p = q.second*q.first.conjugate();
   Vector3d t = 2*t_p.vec(); // translation vector representing the translation from hand- to eye-frame in hand coordinates
   
-  // save transformation
-  rot_EH_ = q.first;
-  E_trans_EH_ = rot_EH_*t;
-  E_trans_EH_ = -E_trans_EH_;
+  // build output transformation
+  Eigen::Vector3d E_trans_EH = q.first*t;
+  E_trans_EH = -E_trans_EH;
+    
+  TransformationEstimator::EstimationData new_estimate( estimationMethod(), q.first, E_trans_EH );
   
-  transformation_calculated_ = true;
-  return;
+  return new_estimate;
+}
+
+TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::operator()( std::vector<TransformationEstimator::PoseData>& _pose_data, bool _suppressWarnings )
+{
+  return calculateTransformation( _pose_data, _suppressWarnings );
 }

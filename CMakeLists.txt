@@ -92,6 +92,7 @@ add_dependencies(eye_position_from_checkerboard
 
 add_executable(dual_quaternion_transformation_estimator
   src/hand_eye_calibration/transformation_estimator.cpp
+  src/hand_eye_calibration/estimation_data.cpp
   src/hand_eye_calibration/calibration_setup.cpp
   src/hand_eye_calibration/dual_quaternion_transformation_estimator.cpp
   src/hand_eye_calibration/dual_quaternion_estimation_node.cpp
@@ -115,6 +116,7 @@ add_executable(autonomous_hand_eye_calibration
   src/hand_eye_calibration/autonomous_hand_eye_calibrator.cpp
   src/hand_eye_calibration/dual_quaternion_transformation_estimator.cpp
   src/hand_eye_calibration/transformation_estimator.cpp
+  src/hand_eye_calibration/estimation_data.cpp
   src/hand_eye_calibration/calibration_setup.cpp
   src/utils/eigen_utils.cpp
   src/utils/math.cpp
