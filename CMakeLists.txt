@@ -15,6 +15,9 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
 )
 
+## System dependencies are found with CMake's conventions
+find_package(Boost REQUIRED COMPONENTS system ) #accumulators bind ref)
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 find_package(Eigen REQUIRED)
 
@@ -49,12 +52,14 @@ catkin_package(
 include_directories(include
   ${catkin_INCLUDE_DIRS}
   ${Eigen_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
 )
 
 add_executable(youbot_link_position_publisher src/hand_eye_calibration/youbot_link_position_publisher.cpp src/hand_eye_calibration/youbot_link_position_publisher_node.cpp)
 
 target_link_libraries(youbot_link_position_publisher
   ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
 
 add_dependencies(youbot_link_position_publisher
@@ -65,6 +70,7 @@ add_executable(tf2_republisher src/hand_eye_calibration/tf2_republisher.cpp src/
 
 target_link_libraries(tf2_republisher
   ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
 
 add_dependencies(tf2_republisher
@@ -76,6 +82,7 @@ add_executable(eye_position_from_checkerboard src/hand_eye_calibration/eye_posit
 
 target_link_libraries(eye_position_from_checkerboard
   ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
 
 add_dependencies(eye_position_from_checkerboard
@@ -95,6 +102,7 @@ add_executable(dual_quaternion_transformation_estimator
 
 target_link_libraries(dual_quaternion_transformation_estimator
   ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
 
 add_dependencies(dual_quaternion_transformation_estimator
@@ -115,6 +123,7 @@ add_executable(autonomous_hand_eye_calibration
 
 target_link_libraries(autonomous_hand_eye_calibration
   ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
 
 add_dependencies(autonomous_hand_eye_calibration

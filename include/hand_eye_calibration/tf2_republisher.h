@@ -10,7 +10,7 @@
 * subscribes:	- /tf [expecting tf2_msgs/TFMessage]
 * 
 * publishes:	- /hec/eye_position [geometry_msgs/Pose]: transformation base_link ->end_link (hand)
-* 		 thus: rotation R_BH (rotation hand->base) and translation t_BH in B coordinates
+* 		 thus: rotation R_BH (rotation hand->base) and translation B_t_BH in B coordinates
 * services provided:
 * 	- hec_hand_pose [HandPose.srv]
 * 

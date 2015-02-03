@@ -57,6 +57,13 @@ hand_eye_calibration::Point2D CalibrationSetup::getProjectedPointCoordinates( un
     std::runtime_error e("CalibrationSetup::getProjectedPointCoordinates::Can't be executed since the object hasn't been initialized yet.");
     throw e;
   }
+  else if( calibration_pattern_world_coordinates_.size()>=_i )
+  {
+    std::stringstream msg;
+    msg<<"CalibrationSetup::getProjectedPointCoordinates::Can't be executed since the given point index _i="<<_i<<" exceeds the range of the calibration pattern point container which is of size "<<calibration_pattern_world_coordinates_.size()<<".";
+    std::range_error e( msg.str() );
+    throw e;
+  }
   
   // point coordinates in 3d world coordinates
   Eigen::Matrix<double,4,1> hom_calib_point_world_frame_3d;

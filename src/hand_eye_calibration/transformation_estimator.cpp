@@ -15,6 +15,10 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "hand_eye_calibration/transformation_estimator.h" 
+#include <sstream>
+#include <boost/foreach.hpp>
+#include "utils/ros_eigen.h"
+
 using namespace std;
 using namespace Eigen;
 
@@ -208,33 +212,218 @@ TransformationEstimator::EstimationData TransformationEstimator::getNewEstimatio
   new_estimate.rot_EH = rot_EH_;
   new_estimate.E_trans_EH = E_trans_EH_;
   
-  double reprojection_error;
+  st_is::StdError reprojection_error;
   if( getReprojectionError(new_estimate,reprojection_error) )
   {
     new_estimate.setReprojectionError(reprojection_error);
   }
   
-  std::pair<double,double> transformation_error = getTransformationError(new_estimate);
+  std::pair<st_is::StdError,st_is::StdError> transformation_error = getTransformationError(new_estimate);
   new_estimate.setTransformationErrors( transformation_error );
   
   return new_estimate;
 }
 
-bool TransformationEstimator::getReprojectionError( EstimationData const& _estimation_data, double& _reprojection_error )
+bool TransformationEstimator::getReprojectionError( EstimationData const& _estimation_data, st_is::StdError& _reprojection_error )
 {
   if( !calibration_configuration_.isSetup() )
   {
     ROS_WARN("TransformationEstimator::getReprojectionError::Called but cannot calculate reprojection error since calibration setup configuration hasn't been setup, no camera and/or calibration pattern world coordinates are given.");
     return false;
   }
-  // unfinished &///////////////////////////////////////////////////////////////////////////
+  if( pose_data_.size()<2 )
+  {
+    ROS_WARN("TransformationEstimator::getReprojectionError::Called but cannot calculate reprojection error because not enough data is available (number of pose measurements is insufficient).");
+    return false;
+  }
+  unsigned int available_data_count = 0;
+  std::vector<double> errors;
+  
+  for( unsigned int i=0; i<pose_data_.size(); i++ )
+  {
+    if( !pose_data_[i].calibration_pattern_coordinates.empty() )
+    {
+      errors.push_back( reprojectionErrorForTime(i,_estimation_data) );
+      available_data_count++;
+    }
+  }
+  
+  if( available_data_count==0 ) return false; // no measured calibration pattern image coordinates were available
+  
+  _reprojection_error = st_is::StdError( errors ); // create error statistics
+  
+  return true;
 }
 
-std::pair<double,double> TransformationEstimator::getTransformationError( EstimationData const& _estimation_data )
+double TransformationEstimator::reprojectionErrorForTime( unsigned int _i, EstimationData const& _estimation_data )
 {
-  return std::pair<double,double>(); // unfinished &///////////////////////////////////////////////////////////////////////////
+  if( pose_data_.size()>=_i )
+  {
+    std::stringstream error;
+    error << "TransformationEstimator::reprojectionErrorAtTimeAndPoint()::Given time index "<<_i<<" exceeds range of data container 'pose_data_' which has a size of "<<pose_data_.size()<<".";
+    ROS_ERROR_STREAM( error.str() );
+    throw std::range_error( error.str() );
+  }
+  else if( pose_data_[_i].calibration_pattern_coordinates.empty() )
+  {
+    std::stringstream error;
+    error << "TransformationEstimator::reprojectionErrorAtTimeAndPoint()::Given time index "<<_i<<" refers to a pose data set that features no data with the coordinates of the detected calibration pattern.";
+    ROS_ERROR_STREAM( error.str() );
+    throw std::invalid_argument( error.str() );
+  }
+  
+  double accumulated_error = 0;
+  unsigned int number_of_pattern_points = pose_data_[_i].calibration_pattern_coordinates.size();
+  
+  for( unsigned int j=0; j<number_of_pattern_points; j++ )
+  {
+    accumulated_error += reprojectionErrorForTimeAndPoint( _i, j, _estimation_data );
+  }
+  
+  return accumulated_error/number_of_pattern_points;
 }
 
+double TransformationEstimator::reprojectionErrorForTimeAndPoint( unsigned int _i, unsigned int _j, EstimationData const& _estimation_data )
+{
+  if( pose_data_[_i].calibration_pattern_coordinates.size()>=_j )
+  {
+    std::stringstream error;
+    error << "TransformationEstimator::reprojectionErrorAtTimeAndPoint()::Given point index "<<_j<<" exceeds the size of the pattern coordinate container which has a size of "<<pose_data_[_i].calibration_pattern_coordinates.size()<<".";
+    ROS_ERROR_STREAM( error.str() );
+    throw std::range_error( error.str() );
+  }
+  double accumulated_error = 0;
+  double number_of_poses = pose_data_.size();
+  
+  st_is::CoordinateTransformation t_EH( _estimation_data.rot_EH, _estimation_data.E_trans_EH ); // hand eye transformation estimate
+  st_is::CoordinateTransformation t_HE = t_EH.inv();
+  st_is::CoordinateTransformation t_BH_i( st_is::geometryToEigen(pose_data_[_i].hand_pose.orientation), st_is::geometryToEigen(pose_data_[_i].hand_pose.position) ); // hand to base at time i
+  
+  st_is::CoordinateTransformation t_BE_i = t_BH_i*t_HE;
+  
+  for( unsigned int k=0; k<number_of_poses; k++ )
+  {
+    if( k!=_i )
+    {      
+      st_is::CoordinateTransformation t_OE_k; // eye to calibration pattern coordinates at time k
+      t_OE_k = st_is::CoordinateTransformation( st_is::geometryToEigen( pose_data_[k].eye_pose.orientation ),st_is::geometryToEigen( pose_data_[k].eye_pose.position ) ).inv();
+      
+      st_is::CoordinateTransformation t_HB_k; // base to hand at time k
+      t_HB_k= st_is::CoordinateTransformation( st_is::geometryToEigen(pose_data_[k].hand_pose.orientation), st_is::geometryToEigen(pose_data_[k].hand_pose.position) ).inv();
+      
+      st_is::CoordinateTransformation t_0E_ik = t_OE_k*t_EH*t_HB_k*t_BE_i;
+      
+      geometry_msgs::Pose artificial_camera_pose;
+      artificial_camera_pose.orientation = st_is::eigenToGeometry( t_0E_ik.rotation );
+      artificial_camera_pose.position = st_is::eigenToGeometry( t_0E_ik.translation );
+      
+      accumulated_error += reprojectionErrorForTimeAndPointGivenProjection( _i, _j, artificial_camera_pose );
+    }
+  }
+  return accumulated_error/(number_of_poses-1);
+}
+
+double TransformationEstimator::reprojectionErrorForTimeAndPointGivenProjection( unsigned int _i, unsigned int _j, geometry_msgs::Pose& _camera_pose )
+{
+  hand_eye_calibration::Point2D measured_coordinates = pose_data_[_i].calibration_pattern_coordinates[_j];
+  hand_eye_calibration::Point2D projected_coordinates = calibration_configuration_.getProjectedPointCoordinates(_j,_camera_pose);
+  
+  double diff_x = measured_coordinates.x-projected_coordinates.x;
+  double diff_y = measured_coordinates.y-projected_coordinates.y;
+  
+  double error = sqrt( diff_x*diff_x + diff_y*diff_y );
+  
+  return error;
+}
+
+std::pair<st_is::StdError,st_is::StdError> TransformationEstimator::getTransformationError( EstimationData const& _estimation_data )
+{
+  std::vector<double> absolut_euler_angle_errors; // euler angle: z,x,z
+  std::vector<double> relative_translation_errors;
+  
+  BOOST_FOREACH( PoseData pose, pose_data_ )
+  {
+    st_is::CoordinateTransformation cam_pose_estimate = camPoseEstimateForPoseData( pose, _estimation_data );
+    
+    st_is::CoordinateTransformation cam_pose_measured;
+    cam_pose_measured.rotation = st_is::geometryToEigen(pose.eye_pose.orientation);
+    cam_pose_measured.translation = st_is::geometryToEigen(pose.eye_pose.position);
+    
+    Matrix<double,3,1> euler_estimated = cam_pose_estimate.rotation.matrix().eulerAngles(2, 0, 2);
+    Matrix<double,3,1> euler_measured = cam_pose_measured.rotation.matrix().eulerAngles(2, 0, 2);
+    Matrix<double,3,1> euler_difference = euler_estimated-euler_measured;
+    
+    double euler_error = sqrt( euler_difference(0,0)*euler_difference(0,0) + euler_difference(1,0)*euler_difference(1,0) + euler_difference(2,0)*euler_difference(2,0) );
+    absolut_euler_angle_errors.push_back(euler_error);
+    
+    Eigen::Vector3d translation_difference = cam_pose_estimate.translation - cam_pose_measured.translation;
+    double translation_diff_length = sqrt( translation_difference(0,0)*translation_difference(0,0) + translation_difference(1,0)*translation_difference(1,0) + translation_difference(2,0)*translation_difference(2,0) );
+    double translation_measured_length = sqrt( cam_pose_measured.translation(0,0)*cam_pose_measured.translation(0,0) + cam_pose_measured.translation(1,0)*cam_pose_measured.translation(1,0) + cam_pose_measured.translation(2,0)*cam_pose_measured.translation(2,0) );
+    
+    double rel_translation_error = translation_diff_length/translation_measured_length;
+    relative_translation_errors.push_back(rel_translation_error);
+  }
+  
+  st_is::StdError euler_angle_error(absolut_euler_angle_errors);
+  st_is::StdError relative_translation_error(relative_translation_errors);
+  
+  return std::pair<st_is::StdError,st_is::StdError>(euler_angle_error,relative_translation_error);
+}
+
+st_is::CoordinateTransformation TransformationEstimator::getCalibrationPatternPoseEstimate( EstimationData const& _estimation_data )
+{
+  if( pose_data_.empty() )
+  {
+    std::string msg = "TransformationEstimator::getCalibrationPatternPoseEstimate::Cannot calculate estimate since no pose data is available";
+    ROS_ERROR_STREAM(msg);
+    throw std::range_error(msg);
+  }
+  
+  Eigen::Matrix<double,4,1> rotation_accumulator = Eigen::MatrixXd::Zero(4,1);
+  Eigen::Vector3d translation_accumulator = Eigen::MatrixXd::Zero(3,1);
+  
+  st_is::CoordinateTransformation t_HE = st_is::CoordinateTransformation( _estimation_data.rot_EH, _estimation_data.E_trans_EH ).inv(); // inverse of hand eye transformation estimate
+  
+  BOOST_FOREACH( PoseData pose_data, pose_data_ )
+  {
+    st_is::CoordinateTransformation t_BH_i( st_is::geometryToEigen(pose_data.hand_pose.orientation), st_is::geometryToEigen(pose_data.hand_pose.position) );
+    st_is::CoordinateTransformation t_EO_i( st_is::geometryToEigen(pose_data.eye_pose.orientation), st_is::geometryToEigen(pose_data.eye_pose.position) );
+    
+    st_is::CoordinateTransformation t_BO_i = t_BH_i*t_HE*t_EO_i;
+    
+    Eigen::Matrix<double,4,1> rot;
+    int mult=1; // to ensure that only positive quaternions are used (since the mean is being calculated later)
+    if( t_BO_i.rotation.w()<0 ) mult=-1;
+    
+    rot(0,0) = mult*t_BO_i.rotation.x();
+    rot(1,0) = mult*t_BO_i.rotation.y();
+    rot(2,0) = mult*t_BO_i.rotation.z();
+    rot(3,0) = mult*t_BO_i.rotation.w();
+    rotation_accumulator += rot;
+    
+    translation_accumulator += t_BO_i.translation;
+  }
+    
+  Eigen::Quaterniond mean_rotation;
+  mean_rotation.x() = rotation_accumulator(0,0)/pose_data_.size();
+  mean_rotation.y() = rotation_accumulator(1,0)/pose_data_.size();
+  mean_rotation.z() = rotation_accumulator(2,0)/pose_data_.size();
+  mean_rotation.w() = rotation_accumulator(3,0)/pose_data_.size();
+  
+  Eigen::Vector3d mean_translation = translation_accumulator/pose_data_.size();
+  
+  return st_is::CoordinateTransformation( mean_rotation, mean_translation );
+}
+
+st_is::CoordinateTransformation TransformationEstimator::camPoseEstimateForPoseData( PoseData& _pose, EstimationData const& _estimation_data )
+{
+  st_is::CoordinateTransformation t_EH( _estimation_data.rot_EH, _estimation_data.E_trans_EH ); // inverse of hand eye transformation estimate
+  st_is::CoordinateTransformation t_BO = getCalibrationPatternPoseEstimate( _estimation_data ); // robot base O, calibration pattern coordinate system O
+  
+  st_is::CoordinateTransformation t_HB_i = st_is::CoordinateTransformation( st_is::geometryToEigen(_pose.hand_pose.orientation), st_is::geometryToEigen(_pose.hand_pose.position) ).inv();
+  
+  return t_EH*t_HB_i*t_BO;
+}
 
 geometry_msgs::Pose TransformationEstimator::getHandToEye()
 {
@@ -446,8 +635,8 @@ bool TransformationEstimator::printToFile( string fileName_ )
     }
     
     // write estimation data -----------------------------------------
-    cv::Mat estimated_transformations( 10, transformation_estimates_.size(), CV_64FC1 );
-    double reprojection_error, euler_rms_error, relative_translation_error;
+    cv::Mat estimated_transformations( 13, transformation_estimates_.size(), CV_64FC1 );
+    st_is::StdError reprojection_error, euler_angle_error, relative_translation_error;
     for( int i=0; i<transformation_estimates_.size(); i++ )
     {
       estimated_transformations.at<double>(0,i) = transformation_estimates_[i].rot_EH.x();
@@ -458,14 +647,35 @@ bool TransformationEstimator::printToFile( string fileName_ )
       estimated_transformations.at<double>(5,i) = transformation_estimates_[i].E_trans_EH.y();
       estimated_transformations.at<double>(6,i) = transformation_estimates_[i].E_trans_EH.z();
       if( transformation_estimates_[i].reprojectionError( reprojection_error ) )
-	estimated_transformations.at<double>(7,i) = reprojection_error;
-      else estimated_transformations.at<double>(7,i) = -1000;
-      if( transformation_estimates_[i].eulerAngleRmsError( euler_rms_error ) )
-	estimated_transformations.at<double>(8,i) = euler_rms_error;
-      else estimated_transformations.at<double>(8,i) = -1000;
+      {
+	estimated_transformations.at<double>(7,i) = reprojection_error.mean;
+	estimated_transformations.at<double>(8,i) = sqrt(reprojection_error.variance);
+      }
+      else
+      {
+	estimated_transformations.at<double>(7,i) = -1000;
+	estimated_transformations.at<double>(8,i) = -1000;
+      }
+      if( transformation_estimates_[i].eulerAngleError( euler_angle_error ) )
+      {
+	estimated_transformations.at<double>(9,i) = euler_angle_error.mean;
+	estimated_transformations.at<double>(10,i) = sqrt(euler_angle_error.variance);
+      }
+      else
+      {
+	estimated_transformations.at<double>(9,i) = -1000;
+	estimated_transformations.at<double>(10,i) = -1000;
+      }
       if( transformation_estimates_[i].relativeTranslationError( relative_translation_error ) )
-	estimated_transformations.at<double>(9,i) = relative_translation_error;
-      else estimated_transformations.at<double>(9,i) = -1000;
+      {
+	estimated_transformations.at<double>(11,i) = relative_translation_error.mean;
+	estimated_transformations.at<double>(12,i) = sqrt(relative_translation_error.variance);
+      }
+      else
+      {
+	estimated_transformations.at<double>(11,i) = -1000;
+	estimated_transformations.at<double>(12,i) = -1000;
+      }
     }
     
     cv::FileStorage outputFile( fileName_, cv::FileStorage::WRITE );
@@ -567,10 +777,23 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
       new_estimate.E_trans_EH.z() = estimated_transformations.at<double>(6,i);
       
       if( estimated_transformations.at<double>(7,i)!=-1000 )
-	new_estimate.setReprojectionError( estimated_transformations.at<double>(7,i) );
+      {
+	st_is::StdError new_error;
+	new_error.mean = estimated_transformations.at<double>(7,i);
+	new_error.variance = estimated_transformations.at<double>(8,i)*estimated_transformations.at<double>(8,i);
+	new_estimate.setReprojectionError( new_error );
+      }
       if( estimated_transformations.at<double>(8,i)!=-1000 )
       {
-	new_estimate.setTransformationErrors( estimated_transformations.at<double>(8,i), estimated_transformations.at<double>(9,i) );
+	st_is::StdError new_angle_error;
+	new_angle_error.mean = estimated_transformations.at<double>(9,i);
+	new_angle_error.variance = estimated_transformations.at<double>(10,i)*estimated_transformations.at<double>(10,i);
+	
+	st_is::StdError new_translation_error;
+	new_translation_error.mean = estimated_transformations.at<double>(11,i);
+	new_translation_error.variance = estimated_transformations.at<double>(12,i)*estimated_transformations.at<double>(12,i);
+	
+	new_estimate.setTransformationErrors( new_angle_error, new_translation_error );
       }
       
       transformation_estimates_.push_back(new_estimate);
@@ -595,28 +818,28 @@ TransformationEstimator::EstimationData::EstimationData():
 }
 
 
-void TransformationEstimator::EstimationData::setReprojectionError( double _error )
+void TransformationEstimator::EstimationData::setReprojectionError( st_is::StdError _error )
 {
   has_reprojection_error_ = true;
   reprojection_error_ = _error;
 }
 
 
-void TransformationEstimator::EstimationData::setTransformationErrors( double _euler_angle_rms_error, double _relative_translation_error )
+void TransformationEstimator::EstimationData::setTransformationErrors( st_is::StdError _euler_angle_error, st_is::StdError _relative_translation_error )
 {
   has_transformation_error_ = true;
-  euler_angle_rms_error_ = _euler_angle_rms_error;
+  euler_angle_error_ = _euler_angle_error;
   relative_translation_error_ = _relative_translation_error;
 }
 
 
-void TransformationEstimator::EstimationData::setTransformationErrors( std::pair<double,double> _errors )
+void TransformationEstimator::EstimationData::setTransformationErrors( std::pair<st_is::StdError,st_is::StdError> _errors )
 {
   setTransformationErrors(_errors.first,_errors.second);
 }
 
 
-bool TransformationEstimator::EstimationData::reprojectionError( double& _reprojection_error )
+bool TransformationEstimator::EstimationData::reprojectionError( st_is::StdError& _reprojection_error )
 {
   if(!has_reprojection_error_) return false;
   
@@ -625,15 +848,15 @@ bool TransformationEstimator::EstimationData::reprojectionError( double& _reproj
 }
 
 
-bool TransformationEstimator::EstimationData::eulerAngleRmsError( double& _euler_angle_rms_error )
+bool TransformationEstimator::EstimationData::eulerAngleError( st_is::StdError& _euler_angle_error )
 {
   if(!has_transformation_error_) return false;
   
-  _euler_angle_rms_error = euler_angle_rms_error_;
+  _euler_angle_error = euler_angle_error_;
   return true;
 }
 
-bool TransformationEstimator::EstimationData::relativeTranslationError( double& _relative_translation_error )
+bool TransformationEstimator::EstimationData::relativeTranslationError( st_is::StdError& _relative_translation_error )
 {
   if(!has_transformation_error_) return false;
   

@@ -30,6 +30,9 @@ namespace st_is
 Eigen::Vector3d geometryToEigen( const geometry_msgs::Point& _vec );
 Eigen::Quaterniond geometryToEigen( const geometry_msgs::Quaternion& _quat );
 
+geometry_msgs::Point eigenToGeometry( const Eigen::Vector3d& _vec );
+geometry_msgs::Quaternion eigenToGeometry( const Eigen::Quaterniond& _quat );
+
 /// returns the transformation matrix represented by _pose
 Eigen::Matrix<double,3,4> transformationMatrix( geometry_msgs::Pose& _pose );
     

@@ -39,6 +39,27 @@ Eigen::Quaterniond geometryToEigen( const geometry_msgs::Quaternion& _quat )
 }
 
 
+geometry_msgs::Point eigenToGeometry( const Eigen::Vector3d& _vec )
+{
+  geometry_msgs::Point output;
+  output.x = _vec.x();
+  output.y = _vec.y();
+  output.z = _vec.z();
+  return output;
+}
+
+
+geometry_msgs::Quaternion eigenToGeometry( const Eigen::Quaterniond& _quat )
+{
+  geometry_msgs::Quaternion output;
+  output.x = _quat.x();
+  output.y = _quat.y();
+  output.z = _quat.z();
+  output.w = _quat.w();
+  return output;
+}
+
+
 Eigen::Matrix<double,3,4> transformationMatrix( geometry_msgs::Pose& _pose )
 {
   Eigen::Matrix<double,3,4> transformation_matrix;

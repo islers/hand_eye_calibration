@@ -18,6 +18,7 @@ along with math. If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 #include <utility>
 #include <cmath>
+#include <vector>
 
 namespace st_is
 {
@@ -27,5 +28,26 @@ namespace st_is
 *  the same value if only one root exists.
 */
 bool roots( double _aCoeff, double _bCoeff, double _cCoeff, std::pair<double,double>& _roots );
+
+/// class describing standard errors
+struct StdError
+{
+  StdError();
+  
+  /// initializes the object directly from a double array
+  StdError( std::vector<double>& _data );
+  
+  /// calculates the std error and returns a StdError object
+  static StdError getStdError( std::vector<double>& _data );
+  
+  /// calculates and returns the mean of the data
+  static double calcMean( std::vector<double>& _data );
+  
+  /// calculates and returns the variance of the data
+  static double calcVariance( std::vector<double>& _data );
+  
+  double mean;
+  double variance;
+};
 
 }

@@ -15,6 +15,15 @@ along with math. If not, see <http://www.gnu.org/licenses/>.
 
 #include "utils/math.h"
 
+#include <algorithm>
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics/stats.hpp>
+#include <boost/accumulators/statistics/mean.hpp>
+#include <boost/accumulators/statistics/variance.hpp>
+#include <boost/bind.hpp> 
+#include <boost/ref.hpp>
+
+
 namespace st_is
 {
 
@@ -27,6 +36,37 @@ bool roots( double _aCoeff, double _bCoeff, double _cCoeff, std::pair<double,dou
   _roots.first = (-_bCoeff + discriminant ) / (2*_aCoeff);
   _roots.second = (-_bCoeff - discriminant ) / (2*_aCoeff);
   return true;
+}
+
+StdError::StdError()
+{
+  
+}
+
+StdError::StdError( std::vector<double>& _data )
+{
+  using namespace boost::accumulators;
+  
+  accumulator_set<double, stats<tag::mean,tag::variance> > accumulator;
+  std::for_each( _data.begin(), _data.end(), boost::bind<void>(boost::ref(accumulator), _1 ));
+  
+  mean = extract::mean(accumulator);
+  variance = extract::variance(accumulator);
+}
+
+StdError StdError::getStdError( std::vector<double>& _data )
+{
+  return StdError(_data);
+}
+
+double StdError::calcMean( std::vector<double>& _data )
+{
+  return StdError(_data).mean;
+}
+
+double StdError::calcVariance( std::vector<double>& _data )
+{
+  return StdError(_data).variance;
 }
 
 }

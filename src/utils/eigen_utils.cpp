@@ -29,6 +29,42 @@ Matrix3d crossProdMatrix( Vector3d _vec )
   return ret;
 }
 
+Eigen::Vector3d applyTransform( Eigen::Vector3d& _vec, Eigen::Quaterniond& _rotation, Eigen::Vector3d& _translation )
+{
+  return _rotation*_vec + _translation;
+}
+
+CoordinateTransformation::CoordinateTransformation()
+{
+  
+}
+
+CoordinateTransformation::CoordinateTransformation( const Eigen::Quaterniond& _rotation, const Eigen::Vector3d& _translation )
+{
+  rotation = _rotation;
+  translation = _translation;
+}
+
+CoordinateTransformation CoordinateTransformation::inv()
+{
+  Eigen::Quaterniond inv_rot = rotation.conjugate();
+  Eigen::Vector3d inv_translation = inv_rot*(-translation);
+  return CoordinateTransformation( inv_rot, inv_translation );
+}
+
+CoordinateTransformation CoordinateTransformation::operator*( const CoordinateTransformation _toMultiply )
+{
+  Eigen::Quaterniond new_rot = rotation*_toMultiply.rotation;
+  Eigen::Vector3d new_trans = rotation*_toMultiply.translation + translation;
+  return CoordinateTransformation( new_rot, new_trans );
+}
+
+Eigen::Vector3d CoordinateTransformation::operator*( const Eigen::Vector3d _toMultiply )
+{
+  return rotation*_toMultiply + translation;
+}
+
+
 DualQuaternion::DualQuaternion()
 {
   
