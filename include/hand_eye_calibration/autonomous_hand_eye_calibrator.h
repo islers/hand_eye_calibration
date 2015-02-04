@@ -39,6 +39,16 @@ public:
    */
   AutonomousHandEyeCalibrator( ros::NodeHandle* _n );
   
+  /** adds a transformation estimator
+   * @param _new_estimator the estimator
+   */
+  void addTransformationEstimator( boost::shared_ptr<TransformationEstimator> _new_estimator );
+  
+  /** adds a transformation estimator using the method given
+   * @param _method transformation method
+   */
+  void addTransformationEstimationMethod( boost::shared_ptr<TransformationEstimator::EstimationMethod> _method );
+  
   /// runs one step of the autonomous calibration process
   /** The method iterates through the joint space and estimates the hand-eye transformation along the way.
    * Based on the hand-eye transformation it also estimates the position of the calibration target, e.g.

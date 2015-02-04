@@ -77,6 +77,18 @@ AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
   
 }
 
+void AutonomousHandEyeCalibrator::addTransformationEstimator( boost::shared_ptr<TransformationEstimator> _new_estimator )
+{
+  estimators_.push_back( _new_estimator );
+}
+
+void AutonomousHandEyeCalibrator::addTransformationEstimationMethod( boost::shared_ptr<TransformationEstimator::EstimationMethod> _method )
+{
+  boost::shared_ptr<TransformationEstimator> new_estimator( new TransformationEstimator(ros_node_) );
+  new_estimator->setEstimationMethod(_method);
+  estimators_.push_back( new_estimator );
+}
+
 bool AutonomousHandEyeCalibrator::runSingleIteration()
 {
   
@@ -90,8 +102,8 @@ bool AutonomousHandEyeCalibrator::runSingleIteration()
     bool found_new_pos = calculateNextJointPosition();
     if( !found_new_pos )
       return false;
-    else
-      setTargetToNewPosition();
+    //else
+    //  setTargetToNewPosition();
     
     if( !planAndMove() ) // don't have to move for first position
       return true; // no calculation for current new pos, but still new positions available
@@ -286,6 +298,7 @@ bool AutonomousHandEyeCalibrator::calculateNextJointPosition()
     setRobotStateToCurrentJointPosition( state_to_check );
     
   }while( !isCollisionFree(current_scene, state_to_check) || !calibrationPatternExpectedVisible(state_to_check) );
+  robot_->setJointValueTarget( state_to_check );
   return true;
 }
 
@@ -389,16 +402,19 @@ bool AutonomousHandEyeCalibrator::planAndMove()
   }
   std::cout<<std::endl;
   
-  double joint_tolerance = robot_->getGoalJointTolerance();
-  double velocity_tolerance = 0.0001;
-    
+  
   planning_scene_monitor::LockedPlanningSceneRO current_scene( scene_ );
   robot_state::RobotState current_robot_state = current_scene->getCurrentState();
-    
   robot_->setStartState(current_robot_state);
   
+  double joint_tolerance = robot_->getGoalJointTolerance();
+  double velocity_tolerance = 0.0001;
+  
+  
   ros::AsyncSpinner spinner(1);
+  
   scene_->unlockSceneRead();
+  
   spinner.start();
   // plan and execute a path to the target state
   bool success = robot_->move();
@@ -461,13 +477,14 @@ void AutonomousHandEyeCalibrator::setTargetToNewPosition()
 }
 
 void AutonomousHandEyeCalibrator::setRobotStateToCurrentJointPosition( robot_state::RobotState& _robot )
-{
+{  
   std::vector<double> joint_configuration;
   for( unsigned int i = 0; i<joint_names_.size(); i++ )
   {
-    joint_configuration.push_back( joint_position_[i] );
+    //joint_configuration.push_back( joint_position_[i] );
+    _robot.setVariablePosition( joint_names_[i], joint_position_[i] );
   }
-  _robot.setVariablePositions( joint_names_, joint_configuration );
+  //_robot.setVariablePositions( joint_names_, joint_configuration );
 }
 
 bool AutonomousHandEyeCalibrator::cameraPubNodeInfoAvailable()
