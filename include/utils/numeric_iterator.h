@@ -23,7 +23,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 /** Standard random access iterator class to iterate over numeric types (int,double,etc) 
  * with fixed step sizes. So basically their numerical space is discretized in steps of 
  * predefined size over which an iteration can be made just as with any other iterator.
- * All numerical values lying inside the same cell reprented by an iterator are equal when
+ * All numerical values lying inside the same cell represented by an iterator are equal when
  * being compared. Iterators with unequal base or step size are never equal and always return
  * false on all comparisons but the inequality.
  * Instead of using a constant iterator which would make sense since the iterated sets are constant

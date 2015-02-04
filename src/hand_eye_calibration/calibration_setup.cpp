@@ -23,10 +23,12 @@ CalibrationSetup::CalibrationSetup():
   
 }
 
-void CalibrationSetup::setData( Eigen::Matrix<double,3,4>& _camera_projection_matrix, std::vector<geometry_msgs::Point>& _calibration_pattern_world_coordinates )
+void CalibrationSetup::setData( Eigen::Matrix<double,3,4>& _camera_projection_matrix, std::vector<geometry_msgs::Point>& _calibration_pattern_world_coordinates, unsigned int _image_height, unsigned int _image_width )
 {
   camera_projection_matrix_=_camera_projection_matrix;
   calibration_pattern_world_coordinates_=_calibration_pattern_world_coordinates;
+  image_height_ = _image_height;
+  image_width_ = _image_width;
   is_setup_=true;
 }
 
@@ -43,6 +45,16 @@ Eigen::Matrix<double,3,4> CalibrationSetup::cameraProjectionMatrix()
 std::vector<geometry_msgs::Point> CalibrationSetup::patternWorldCoordinates()
 {
   return calibration_pattern_world_coordinates_;
+}
+
+unsigned int CalibrationSetup::imageHeight()
+{
+  return image_height_;
+}
+
+unsigned int CalibrationSetup::imageWidth()
+{
+  return image_width_;
 }
 
 geometry_msgs::Point CalibrationSetup::calibPointWorldCoordinates( unsigned int _i )

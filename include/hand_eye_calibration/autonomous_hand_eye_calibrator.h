@@ -76,6 +76,9 @@ private:
   
   double image_border_tolerance_; /// by what value [px] the border of the image shall be enlarged when deciding whether a projected calibration pattern point might be part of the image or not
   
+  std::string robot_base_frame_; /// name of the robot base frame used by the hand pose publisher
+  std::string robot_hand_frame_; /// name of the robot hand frame used by the hand pose publisher
+  
   /// loads the joint dimension names, limits and step sizes, initializes joint_position_ accordingly
   /** @throws ROS_FATAL if a correct configuration wasn't found on the parameter server and shuts down the node
    */

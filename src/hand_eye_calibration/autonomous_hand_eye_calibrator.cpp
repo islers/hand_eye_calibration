@@ -15,9 +15,13 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 */
 
 
-#include "hand_eye_calibration/autonomous_hand_eye_calibrator.h"
 #include <string>
 #include <control_msgs/FollowJointTrajectoryAction.h>
+#include <boost/foreach.hpp>
+
+#include "hand_eye_calibration/autonomous_hand_eye_calibrator.h"
+#include "hand_eye_calibration/estimation_data.h"
+#include "utils/ros_eigen.h"
 
 #include "hand_eye_calibration/CameraPose.h"
 #include "hand_eye_calibration/CameraPoseInfo.h"
@@ -34,7 +38,21 @@ AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
   if( !ros_node_->getParam("moveit_group_name",moveit_group_name) )
   {
     std::string error = "AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n )::line "+std::to_string(__LINE__)+"::No MoveIt! group name given. Check your auto_config.yaml file. Shutting down node.";
-    ROS_FATAL("%s",error.c_str());
+    ROS_FATAL_STREAM(error);
+    ros::shutdown();
+    return;
+  }
+  if( !ros_node_->getParam("robot_base_frame",robot_base_frame_) )
+  {
+    std::string error = "AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n )::line "+std::to_string(__LINE__)+"::No robot base frame specified. Check your auto_config.yaml file. Shutting down node.";
+    ROS_FATAL_STREAM(error);
+    ros::shutdown();
+    return;
+  }
+  if( !ros_node_->getParam("hand_frame",robot_hand_frame_) )
+  {
+    std::string error = "AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n )::line "+std::to_string(__LINE__)+"::No robot hand frame specified. Check your auto_config.yaml file. Shutting down node.";
+    ROS_FATAL_STREAM(error);
     ros::shutdown();
     return;
   }
@@ -67,7 +85,7 @@ bool AutonomousHandEyeCalibrator::runSingleIteration()
     initializePosition();
   }
   else
-  { // get next position
+  { // get to next position
     
     bool found_new_pos = calculateNextJointPosition();
     if( !found_new_pos )
@@ -75,35 +93,18 @@ bool AutonomousHandEyeCalibrator::runSingleIteration()
     else
       setTargetToNewPosition();
     
-    if( planAndMove() ) // don't have to move for first position
+    if( !planAndMove() ) // don't have to move for first position
       return true; // no calculation for current new pos, but still new positions available
   }
   
-  // while position invalid: pos++
-  // move to position
-  // check if checkerboard visible
-  // ->add pose pair
-  
-  
-  /*
-  std::vector<double> current_state;
-  current_state = robot_->getCurrentJointValues();
-  for( unsigned int i=0; i<current_state.size(); i++ )
+  // update all transformation estimators added
+  BOOST_FOREACH( boost::shared_ptr<TransformationEstimator> estimator, estimators_ )
   {
-    std::cout<<std::endl<<current_state[i];
+    estimator->addAndEstimate();
   }
-  std::cout<<std::endl;
-  current_state[1] = 1.15;
-  current_state[2] = -2.6;
-  current_state[3] = 1.88;
-  current_state[4] = 2.9;
+   
   
-  robot_->setJointValueTarget( current_state );
-  
-  planAndMove();*/
-  
-  
-  return true; /////////////////////////////////////////////////////// dummy
+  return true;
 }
 
 double AutonomousHandEyeCalibrator::maxRelEstimateChange()
@@ -309,7 +310,64 @@ bool AutonomousHandEyeCalibrator::calibrationPatternExpectedVisible( robot_state
     ROS_INFO("No camera calibration info available. Going on with blind iteration.");
     return true;
   }
-  return true; /////////////////////////////////////////////////////////////////////// dummy
+  if( !estimators_.front()->estimationPossible() )
+  {
+    ROS_INFO("No hand-eye estimate available yet. Going on with blind iteration.");
+    return true;
+  }
+  /* calculation of next camera pose t_EP
+   * **********************************
+   * space indices used:
+   * - E: eye space
+   * - P: calibration pattern space
+   * - B: robot base space
+   * - H: hand space
+   * - R: space of last actuated robot link
+   * - G: planning frame (model frame) of the moveit robot object
+   */
+  TransformationEstimator::EstimationData current_hec_estimate = estimators_.front()->estimate();
+  st_is::CoordinateTransformation t_EH( current_hec_estimate.rot_EH(), current_hec_estimate.E_trans_EH() );
+  
+  st_is::CoordinateTransformation t_BP = estimators_.front()->getCalibrationPatternPoseEstimate(current_hec_estimate);
+    
+  Eigen::Matrix<double,4,4> m_HG = _robot.getFrameTransform( robot_hand_frame_ ).matrix();
+  Eigen::Quaterniond quat_HG( m_HG.topLeftCorner<3,3>() );
+  Eigen::Vector3d H_t_HG = m_HG.topRightCorner<3,1>();
+  st_is::CoordinateTransformation t_HG( quat_HG, H_t_HG );
+  
+  Eigen::Matrix<double,4,4> m_BG = _robot.getFrameTransform( robot_base_frame_ ).matrix();
+  Eigen::Quaterniond quat_BG( m_BG.topLeftCorner<3,3>() );
+  Eigen::Vector3d B_t_BG = m_BG.topRightCorner<3,1>();
+  st_is::CoordinateTransformation t_BG( quat_BG, B_t_BG );
+  
+  st_is::CoordinateTransformation t_GB = t_BG.inv();  
+  st_is::CoordinateTransformation t_HB = t_HG*t_GB;
+  st_is::CoordinateTransformation t_EB = t_EH*t_HB;
+  
+  st_is::CoordinateTransformation t_EP = t_EB*t_BP;
+  geometry_msgs::Pose camera_pose;
+  camera_pose.orientation = st_is::eigenToGeometry(t_EP.rotation);
+  camera_pose.position = st_is::eigenToGeometry(t_EP.translation);
+  
+  // get projected calibration pattern points using the given camera pose
+  std::vector<hand_eye_calibration::Point2D> projected_calibration_pattern = estimators_.front()->getCalibrationSetup().getProjectedCoordinates(camera_pose);
+  
+  // check if all projected points are inside the image frame, enlarged using the image border tolerance value
+  double x_upper_bound = estimators_.front()->getCalibrationSetup().imageWidth() + image_border_tolerance_;
+  double x_lower_bound = -image_border_tolerance_;
+  double y_upper_bound = estimators_.front()->getCalibrationSetup().imageHeight() + image_border_tolerance_;
+  double y_lower_bound = -image_border_tolerance_;
+  
+  BOOST_FOREACH( hand_eye_calibration::Point2D point, projected_calibration_pattern )
+  {
+    if( !(point.x<=x_upper_bound && point.x>=x_lower_bound && point.y<=y_upper_bound && point.y>=y_lower_bound) )
+    {
+      ROS_INFO("Skipping state where the calibration pattern is expected not to be fully visible.");
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 bool AutonomousHandEyeCalibrator::planAndMove()

@@ -405,6 +405,16 @@ TransformationEstimator::TransformationError TransformationEstimator::getTransfo
   return transformation_error;
 }
 
+st_is::CoordinateTransformation TransformationEstimator::lastHandPose()
+{
+  return st_is::CoordinateTransformation( st_is::geometryToEigen(pose_data_.back().hand_pose.orientation), st_is::geometryToEigen(pose_data_.back().hand_pose.position) );
+}
+
+st_is::CoordinateTransformation TransformationEstimator::lastEyePose()
+{
+  return st_is::CoordinateTransformation( st_is::geometryToEigen(pose_data_.back().eye_pose.orientation), st_is::geometryToEigen(pose_data_.back().eye_pose.position) );
+}
+
 st_is::CoordinateTransformation TransformationEstimator::getCalibrationPatternPoseEstimate( EstimationData& _estimation_data )
 {
   if( pose_data_.empty() )
@@ -460,9 +470,9 @@ void TransformationEstimator::setCalibrationConfiguration( CalibrationSetup& _ne
   calibration_configuration_=_new_configuration;
 }
 
-void TransformationEstimator::setCalibrationConfiguration( Eigen::Matrix<double,3,4>& _projection_matrix, std::vector<geometry_msgs::Point>& _calibration_pattern_world_coordinates )
+void TransformationEstimator::setCalibrationConfiguration( Eigen::Matrix<double,3,4>& _projection_matrix, std::vector<geometry_msgs::Point>& _calibration_pattern_world_coordinates, unsigned int _image_height, unsigned int _image_width )
 {
-  calibration_configuration_.setData( _projection_matrix, _calibration_pattern_world_coordinates );
+  calibration_configuration_.setData( _projection_matrix, _calibration_pattern_world_coordinates, _image_height, _image_width );
 }
 
 bool TransformationEstimator::loadCalibrationConfigurationFromService()
@@ -490,6 +500,13 @@ bool TransformationEstimator::loadCalibrationConfigurationFromService()
       ROS_ERROR("No calibraton pattern coordinates are provided by the 'hec_eye_nod_info' service. Cannot setup calibration configuration.");
       return false;
     }
+    if( cam_pose_info.response.info.camera_info.height==0 || cam_pose_info.response.info.camera_info.width==0 )
+    {
+      ROS_ERROR_STREAM("The image height and/or width provided by the 'hec_eye_nod_info' service are invalid. The provided height is "<<cam_pose_info.response.info.camera_info.height<<"px, the provided width: "<<cam_pose_info.response.info.camera_info.width<<"px. Cannot setup calibration configuration.");
+      return false;
+    }
+    unsigned int height = cam_pose_info.response.info.camera_info.height;
+    unsigned int width = cam_pose_info.response.info.camera_info.width;
     
     Eigen::Matrix<double,3,4> projection_matrix;
     int i = 0;
@@ -507,7 +524,7 @@ bool TransformationEstimator::loadCalibrationConfigurationFromService()
     ROS_INFO_STREAM("Calibration pattern retrieved with "<<calibration_pattern_world_coordinates.size()<<" points.");
     ROS_INFO_STREAM("Successfully retrieved all data needed from 'hec_eye_node_info' topic.");
     
-    calibration_configuration_.setData( projection_matrix, calibration_pattern_world_coordinates );
+    calibration_configuration_.setData( projection_matrix, calibration_pattern_world_coordinates, height, width );
     
     return true;
   }
@@ -632,6 +649,8 @@ bool TransformationEstimator::printToFile( string fileName_ )
       
       outputFile<<"camera_projection_matrix"<<camera_projection_matrix_buff;
       outputFile<<"calibration_pattern_world_coordinates"<<calibration_pattern_world_coordinates_buff;
+      outputFile<<"image_height"<<(int)calibration_configuration_.imageHeight();
+      outputFile<<"image_width"<<(int)calibration_configuration_.imageWidth();
       
     }
     
@@ -892,9 +911,13 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
       inputFile["camera_projection_matrix"] >> camera_projection_matrix_buff;
       inputFile["calibration_pattern_world_coordinates"] >> calibration_pattern_world_coordinates_buff;
       
-      if( camera_projection_matrix_buff.rows!=3 || camera_projection_matrix_buff.cols!=4 || calibration_pattern_world_coordinates_buff.rows!=3 )
+      int image_height, image_width;
+      inputFile["image_height"] >> image_height;
+      inputFile["image_width"] >> image_width;
+      
+      if( camera_projection_matrix_buff.rows!=3 || camera_projection_matrix_buff.cols!=4 || calibration_pattern_world_coordinates_buff.rows!=3 || image_height<=0 || image_width<=0 )
       {
-	ROS_ERROR("TransformationEstimator::loadFromFile::the projection matrix or the coordinate matrix are ill formed. Cannot setup the calibration data. Check your data file.");
+	ROS_ERROR("TransformationEstimator::loadFromFile::the projection matrix or the coordinate matrix are ill formed or invalid image sizes are given. Cannot setup the calibration data. Check your data file.");
       }
       else
       {
@@ -920,7 +943,7 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
 	  calibration_pattern_world_coordinates.push_back( calibration_point );
 	}
 
-	calibration_configuration_.setData( camera_projection_matrix, calibration_pattern_world_coordinates );
+	calibration_configuration_.setData( camera_projection_matrix, calibration_pattern_world_coordinates, (unsigned int)image_height, (unsigned int)image_width );
 	
       }
     }

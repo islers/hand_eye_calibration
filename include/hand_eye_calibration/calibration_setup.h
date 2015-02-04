@@ -32,7 +32,7 @@ public:
   CalibrationSetup();
   
   /// sets all needed data
-  void setData( Eigen::Matrix<double,3,4>& _camera_projection_matrix, std::vector<geometry_msgs::Point>& _calibration_pattern_world_coordinates );
+  void setData( Eigen::Matrix<double,3,4>& _camera_projection_matrix, std::vector<geometry_msgs::Point>& _calibration_pattern_world_coordinates, unsigned int _image_height, unsigned int _image_width );
   
   /// returns true if the calibration setup is setup
   bool isSetup();
@@ -42,6 +42,12 @@ public:
   
   /// returns the world coordinates of the calibration pattern points
   std::vector<geometry_msgs::Point> patternWorldCoordinates();
+  
+  // returns the image height;
+  unsigned int imageHeight();
+  
+  /// returns the image width
+  unsigned int imageWidth();
   
   /// returns world coordinates of a calibration pattern point
   /**
@@ -73,6 +79,7 @@ public:
   
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 private:
+  unsigned int image_width_, image_height_;
   bool is_setup_;
   Eigen::Matrix<double,3,4> camera_projection_matrix_;
   std::vector<geometry_msgs::Point> calibration_pattern_world_coordinates_;

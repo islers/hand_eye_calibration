@@ -132,6 +132,9 @@ namespace st_is
     bool atBegin();
     /// returns true if the current iterator points to the end (split space considered)
     bool atEnd();
+    
+    /// if the iterator exceeds the boundaries, it is reset to the boundary
+    void enforceBoundaries();
   };
   
   
@@ -286,8 +289,9 @@ namespace st_is
   TEMPRAIt
   void IteratorBouncer<RAIt>::resolvingSplit()
   {
-    if( pos_==lower_bound_ )
+    if( pos_<=lower_bound_ )
     {
+      pos_=lower_bound_;
       split_space_ = false;
     }
     else
@@ -367,6 +371,7 @@ namespace st_is
 	}
       }
     }
+    enforceBoundaries();
   }
   
   TEMPRAIt
@@ -423,6 +428,7 @@ namespace st_is
 	}
       }
     }
+    enforceBoundaries();
   }
   
   TEMPRAIt
@@ -449,6 +455,15 @@ namespace st_is
     {
       return ( pos_ == (iterator_border_-1) );
     }
+  }
+  
+  TEMPRAIt
+  void IteratorBouncer<RAIt>::enforceBoundaries()
+  {
+    if( pos_>upper_bound_ )
+      pos_=upper_bound_;
+    else if( pos_<lower_bound_ )
+      pos_=lower_bound_;
   }
 }
 

@@ -128,6 +128,15 @@ public:
      */
     TransformationError getTransformationError( EstimationData& _estimation_data );
     
+    /** returns the last hand pose
+     * @return  (R_BH and B_t_BH)
+     */
+    st_is::CoordinateTransformation lastHandPose();
+    
+    /** returns the last eye pose
+     * @return  R_EO and E_t_EO
+     */
+    st_is::CoordinateTransformation lastEyePose();
     
     /** calculates an estimate for the transformation from calibration pattern coordinate system to robot base coordinate system H_BO (an average using all pose measurements)
      * @param _estimation_data hand-eye-transformation to use
@@ -148,7 +157,7 @@ public:
      * @param _projection_matrix camera projection matrix
      * @param _calibration_pattern_world_coordinates calibration pattern in its own (3D) coordinate system
      */
-    void setCalibrationConfiguration( Eigen::Matrix<double,3,4>& _projection_matrix, std::vector<geometry_msgs::Point>& _calibration_pattern_world_coordinates );
+    void setCalibrationConfiguration( Eigen::Matrix<double,3,4>& _projection_matrix, std::vector<geometry_msgs::Point>& _calibration_pattern_world_coordinates, unsigned int _image_height, unsigned int _image_width );
     
     /** attempts to load a new calibration configuration by calling the 'hec_eye_node_info' service
      * @return true if calling the service succeeded and a new configuration has been loaded

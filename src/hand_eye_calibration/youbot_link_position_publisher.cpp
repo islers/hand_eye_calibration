@@ -69,6 +69,7 @@ void YoubotLinkPositionPublisher::run()
       pose_publisher_.publish(newPose);
     }
     
+    ros::spinOnce();
     rate.sleep();
   }
   
