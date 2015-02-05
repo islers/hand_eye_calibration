@@ -43,7 +43,7 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
     ROS_ERROR_STREAM(msg.str());
     throw std::runtime_error(msg.str());
   }
-  else if( _pose_data.size()<20 )
+  else if( _pose_data.size()<20 && !_suppressWarnings )
   {
     ROS_WARN("For good results more than 20 hand-eye pose pairs are recommended. The computed transformation might be inaccurate.");
     ROS_INFO("Number of pose pairs currently available for computation: %i", (int)_pose_data.size() );

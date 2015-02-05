@@ -71,6 +71,9 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include "hand_eye_calibration/CameraPose.h"
 #include "hand_eye_calibration/CameraPoseInfo.h"
 
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+
 
 class EyePositionFromCheckerboard
 {
@@ -91,6 +94,19 @@ class EyePositionFromCheckerboard
     ros::Subscriber camera_info_subscriber_;
     ros::ServiceServer eye_position_server_;
     ros::ServiceServer eye_position_info_server_;
+    
+    boost::mutex image_mutex_;
+    cv_bridge::CvImage current_image_; // only use when mutex is locked
+    
+    enum ImageState{NO_NEW_IMAGE_AVAILABLE, NO_CHESSBOARD_FOUND, CHESSBOARD_FOUND};
+    // processes new input images if available and if a checkerboard found the data is stored and  the pose published
+    ImageState processImageIfAvailable();
+    
+    // data of last found checkerboard
+    ros::Time last_image_retrieval_with_chkrbrd_;
+    geometry_msgs::Pose last_checkerboard_pose_; //used for service
+    boost::shared_ptr< std::vector<cv::Point2f> > checkerboard_corner_coordinates_; // used for service
+    cv_bridge::CvImage last_checkerboard_image_;
     
     /// locates the checkerboard corners in the given image
     /** The function locates the checkerboard corners in the given image, writing their coordinates
@@ -119,7 +135,6 @@ class EyePositionFromCheckerboard
     bool new_image_loaded_; // whether a new image has been loaded
     ros::Time last_image_retrieval_; // time stamp of the last retrieved image
     
-    cv_bridge::CvImage current_image_;
     bool camera_data_retrieved_;
     cv::Mat camera_matrix_;
     sensor_msgs::CameraInfo camera_info_;

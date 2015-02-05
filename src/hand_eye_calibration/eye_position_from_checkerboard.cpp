@@ -53,54 +53,44 @@ void EyePositionFromCheckerboard::run()
     init_success_ = init();
     if( !init_success_ && ros_node_->ok() ) rate.sleep();
   }
+  ros::AsyncSpinner spinner(1);
+  spinner.start();
   
-  
+  int image_wait_counter=0;
+  int chessboard_wait_counter=0; // only show message that chessboard wasn't found if it has been so for a while;
   while( ros_node_->ok() )
   {
-    ros::spinOnce();
-    
-    if( !current_image_.image.empty() && new_image_loaded_ ) // if an image is available
+    //ros::spinOnce();    
+    ImageState image_state = processImageIfAvailable();
+    if( image_state != NO_NEW_IMAGE_AVAILABLE ) // if an image is available
     {
-      cv::vector<cv::Point2f> chkbrdCorners;
+      image_wait_counter=0;
             
-      bool chessboardFound = calculateChessboardCorners( current_image_.image, chkbrdCorners );
-      
-      if( chessboardFound )
+      if( image_state == CHESSBOARD_FOUND )
       {
-	drawChessboardCorners( current_image_.image, pattern_size_, chkbrdCorners, chessboardFound );
-      }
-      
-      cv::imshow( "Checkerboard corner detection", current_image_.image );
-      
-      
-      if( chessboardFound )
-      {
-	  cv::Mat rotation_vector, translation_vector;
-	  	  
-	  calculatePose( chkbrdCorners, rotation_vector, translation_vector );
-	  
-	  geometry_msgs::Pose cameraPose = geometryPoseFromVectors( rotation_vector, translation_vector );
-	  	  
-	  cout<<endl<<"New camera pose found:"<<endl;
-	  cout<<endl<<"The translation vector is:"<<endl<<translation_vector<<endl<<endl<<"which has a length of "<<cv::norm( translation_vector, cv::NORM_L2 )<<" m."<<endl;
-	  cout<<endl<<"The rotation vector is "<<endl<<rotation_vector<<endl;
-	  
-	  pose_publisher_.publish( cameraPose );
+	  chessboard_wait_counter=0;
       }
       else
       {
-	ROS_INFO("Chessboard wasn't found in the given image");
+	if( chessboard_wait_counter++ > 10 )
+	{
+	  chessboard_wait_counter=0;
+	  ROS_INFO("Chessboard wasn't found in the given image");
+	}
       }
-      
-      new_image_loaded_ = false;
-      
-      cv::waitKey(20); //wait x ms and let opencv display the mat
+      boost::mutex::scoped_lock scoped_lock(image_mutex_);
+      cv::imshow( "Checkerboard publisher", current_image_.image );
     }
     else
     {
-      ROS_WARN("EyePositionFromCheckerboard::run()::no new image available: waiting...");
-      ros::Rate(30).sleep();
+      if( image_wait_counter++ > 30 )
+      {
+	ROS_WARN("EyePositionFromCheckerboard::run()::no new image available: waiting...");
+	image_wait_counter=0;
+      }
+      //ros::Rate(30).sleep();
     }
+    cv::waitKey(20); //wait x ms and let opencv display the mat
   }
   return;
 }
@@ -120,6 +110,7 @@ void EyePositionFromCheckerboard::imageLoader(  const sensor_msgs::ImageConstPtr
     return;
   }
   
+  boost::mutex::scoped_lock scoped_lock(image_mutex_);
   current_image_ = *cv_ptr;
   
   new_image_loaded_ = true;
@@ -162,57 +153,56 @@ void EyePositionFromCheckerboard::cameraInfoUpdate( const sensor_msgs::CameraInf
 
 bool EyePositionFromCheckerboard::serviceCameraPoseRequest( hand_eye_calibration::CameraPose::Request& _req, hand_eye_calibration::CameraPose::Response& _res )
 {
+  ROS_INFO_STREAM("Camera pose request service called.");
   ros::Time request_stamp = _req.request.request_stamp;
   ros::Duration max_wait_time = _req.request.max_wait_time;
   ros::Time request_time = ros::Time::now();
   
   ros::Time time_limit = request_time+max_wait_time;
   
-  ros::Rate rate(5.0);
+  ros::Rate rate(100.0); //Hz
+  ros::Time last_used_image_time = request_time;
   while( ros::Time::now() <= time_limit )
   {
-    if( last_image_retrieval_ >= request_time ) // new image retrieved after service call
+    if( last_image_retrieval_with_chkrbrd_ >= request_time ) // new checkerboard image retrieved after service call
     {
-      cv::vector<cv::Point2f> chkbrdCorners;            
-      bool chessboardFound = calculateChessboardCorners( current_image_.image, chkbrdCorners );
+      ROS_INFO_STREAM("Chessboard pattern found.");
+      _res.description.stamp = ros::Time::now();
+      _res.description.request_stamp = request_stamp;
+      _res.description.pose_found = true;
       
-      current_image_.toImageMsg( _res.description.image );
-	
-      if( chessboardFound )
+      std::vector<hand_eye_calibration::Point2D> checkerboard_corners;
+      for( unsigned int i = 0; i < checkerboard_corner_coordinates_->size(); i++ )
       {
-	_res.description.stamp = ros::Time::now();
-	_res.description.request_stamp = request_stamp;
-	_res.description.pose_found = true;
-	
-	std::vector<hand_eye_calibration::Point2D> checkerboard_corners;
-	for( unsigned int i = 0; i < chkbrdCorners.size(); i++ )
-	{
-	  hand_eye_calibration::Point2D point;
-	  point.x = chkbrdCorners[i].x;
-	  point.y = chkbrdCorners[i].y;
-	  checkerboard_corners.push_back( point );
-	}
-	_res.description.point_coordinates = checkerboard_corners;
-	
-	cv::Mat rotation_vector, translation_vector;
-	calculatePose( chkbrdCorners, rotation_vector, translation_vector );
-	geometry_msgs::Pose cameraPose = geometryPoseFromVectors( rotation_vector, translation_vector );
-	
-	_res.description.pose = cameraPose;
-	
-	return true;
+	hand_eye_calibration::Point2D point;
+	point.x = (*checkerboard_corner_coordinates_)[i].x;
+	point.y = (*checkerboard_corner_coordinates_)[i].y;
+	checkerboard_corners.push_back( point );
       }
+      _res.description.point_coordinates = checkerboard_corners;
+	      
+      _res.description.pose = last_checkerboard_pose_;
+      
+      ROS_INFO_STREAM("Called successfully.");
+      cv::waitKey(10000);
+      
+      return true;
     }
-    ROS_INFO("EyePositionFromCheckerboard::serviceCameraPoseRequest::called, waiting for new image");
+    else
+    {
+      //ROS_INFO("No checkerboard image available yet.");
+    }
+    //ROS_INFO("EyePositionFromCheckerboard::serviceCameraPoseRequest::called, waiting for new image");
+    //processImageIfAvailable();
+    //ros::spinOnce();
     rate.sleep();
-    ros::spinOnce();
   }
-  
+  ROS_INFO("hand_eye_camera_pose service was called but unable to retrieve an image frame within the given time limit");
+  cv::waitKey(10000);
   // time exceeded, failed to extract new pose
   _res.description.stamp = ros::Time::now();
   _res.description.request_stamp = request_stamp;
   _res.description.pose_found = false;
-  ROS_INFO("hand_eye_camera_pose service was called but unable to retrieve an image frame within the given time limit");
   
   return true;
 }
@@ -232,6 +222,49 @@ bool EyePositionFromCheckerboard::serviceCameraPoseInfoRequest( hand_eye_calibra
   }
   _res.info.pattern_coordinates = pattern_coordinates;
   return true;
+}
+
+EyePositionFromCheckerboard::ImageState EyePositionFromCheckerboard::processImageIfAvailable()
+{
+  boost::mutex::scoped_lock scoped_lock(image_mutex_);
+  if( !current_image_.image.empty() && new_image_loaded_ ) // if an image is available
+    {
+      boost::shared_ptr< cv::vector<cv::Point2f> > chkbrdCorners(new cv::vector<cv::Point2f>() );
+      bool chessboardFound = calculateChessboardCorners( current_image_.image, *chkbrdCorners );
+      
+      
+      if( chessboardFound )
+      {
+	  cv::Mat rotation_vector, translation_vector;
+	  	  
+	  calculatePose( *chkbrdCorners, rotation_vector, translation_vector );
+	  
+	  geometry_msgs::Pose cameraPose = geometryPoseFromVectors( rotation_vector, translation_vector );
+	  
+	  cout<<endl<<"New camera pose found:"<<endl;
+	  cout<<endl<<"The translation vector is:"<<endl<<translation_vector<<endl<<endl<<"which has a length of "<<cv::norm( translation_vector, cv::NORM_L2 )<<" m."<<endl;
+	  cout<<endl<<"The rotation vector is "<<endl<<rotation_vector<<endl;
+	  
+	  // save last "checkerboard state"
+	  last_image_retrieval_with_chkrbrd_ = last_image_retrieval_;
+	  checkerboard_corner_coordinates_ = chkbrdCorners;
+	  last_checkerboard_pose_ = cameraPose;
+	  last_checkerboard_image_ = current_image_;
+	  current_image_.image.copyTo( last_checkerboard_image_.image ); //enforce deep copy
+	  
+	  pose_publisher_.publish( cameraPose );
+	  
+	  drawChessboardCorners( current_image_.image, pattern_size_, *chkbrdCorners, chessboardFound );
+	  return CHESSBOARD_FOUND;
+      }
+      else
+      {
+	return NO_CHESSBOARD_FOUND;
+      }
+      
+      new_image_loaded_ = false;
+    }
+    else return NO_NEW_IMAGE_AVAILABLE;
 }
 
 bool EyePositionFromCheckerboard::calculateChessboardCorners( cv::Mat& _image, cv::vector<cv::Point2f>& _chkbrdCorners )

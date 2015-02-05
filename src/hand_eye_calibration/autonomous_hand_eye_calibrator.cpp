@@ -112,7 +112,27 @@ bool AutonomousHandEyeCalibrator::runSingleIteration()
   // update all transformation estimators added
   BOOST_FOREACH( boost::shared_ptr<TransformationEstimator> estimator, estimators_ )
   {
-    estimator->addAndEstimate();
+    if( estimator->addNewPosePair() )
+    {
+      ROS_INFO("Successfully retrieved new pose pair and added it to list.");
+      
+      if( estimator->estimationPossible() )
+      {
+	try
+	{
+	  estimator->createAndAddNewEstimation();	
+	  ROS_INFO("Successfully calculated and added a new HEC estimate.");
+	}
+	catch(std::runtime_error e)
+	{
+	  ROS_INFO_STREAM( "Wasn't able to calculate and add a new HEC estimate, though it seems it should be possible. The following std::runtime_error was thrown: "<<e.what() );
+	}
+      }
+      else
+      {
+	  ROS_INFO("Cannot yet calculate a new HEC estimate.");
+      }
+    }
   }
    
   
@@ -279,6 +299,8 @@ void AutonomousHandEyeCalibrator::initializePosition()
       }
       
     }
+    std::cout<<std::endl;
+    
     joint_position_.resolvingSplit();
     position_initialized_ = true;
   }
@@ -393,7 +415,7 @@ bool AutonomousHandEyeCalibrator::planAndMove()
   // move() and execute() never unblock thus this target reaching function is used
   robot_state::RobotState target_robot_state = robot_->getJointValueTarget();
   
-  std::cout<<std::endl<<std::endl<<"Moving to new position:";
+  std::cout<<std::endl<<"Moving to new position:";
   
   for( unsigned int i = 0; i < joint_names.size() ; i++ )
   {

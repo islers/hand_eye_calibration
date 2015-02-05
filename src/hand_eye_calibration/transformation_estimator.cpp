@@ -28,7 +28,7 @@ using namespace std;
 using namespace Eigen;
 
 TransformationEstimator::TransformationEstimator( ros::NodeHandle* _n ):
-max_service_wait_time_(0,30000000)
+max_service_wait_time_(8,100000000)
 {
   ros_node_ = _n;
   
@@ -123,9 +123,10 @@ bool TransformationEstimator::addNewPosePair()
 bool TransformationEstimator::addAndEstimate()
 {
   bool return_value = addNewPosePair();
-  return_value = return_value && estimationPossible();
+  bool estimation_possible = estimationPossible();
+  return_value = return_value && estimation_possible;
   
-  if( estimationPossible() )
+  if( estimation_possible )
     createAndAddNewEstimation();
   
   return return_value;
