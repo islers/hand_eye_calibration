@@ -62,6 +62,17 @@ AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
     ROS_INFO_STREAM("AutonomousHandEyeCalibrator:: No image border tolerance (param:'image_border_tolerance') set on the parameter server. Using default of "<<img_brd_tol_default<<"px, which is very conservative.");
     image_border_tolerance_ = img_brd_tol_default;
   }
+  double pattern_safety_distance;
+  if( !ros_node_->getParam("pattern_safety_distance",pattern_safety_distance) )
+  {
+    double pattern_safety_distance_default = 0.3;
+    ROS_INFO_STREAM("AutonomousHandEyeCalibrator:: No pattern safety distance (param:'pattern_safety_distance') set on the parameter server. Using default of "<<pattern_safety_distance_default<<"m.");
+    pattern_safety_distance_square_ = pattern_safety_distance_default*pattern_safety_distance_default;
+  }
+  else
+  {
+    pattern_safety_distance_square_ = pattern_safety_distance*pattern_safety_distance;
+  }
   
   // initialize estimators
   boost::shared_ptr<TransformationEstimator> daniilidis_estimator( new TransformationEstimator(_n) );
@@ -104,7 +115,7 @@ bool AutonomousHandEyeCalibrator::runSingleIteration()
   }
   else
   { // get to next position
-    
+    ROS_INFO("Calculate next position...");
     bool found_new_pos = calculateNextJointPosition();
     if( !found_new_pos )
       return false;
@@ -114,6 +125,8 @@ bool AutonomousHandEyeCalibrator::runSingleIteration()
     if( !planAndMove() ) // don't have to move for first position
       return true; // no calculation for current new pos, but still new positions available
   }
+  
+  ros::Duration(1).sleep(); // sleep one second - allow robot to move
   
   // update all transformation estimators added
   BOOST_FOREACH( boost::shared_ptr<TransformationEstimator> estimator, estimators_ )
@@ -139,6 +152,15 @@ bool AutonomousHandEyeCalibrator::runSingleIteration()
 	  ROS_INFO("Cannot yet calculate a new HEC estimate.");
       }
     }
+  }
+  
+  if( estimators_.front()->count()>4 )
+  {
+    using namespace std;
+    cout<<endl<<"Current estimate is:"<<endl;
+    cout<<estimators_.front()->getNewEstimation().matrixH2E();
+    cout<<endl<<endl;
+    ros::Duration(5).sleep();
   }
    
   
@@ -319,60 +341,75 @@ bool AutonomousHandEyeCalibrator::calculateNextJointPosition()
   robot_state::RobotState state_to_check = current_scene->getCurrentState();
   
   unsigned int collision_state_counter = 0;
+  unsigned int bad_pattern_position_counter = 0;
   unsigned int invisible_pattern_counter = 0;
-  bool no_new_state_found = true;
+  
+  bool new_state_found;
   do{
     if( joint_position_.reachedTop() )
       return false;
+    new_state_found = true;
     
     joint_position_++;
     setRobotStateToCurrentJointPosition( state_to_check );
     
     bool collision_free = isCollisionFree(current_scene, state_to_check);
-    no_new_state_found = no_new_state_found && collision_free;
+    new_state_found = new_state_found && collision_free;
     
-    if( collision_free )
+    if( collision_free && estimators_.front()->count()>30000000000 ) // start using hec estimate if (x) pose pairs are available
     {
-      bool pattern_visible = calibrationPatternExpectedVisible(state_to_check);
-      no_new_state_found = no_new_state_found && pattern_visible;
+      std::vector<geometry_msgs::Point> pattern_coordinates_camera_frame;
+      getCameraFrameCoordinates( state_to_check, pattern_coordinates_camera_frame );
       
-      if( !pattern_visible )
-	invisible_pattern_counter++;
+      if( !pattern_coordinates_camera_frame.empty() ) // empty if no estimates are available
+      {
+	bool good_pattern_position = relativePositionToPatternAcceptable( pattern_coordinates_camera_frame );
+	new_state_found = new_state_found && good_pattern_position;
+	
+	if( good_pattern_position )
+	{
+	  bool pattern_visible = calibrationPatternExpectedVisible(pattern_coordinates_camera_frame);
+	  new_state_found = new_state_found && pattern_visible;
+	  
+	  if( !pattern_visible )
+	    invisible_pattern_counter++;
+	}
+	else
+	  bad_pattern_position_counter++;
+      }
+      else
+      {
+	ROS_INFO("No camera calibration info available or no hand-eye-transformation estimate available yet. Going on with blind joint space iteration.");
+      }
     }
-    else
+    else if(!collision_free)
       collision_state_counter++;
+    ROS_INFO_STREAM("Iterating..."<<ros::Time::now());
+    ROS_INFO_STREAM("Collisions:"<<collision_state_counter);
+    ROS_INFO_STREAM("Bad pattern:"<<bad_pattern_position_counter);
+    ROS_INFO_STREAM("Invisible:"<<invisible_pattern_counter);
     
-  }while( no_new_state_found );
+  }while( !new_state_found );
+  
+  if( collision_state_counter!=0 )
+  {
+    ROS_INFO_STREAM("Skipped "<<collision_state_counter<<" states for which a collision was predicted by MoveIt!.");
+  }
+  if( bad_pattern_position_counter!=0 )
+  {
+    ROS_INFO_STREAM("Skipped "<<bad_pattern_position_counter<<" states for which the calibration pattern was expected to be too close to the camera or to lie behind it.");
+  }
+  if( invisible_pattern_counter!=0 )
+  {
+    ROS_INFO_STREAM("Skipped "<<invisible_pattern_counter<<" states for which the calibration pattern was expected to be invisible.");
+  }
+    
   robot_->setJointValueTarget( state_to_check );
   return true;
 }
 
-bool AutonomousHandEyeCalibrator::isCollisionFree( planning_scene_monitor::LockedPlanningSceneRO& _scene, robot_state::RobotState& _robot )
+geometry_msgs::Pose AutonomousHandEyeCalibrator::getCameraWorldPose( robot_state::RobotState& _robot )
 {
-  bool colliding = _scene->isStateColliding( _robot );
-  
-  if( colliding )
-  {
-    ROS_INFO("Skipping state that would lead to collision.");
-    ros::Duration wait(1,0);
-    wait.sleep();
-  }
-  
-  return !colliding;
-}
-
-bool AutonomousHandEyeCalibrator::calibrationPatternExpectedVisible( robot_state::RobotState& _robot )
-{
-  if( !cameraPubNodeInfoAvailable() )
-  {
-    ROS_INFO("No camera calibration info available. Going on with blind iteration.");
-    return true;
-  }
-  if( !estimators_.front()->estimationPossible() )
-  {
-    ROS_INFO("No hand-eye estimate available yet. Going on with blind iteration.");
-    return true;
-  }
   /* calculation of next camera pose t_EP
    * **********************************
    * space indices used:
@@ -407,8 +444,65 @@ bool AutonomousHandEyeCalibrator::calibrationPatternExpectedVisible( robot_state
   camera_pose.orientation = st_is::eigenToGeometry(t_EP.rotation);
   camera_pose.position = st_is::eigenToGeometry(t_EP.translation);
   
+  return camera_pose;
+}
+
+void AutonomousHandEyeCalibrator::getCameraFrameCoordinates( robot_state::RobotState& _robot, std::vector<geometry_msgs::Point>& _pattern_coordinates )
+{
+  if( !cameraPubNodeInfoAvailable() )
+  {
+    //ROS_INFO("No camera calibration info available. Going on with blind iteration.");
+    return;
+  }
+  if( !estimators_.front()->estimationPossible() )
+  {
+    //ROS_INFO("No hand-eye estimate available yet. Going on with blind iteration.");
+    return;
+  }
+  
+  geometry_msgs::Pose camera_pose = getCameraWorldPose(_robot);
+  estimators_.front()->getCalibrationSetup().getCameraFrameCoordinates( camera_pose, _pattern_coordinates );
+  return;
+}
+
+bool AutonomousHandEyeCalibrator::isCollisionFree( planning_scene_monitor::LockedPlanningSceneRO& _scene, robot_state::RobotState& _robot )
+{
+  bool colliding = _scene->isStateColliding( _robot );
+    
+  return !colliding;
+}
+
+bool AutonomousHandEyeCalibrator::relativePositionToPatternAcceptable( std::vector<geometry_msgs::Point>& _pattern_coordinates )
+{
+  BOOST_FOREACH( geometry_msgs::Point point, _pattern_coordinates )
+  {
+    if( point.z <= 0 )
+      return false;
+    double dist_square = point.x*point.x + point.y*point.y + point.z*point.z;
+    if( dist_square < pattern_safety_distance_square_ ) // closer than 20 cm
+      return false;
+  }
+  return true;
+}
+
+bool AutonomousHandEyeCalibrator::calibrationPatternExpectedVisible( std::vector<geometry_msgs::Point>& _pattern_coordinates )
+{
+  if( !cameraPubNodeInfoAvailable() )
+  {
+    //ROS_INFO("No camera calibration info available. Going on with blind iteration.");
+    return true;
+  }
+  if( !estimators_.front()->estimationPossible() )
+  {
+    //ROS_INFO("No hand-eye estimate available yet. Going on with blind iteration.");
+    return true;
+  }
+  
+  
   // get projected calibration pattern points using the given camera pose
-  std::vector<hand_eye_calibration::Point2D> projected_calibration_pattern = estimators_.front()->getCalibrationSetup().getProjectedCoordinates(camera_pose);
+  std::vector<hand_eye_calibration::Point2D> projected_calibration_pattern;
+  
+  estimators_.front()->getCalibrationSetup().getImageCoordinates(_pattern_coordinates, projected_calibration_pattern );
   
   // check if all projected points are inside the image frame, enlarged using the image border tolerance value
   double x_upper_bound = estimators_.front()->getCalibrationSetup().imageWidth() + image_border_tolerance_;
@@ -420,7 +514,7 @@ bool AutonomousHandEyeCalibrator::calibrationPatternExpectedVisible( robot_state
   {
     if( !(point.x<=x_upper_bound && point.x>=x_lower_bound && point.y<=y_upper_bound && point.y>=y_lower_bound) )
     {
-      ROS_INFO("Skipping state where the calibration pattern is expected not to be fully visible.");
+      //ROS_INFO("Skipping state where the calibration pattern is expected not to be fully visible.");
       return false;
     }
   }
@@ -468,7 +562,7 @@ bool AutonomousHandEyeCalibrator::planAndMove()
   
   if( !success ) return false;
     
-  ros::Duration wait_time(0,10000000);
+  ros::Duration wait_time(0,10000000); // 10 ms
   
   
   bool finished = false;

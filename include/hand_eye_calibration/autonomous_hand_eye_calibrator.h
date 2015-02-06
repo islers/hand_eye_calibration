@@ -84,7 +84,8 @@ private:
   std::vector< std::string > joint_names_;
   bool position_initialized_; /// true if the initializePosition()-method was successfully run
   
-  double image_border_tolerance_; /// by what value [px] the border of the image shall be enlarged when deciding whether a projected calibration pattern point might be part of the image or not
+  double image_border_tolerance_; /// by what value [px] the border of the image shall be enlarged when deciding whether a projected calibration pattern point might be part of the image or not - loaded from param server if available (param:'image_border_tolerance'), default is 40 px
+  double pattern_safety_distance_square_; /// minimal distance the camera may have from calculated pattern positions [m] - the unsquared version is loaded from param server if available (param:'pattern_safety_distance'), default is 0.3 m
   
   std::string robot_base_frame_; /// name of the robot base frame used by the hand pose publisher
   std::string robot_hand_frame_; /// name of the robot hand frame used by the hand pose publisher
@@ -111,25 +112,46 @@ private:
    */
   void initializePosition();
   
-  /// calculates the next position and writes it into joint_position_
-  /** (with no collisions, and where the calibration pattern is expected to be visible if calibration results
-   * are already available
+  /// calculates the next valid position and writes it into joint_position_
+  /** (with no collisions, where the calibration pattern is expected to be visible and the camera position is not too close or behind the pattern if calibration results are already available)
    * @return true if new position was found, false otherwhise (which means that the joint space was fully covered)
    */
   bool calculateNextJointPosition();
   
-  /// returns whether MoveIt believes the robot state represented in _robot to be free of collisions or not given the current scene
+  /// calculates the calibration pattern coordinates in camera frame coordinates given a robot state
+  /**
+   * @param _robot robot state
+   * @return camera pose:   The transformation from calibration pattern world coordinates (O) to eye coordinates (E): the rotation R_EO and the translation vector E_t_EO,  Therefore, a transformation O->E would be carried out through: x_E = R_EO*x_O + E_t_EO
+   */
+  geometry_msgs::Pose getCameraWorldPose( robot_state::RobotState& _robot );
+  
+  /// calculates the calibration pattern point coordinates in camera frame given a robot configuration
+  /**
+   * @param _robot robot state
+   * @param _pattern_coordinates Vector that gets filled with the coordinates (using push_back() ) - the vector is not emptied: No elements are added if no camera calibration setting info is available or an estimation isn't possible yet
+   */
+  void getCameraFrameCoordinates( robot_state::RobotState& _robot, std::vector<geometry_msgs::Point>& _pattern_coordinates );
+  
+  /// returns whether MoveIt believes the robot state represented in _robot to be free of collisions or not given the current scene (but without the calibration pattern)
   /**
    * @param _robot robot state to check
    * @param _scene the current scene
    */
   bool isCollisionFree( planning_scene_monitor::LockedPlanningSceneRO& _scene, robot_state::RobotState& _robot );
   
+  
+  /// returns whether the origin of the camera frame is sufficiently far away from all given pattern coordinates and not in front of any (no points witz z<0)
+  /**
+   * @param _pattern_coordinates the coordinates of the pattern
+   * @return true if the relative position seems ok
+   */
+  bool relativePositionToPatternAcceptable( std::vector<geometry_msgs::Point>& _pattern_coordinates );
+  
   /// calculates whether the calibration pattern is expected to be visible for the given robot state _robot
-  /** @param _robot state of the robot 
+  /** @param _pattern_coordinates coordinates of the calibration pattern in camera frame coordinates
    * @return true if expected to be visible or no knowledge of the calibration pattern position is available
    */
-  bool calibrationPatternExpectedVisible( robot_state::RobotState& _robot );
+  bool calibrationPatternExpectedVisible( std::vector<geometry_msgs::Point>& _pattern_coordinates );
     
   /// sets target position to the position encoded in position
   /** The new position to be assumed is the one in joint_position_

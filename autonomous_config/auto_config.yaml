@@ -14,4 +14,6 @@ moveit_group_name: arm
 estimation_type: dual_quaternion # not used yet
 robot_base_frame: arm_link_0
 hand_frame: arm_link_5
+
 image_border_tolerance: 20
+pattern_safety_distance: 0.2 # minimal distance the camera may have from calculated pattern positions[m]

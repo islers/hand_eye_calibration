@@ -26,6 +26,8 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 
 /// class to store static information about the calibration setup (i.e. camera and calibration pattern) and to provide a few often used related methods (e.g. projecting world calibration pattern coordinates into image coordinates given the worlds pose relative to the camera frame)
+/** @todo clean up redundant code
+ */
 class CalibrationSetup
 {
 public:
@@ -48,6 +50,20 @@ public:
   
   /// returns the image width
   unsigned int imageWidth();
+  
+  /** Returns the calibration pattern coordinates in camera coordinate frame given the pose of the calibration pattern world relative to the camera
+   * @param _camera_pose  The transformation from calibration pattern world coordinates (O) to eye coordinates (E): the rotation R_EO and the translation vector E_t_EO,  Therefore, a transformation O->E would be carried out through: x_E = R_EO*x_O + E_t_EO
+   * @param _pattern_coordinates Vector that gets filled with the coordinates (using push_back() ) - the vector is not emptied
+   * @throws runtime_error if the object hasn't been setup yet
+   */
+  void getCameraFrameCoordinates( geometry_msgs::Pose _camera_pose, std::vector<geometry_msgs::Point>& _pattern_coordinates );
+  
+  /** Returns a vector with all projected coordinates of points given an array of the points in camera frame coordinates
+   * @param _camera_coordinates Vector with the point coordinates in camera frame coordinates
+   * @param _projected_coordinates vector with the points projected on the camera image plane
+   * @throws runtime_error if the object hasn't been setup yet
+   */
+  void getImageCoordinates( std::vector<geometry_msgs::Point>& _camera_coordinates, std::vector<hand_eye_calibration::Point2D>& _projected_coordinates );
   
   /// returns world coordinates of a calibration pattern point
   /**

@@ -57,6 +57,78 @@ unsigned int CalibrationSetup::imageWidth()
   return image_width_;
 }
 
+void CalibrationSetup::getCameraFrameCoordinates( geometry_msgs::Pose _camera_pose, std::vector<geometry_msgs::Point>& _pattern_coordinates )
+{
+  if( !isSetup() )
+  {
+    std::runtime_error e("CalibrationSetup::getCameraFrameCoordinates::Can't be executed since the object hasn't been initialized yet.");
+    throw e;
+  }
+  
+  // build matrix with point coordinates (world frame, ie frame of the calibration pattern)
+  Eigen::Matrix<double,4,Eigen::Dynamic> hom_calib_pattern_world_frame_3d;
+  hom_calib_pattern_world_frame_3d.resize( 4,calibration_pattern_world_coordinates_.size() );
+  
+  for( unsigned int i=0; i<calibration_pattern_world_coordinates_.size(); i++ )
+  {
+    hom_calib_pattern_world_frame_3d(0,i) = calibration_pattern_world_coordinates_[i].x;
+    hom_calib_pattern_world_frame_3d(1,i) = calibration_pattern_world_coordinates_[i].y;
+    hom_calib_pattern_world_frame_3d(2,i) = calibration_pattern_world_coordinates_[i].z;
+    hom_calib_pattern_world_frame_3d(3,i) = 1;
+  }
+  // coordinate frame transformation
+  Eigen::Matrix<double,3,4> projection_matrix = st_is::transformationMatrix( _camera_pose );
+  
+  Eigen::Matrix<double,3,Eigen::Dynamic> calib_pattern_camera_coordinates;
+  calib_pattern_camera_coordinates = projection_matrix*hom_calib_pattern_world_frame_3d;
+  
+  // build output
+
+  for( unsigned int i=0; i<calibration_pattern_world_coordinates_.size(); i++ )
+  {
+    geometry_msgs::Point new_coordinate;
+    new_coordinate.x = calib_pattern_camera_coordinates(0,i);
+    new_coordinate.y = calib_pattern_camera_coordinates(1,i);
+    new_coordinate.z = calib_pattern_camera_coordinates(2,i);
+    _pattern_coordinates.push_back(new_coordinate);
+  }
+  return;
+}
+
+void CalibrationSetup::getImageCoordinates( std::vector<geometry_msgs::Point>& _camera_coordinates, std::vector<hand_eye_calibration::Point2D>& _projected_coordinates )
+{
+  if( !isSetup() )
+  {
+    std::runtime_error e("CalibrationSetup::getImageCoordinates::Can't be executed since the object hasn't been initialized yet.");
+    throw e;
+  }
+  // build camera frame point coordinate matrix
+  Eigen::Matrix<double,4,Eigen::Dynamic> calib_pattern_camera_coordinates;
+  calib_pattern_camera_coordinates.resize( 4,_camera_coordinates.size() );
+  
+  for( unsigned int i=0; i<_camera_coordinates.size(); i++ )
+  {
+    calib_pattern_camera_coordinates(0,i) = _camera_coordinates[i].x;
+    calib_pattern_camera_coordinates(1,i) = _camera_coordinates[i].y;
+    calib_pattern_camera_coordinates(2,i) = _camera_coordinates[i].z;
+    calib_pattern_camera_coordinates(3,i) = 1;
+  }
+  // unnormalized coordinates;
+  Eigen::Matrix<double,3,Eigen::Dynamic> calib_pattern_image_coordinates_unnormalized;
+  calib_pattern_image_coordinates_unnormalized = camera_projection_matrix_*calib_pattern_camera_coordinates;
+  
+  // normalize coordinates (true perspective)  
+  for( unsigned int i=0; i<_camera_coordinates.size(); i++ )
+  {
+    hand_eye_calibration::Point2D new_coordinates;
+    new_coordinates.x = calib_pattern_image_coordinates_unnormalized(0,i)/calib_pattern_image_coordinates_unnormalized(2,i);
+    new_coordinates.y = calib_pattern_image_coordinates_unnormalized(1,i)/calib_pattern_image_coordinates_unnormalized(2,i);
+    _projected_coordinates.push_back(new_coordinates);
+  }
+  
+  return;
+}
+
 geometry_msgs::Point CalibrationSetup::calibPointWorldCoordinates( unsigned int _i )
 {
   return calibration_pattern_world_coordinates_[_i];
@@ -101,7 +173,7 @@ std::vector<hand_eye_calibration::Point2D> CalibrationSetup::getProjectedCoordin
 {
   if( !isSetup() )
   {
-    std::runtime_error e("CalibrationSetup::getProjectedPointCoordinates::Can't be executed since the object hasn't been initialized yet.");
+    std::runtime_error e("CalibrationSetup::getProjectedCoordinates::Can't be executed since the object hasn't been initialized yet.");
     throw e;
   }
   

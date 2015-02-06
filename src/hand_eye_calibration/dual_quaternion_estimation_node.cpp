@@ -24,8 +24,12 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "dual_quaternion_transformation_estimator");
   ros::NodeHandle n;
   
-  TransformationEstimator estimator( &n );////////////////////////////////////////////////////////////////////////////////////////////////////
+  TransformationEstimator estimator( &n );
   ROS_INFO("Successfully started dual quaternion hand-eye calibration node");
+  boost::shared_ptr<TransformationEstimator> daniilidis_estimator( new TransformationEstimator(&n) );
+  boost::shared_ptr<TransformationEstimator::EstimationMethod> daniilidis( new DaniilidisDualQuaternionEstimation() );
+  estimator.setEstimationMethod(daniilidis);
+  estimator.startListening();
   
   while( n.ok() )
   {
@@ -39,7 +43,7 @@ int main(int argc, char **argv)
     switch(user_input)
     {
       case 'a': estimator.addLastRetrievedPosePair();
-		estimator.createAndAddNewEstimation(); // create an estimation for it
+		if( estimator.estimationPossible() )estimator.createAndAddNewEstimation(); // create an estimation for it
 		break;
       case 'e': cout<<endl<<"The calculated transformation matrix from hand coordinates to eye coordinates is:"<<endl;
 		

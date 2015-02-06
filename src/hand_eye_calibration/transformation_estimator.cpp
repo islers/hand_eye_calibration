@@ -28,7 +28,7 @@ using namespace std;
 using namespace Eigen;
 
 TransformationEstimator::TransformationEstimator( ros::NodeHandle* _n ):
-max_service_wait_time_(8,100000000)
+max_service_wait_time_(2,100000000)
 {
   ros_node_ = _n;
   
