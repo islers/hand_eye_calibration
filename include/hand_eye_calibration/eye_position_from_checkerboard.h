@@ -68,6 +68,8 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include <opencv2/opencv.hpp>
 #include <cmath>
 
+#include <ros/callback_queue.h>
+
 #include "hand_eye_calibration/CameraPose.h"
 #include "hand_eye_calibration/CameraPoseInfo.h"
 
@@ -92,21 +94,25 @@ class EyePositionFromCheckerboard
     ros::Publisher pose_publisher_;
     ros::Subscriber camera_stream_;
     ros::Subscriber camera_info_subscriber_;
-    ros::ServiceServer eye_position_server_;
     ros::ServiceServer eye_position_info_server_;
     
-    boost::mutex image_mutex_;
-    cv_bridge::CvImage current_image_; // only use when mutex is locked
+    ros::CallbackQueue pos_srv_queue_; // separate queue for eye position server in order not to block image retrieval
+    ros::ServiceServer eye_position_server_;
+    
+    cv_bridge::CvImagePtr current_image_; 
+    
+    boost::shared_ptr<EyePositionFromCheckerboard> me_myself_and_i_; // little hack because apparently all copies of the shared_ptr passed into the server structures are being deleted when the Options object gets out of scope which leads to an attempt to delete the object
     
     enum ImageState{NO_NEW_IMAGE_AVAILABLE, NO_CHESSBOARD_FOUND, CHESSBOARD_FOUND};
     // processes new input images if available and if a checkerboard found the data is stored and  the pose published
     ImageState processImageIfAvailable();
     
-    // data of last found checkerboard
+    // data of last found checkerboard - only use with locked mutex (service runs in different thread)
+    boost::mutex checkerboard_image_mutex_;
     ros::Time last_image_retrieval_with_chkrbrd_;
     geometry_msgs::Pose last_checkerboard_pose_; //used for service
     boost::shared_ptr< std::vector<cv::Point2f> > checkerboard_corner_coordinates_; // used for service
-    cv_bridge::CvImage last_checkerboard_image_;
+    cv_bridge::CvImagePtr last_checkerboard_image_;
     
     /// locates the checkerboard corners in the given image
     /** The function locates the checkerboard corners in the given image, writing their coordinates

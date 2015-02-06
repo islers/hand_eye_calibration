@@ -422,7 +422,7 @@ bool AutonomousHandEyeCalibrator::planAndMove()
     std::cout<<std::endl<<joint_names[i]<<": "<<target_robot_state.getVariablePosition(joint_names[i]);
     target_state_position.push_back( target_robot_state.getVariablePosition(joint_names[i]) );
   }
-  std::cout<<std::endl;
+  std::cout<<std::endl<<std::endl;
   
   
   planning_scene_monitor::LockedPlanningSceneRO current_scene( scene_ );
