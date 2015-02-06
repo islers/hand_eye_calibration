@@ -292,17 +292,17 @@ bool TransformationEstimator::getReprojectionError( EstimationData& _estimation_
 
 double TransformationEstimator::reprojectionErrorForTime( unsigned int _i, EstimationData& _estimation_data )
 {
-  if( pose_data_.size()>=_i )
+  if( pose_data_.size()<=_i )
   {
     std::stringstream error;
-    error << "TransformationEstimator::reprojectionErrorAtTimeAndPoint()::Given time index "<<_i<<" exceeds range of data container 'pose_data_' which has a size of "<<pose_data_.size()<<".";
+    error << "TransformationEstimator::reprojectionErrorForTime()::Given time index "<<_i<<" exceeds range of data container 'pose_data_' which has a size of "<<pose_data_.size()<<".";
     ROS_ERROR_STREAM( error.str() );
     throw std::range_error( error.str() );
   }
   else if( pose_data_[_i].calibration_pattern_coordinates.empty() )
   {
     std::stringstream error;
-    error << "TransformationEstimator::reprojectionErrorAtTimeAndPoint()::Given time index "<<_i<<" refers to a pose data set that features no data with the coordinates of the detected calibration pattern.";
+    error << "TransformationEstimator::reprojectionErrorForTime()::Given time index "<<_i<<" refers to a pose data set that features no data with the coordinates of the detected calibration pattern.";
     ROS_ERROR_STREAM( error.str() );
     throw std::invalid_argument( error.str() );
   }
@@ -320,7 +320,7 @@ double TransformationEstimator::reprojectionErrorForTime( unsigned int _i, Estim
 
 double TransformationEstimator::reprojectionErrorForTimeAndPoint( unsigned int _i, unsigned int _j, EstimationData& _estimation_data )
 {
-  if( pose_data_[_i].calibration_pattern_coordinates.size()>=_j )
+  if( pose_data_[_i].calibration_pattern_coordinates.size()<=_j )
   {
     std::stringstream error;
     error << "TransformationEstimator::reprojectionErrorAtTimeAndPoint()::Given point index "<<_j<<" exceeds the size of the pattern coordinate container which has a size of "<<pose_data_[_i].calibration_pattern_coordinates.size()<<".";

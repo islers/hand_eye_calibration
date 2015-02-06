@@ -56,6 +56,12 @@ AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
     ros::shutdown();
     return;
   }
+  if( !ros_node_->getParam("image_border_tolerance",image_border_tolerance_) )
+  {
+    double img_brd_tol_default = 40;
+    ROS_INFO_STREAM("AutonomousHandEyeCalibrator:: No image border tolerance (param:'image_border_tolerance') set on the parameter server. Using default of "<<img_brd_tol_default<<"px, which is very conservative.");
+    image_border_tolerance_ = img_brd_tol_default;
+  }
   
   // initialize estimators
   boost::shared_ptr<TransformationEstimator> daniilidis_estimator( new TransformationEstimator(_n) );
@@ -311,7 +317,10 @@ bool AutonomousHandEyeCalibrator::calculateNextJointPosition()
 {  
   planning_scene_monitor::LockedPlanningSceneRO current_scene( scene_ );
   robot_state::RobotState state_to_check = current_scene->getCurrentState();
-    
+  
+  unsigned int collision_state_counter = 0;
+  unsigned int invisible_pattern_counter = 0;
+  bool no_new_state_found = true;
   do{
     if( joint_position_.reachedTop() )
       return false;
@@ -319,7 +328,21 @@ bool AutonomousHandEyeCalibrator::calculateNextJointPosition()
     joint_position_++;
     setRobotStateToCurrentJointPosition( state_to_check );
     
-  }while( !isCollisionFree(current_scene, state_to_check) || !calibrationPatternExpectedVisible(state_to_check) );
+    bool collision_free = isCollisionFree(current_scene, state_to_check);
+    no_new_state_found = no_new_state_found && collision_free;
+    
+    if( collision_free )
+    {
+      bool pattern_visible = calibrationPatternExpectedVisible(state_to_check);
+      no_new_state_found = no_new_state_found && pattern_visible;
+      
+      if( !pattern_visible )
+	invisible_pattern_counter++;
+    }
+    else
+      collision_state_counter++;
+    
+  }while( no_new_state_found );
   robot_->setJointValueTarget( state_to_check );
   return true;
 }

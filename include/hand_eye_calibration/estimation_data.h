@@ -77,6 +77,7 @@ class TransformationEstimator::EstimationData
     /// returns true if a relative_translation_error is available and writes the value to the argument
     bool relativeTranslationError( st_is::StdError& _relative_translation_error );
     
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   private:    
     // hand-eye estimation
     Eigen::Quaterniond rot_EH_;

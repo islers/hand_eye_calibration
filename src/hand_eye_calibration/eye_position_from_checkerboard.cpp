@@ -194,9 +194,7 @@ bool EyePositionFromCheckerboard::serviceCameraPoseRequest( hand_eye_calibration
 	
 	last_checkerboard_image_->toImageMsg(_res.description.image);
 	
-	ROS_INFO_STREAM("Called successfully.");
-	cv::waitKey(10000);
-	
+	ROS_INFO_STREAM("Called successfully.");	
 	return true;
       }
       else
@@ -210,7 +208,6 @@ bool EyePositionFromCheckerboard::serviceCameraPoseRequest( hand_eye_calibration
     rate.sleep();
   }
   ROS_INFO("hand_eye_camera_pose service was called but unable to retrieve an image frame within the given time limit");
-  cv::waitKey(10000);
   // time exceeded, failed to extract new pose
   _res.description.stamp = ros::Time::now();
   _res.description.request_stamp = request_stamp;

@@ -16,6 +16,8 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 #include "hand_eye_calibration/dual_quaternion_transformation_estimator.h" 
 #include "hand_eye_calibration/estimation_data.h" 
+#include <Eigen/StdVector>
+
 #include "utils/eigen_utils.h"
 #include "utils/math.h"
 #include "utils/ros_eigen.h"
@@ -59,7 +61,7 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
    * 
    *  dual quaternions are then hQ[i].first + epsilon*hQ[i].second
   */
-  vector<st_is::DualQuaternion> hQ, cQ;
+  vector<st_is::DualQuaternion, Eigen::aligned_allocator<st_is::DualQuaternion> > hQ, cQ;
   for( int i=0; i<_pose_data.size()-1; i++ )
   {
     // transformation hand pose 1 (H1) -_> hand pose 2 (H2)

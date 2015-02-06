@@ -216,7 +216,7 @@ public:
     
     Eigen::Quaterniond rot_EH_; /// current estimated rotation from hand to eye
     Eigen::Vector3d E_trans_EH_; /// current estimated position of H (hand) origin in E (eye) coordinates
-    std::vector<EstimationData> transformation_estimates_; // holds different estimations along with their errors
+    std::vector<EstimationData, Eigen::aligned_allocator<EstimationData> > transformation_estimates_; // holds different estimations along with their errors
     
     CalibrationSetup calibration_configuration_;
     
