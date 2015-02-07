@@ -958,4 +958,7 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
   return 1;
 }
 
-
+void TransformationEstimator::addPose( PoseData& _new_pose )
+{
+  pose_data_.push_back(_new_pose );
+}

@@ -202,6 +202,9 @@ public:
     */
     virtual bool loadFromFile( std::string fileName_, bool destroyOldData_=false );
     
+    /** Adds a new pose */
+    void addPose( PoseData& _new_pose );
+    
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   protected:
     ros::Subscriber hand_subscriber_;
