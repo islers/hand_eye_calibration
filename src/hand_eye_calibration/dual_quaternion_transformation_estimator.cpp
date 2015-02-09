@@ -26,6 +26,9 @@ using namespace std;
 using namespace Eigen;
 
 
+DaniilidisDualQuaternionEstimation::DaniilidisNewPtrConstructor daniilidis_1998;
+
+
 std::string DaniilidisDualQuaternionEstimation::estimationMethod()
 {
   return g_method_name_;
@@ -75,6 +78,9 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
     Vector3d H2_trans_H2H1 = rot_H2B * ( B_trans_BH1-B_trans_BH2 );
     st_is::DualQuaternion dualQuat_H2H1( rot_H2H1, H2_trans_H2H1 );
     
+    //cout<<endl<<"q:["<<dualQuat_H2H1.q.x()<<", "<<dualQuat_H2H1.q.y()<<", "<<dualQuat_H2H1.q.z()<<", "<<dualQuat_H2H1.q.w()<<"]";
+    //cout<<endl<<"q':["<<dualQuat_H2H1.q_prime.x()<<", "<<dualQuat_H2H1.q_prime.y()<<", "<<dualQuat_H2H1.q_prime.z()<<", "<<dualQuat_H2H1.q_prime.w()<<"]";
+    
     hQ.push_back( dualQuat_H2H1 );
     
     //transformation cam pose 1 (E1) -> cam pose 2 (E2)
@@ -95,13 +101,14 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
   vector< Matrix<double,6,8>, Eigen::aligned_allocator<Eigen::Matrix<double,6,8> > > S;
   S.resize( hQ.size() );
   
+  
   for( unsigned int i=0; i<hQ.size(); i++ )
   {
     Matrix<double,6,8> S_i;
     S[i] <<	hQ[i].q.vec()-cQ[i].q.vec()		,st_is::crossProdMatrix( hQ[i].q.vec()+cQ[i].q.vec() )		,Matrix<double,3,1>::Zero()			,Matrix<double,3,3>::Zero()
 		,hQ[i].q_prime.vec()-cQ[i].q_prime.vec()		,st_is::crossProdMatrix( hQ[i].q_prime.vec()+cQ[i].q_prime.vec() )	,hQ[i].q.vec()-cQ[i].q.vec()		,st_is::crossProdMatrix( hQ[i].q.vec()+cQ[i].q.vec());
   }
-  
+    
   // build T
   Matrix<double,Dynamic,Dynamic> T; // 8*x-matrix
   for( unsigned int i=0; i<hQ.size(); i++ )
@@ -115,6 +122,7 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
   // null space of T: right null vectors
   JacobiSVD<MatrixXd,FullPivHouseholderQRPreconditioner> svd( T, ComputeFullV );
   MatrixXd V = svd.matrixV();
+  
   
   Matrix<double,8,1> v_7 = V.col(6);
   Matrix<double,8,1> v_8 = V.col(7);
@@ -152,6 +160,8 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
   
   // equation has two real solutions of opposite sign (see paper)
   st_is::roots(a,b,c,s);
+  //cout<<endl<<"s.first="<<s.first;
+  //cout<<endl<<"s.second="<<s.second;
   
   // using 2nd equation:
   double leftSideCandidate_1 = (s.first*s.first*u_1.transpose()*u_1 + 2*s.first*u_1.transpose()*u_2 + u_2.transpose()*u_2)[0];
@@ -174,6 +184,10 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
   double lambda_2 = sqrt(1/leftSide);
   double lambda_1 = sSol * lambda_2;
   
+  //cout<<endl<<"leftSide="<<leftSide;
+  //cout<<endl<<"lambda_2="<<lambda_2;
+  //cout<<endl<<"lambda_1="<<lambda_1;
+  
   // finally calculate resulting dual quaternion (w, x, y, z)^T
   Matrix<double,8,1> qVec = lambda_1 * v_7 + lambda_2 * v_8;
   
@@ -181,15 +195,23 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
   q.first = Quaterniond( qVec(0),qVec(1),qVec(2),qVec(3) ); // quaternion representing the rotation R_CH (hand to eye)
   q.second = Quaterniond( qVec(4), qVec(5), qVec(6), qVec(7) );
   
+  //using namespace std;
+  //cout<<endl<<v_7;
+  //cout<<endl<<v_8;
+  //cout<<endl<<"q:["<<qVec(0)<<", "<<qVec(1)<<", "<<qVec(2)<<", "<<qVec(3)<<"]";
+  //cout<<endl<<"q':["<<qVec(4)<<", "<<qVec(5)<<", "<<qVec(6)<<", "<<qVec(7)<<"]";
+  
+  Quaterniond rot_HE = q.first;
   // calculate the translation
   Quaterniond t_p = q.second*q.first.conjugate();
   Vector3d t = 2*t_p.vec(); // translation vector representing the translation from hand- to eye-frame in hand coordinates
   
   // build output transformation
-  Eigen::Vector3d E_trans_EH = q.first*t;
-  E_trans_EH = -E_trans_EH;
+  Eigen::Vector3d E_trans_EH = t;
+  Quaterniond rot_EH = rot_HE.conjugate();
+  
     
-  TransformationEstimator::EstimationData new_estimate( estimationMethod(), q.first, E_trans_EH );
+  TransformationEstimator::EstimationData new_estimate( estimationMethod(), rot_EH, E_trans_EH );
   
   return new_estimate;
 }

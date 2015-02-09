@@ -76,8 +76,7 @@ AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
   
   // initialize estimators
   boost::shared_ptr<TransformationEstimator> daniilidis_estimator( new TransformationEstimator(_n) );
-  boost::shared_ptr<TransformationEstimator::EstimationMethod> daniilidis( new DaniilidisDualQuaternionEstimation() );
-  daniilidis_estimator->setEstimationMethod(daniilidis);
+  daniilidis_estimator->setEstimationMethod( daniilidis_1998 );
   estimators_.push_back( daniilidis_estimator );
   
   scene_ = boost::shared_ptr<planning_scene_monitor::PlanningSceneMonitor>( new planning_scene_monitor::PlanningSceneMonitor("robot_description") );

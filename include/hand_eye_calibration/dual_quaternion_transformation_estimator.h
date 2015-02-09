@@ -46,6 +46,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 class DaniilidisDualQuaternionEstimation:public TransformationEstimator::EstimationMethod
 {
 public:
+  class DaniilidisNewPtrConstructor;
   
   /** Returns the name of the method */
   virtual std::string estimationMethod();
@@ -68,4 +69,15 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 private:
   static std::string g_method_name_;
+};
+
+extern DaniilidisDualQuaternionEstimation::DaniilidisNewPtrConstructor daniilidis_1998; // convenience object for new object
+
+class DaniilidisDualQuaternionEstimation::DaniilidisNewPtrConstructor
+{
+public:
+  operator boost::shared_ptr<TransformationEstimator::EstimationMethod>()
+  {
+    return boost::shared_ptr<TransformationEstimator::EstimationMethod>( new DaniilidisDualQuaternionEstimation() );
+  }
 };

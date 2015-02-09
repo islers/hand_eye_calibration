@@ -72,8 +72,6 @@ DualQuaternion::DualQuaternion()
 
 DualQuaternion::DualQuaternion( Eigen::Quaterniond _rot, Eigen::Vector3d _trans )
 {
-  Eigen::Quaterniond q, qPrime;
-  
   q = _rot.normalized(); // just to ensure normalization
   
   // by the screw congruence theorem q and q' one must be equal for hand eye calibration for both the eye and the hand movement. since the rotation represented by quaternion q is equal to -q, enforcing q_1>=0
@@ -90,12 +88,12 @@ DualQuaternion::DualQuaternion( Eigen::Quaterniond _rot, Eigen::Vector3d _trans 
   Vector3d qPrimeAxis = 0.5*( q.w()*_trans + _trans.cross(qAxis) );
   double qPrimeW = -0.5*qAxis.dot(_trans);
   
-  qPrime.x() = qPrimeAxis.x();
-  qPrime.y() = qPrimeAxis.y();
-  qPrime.z() = qPrimeAxis.z();
-  qPrime.w() = qPrimeW;
+  q_prime.x() = qPrimeAxis.x();
+  q_prime.y() = qPrimeAxis.y();
+  q_prime.z() = qPrimeAxis.z();
+  q_prime.w() = qPrimeW;
   
-  q_prime = qPrime;
+  q_prime = q_prime;
 }
     
 } 

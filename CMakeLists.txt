@@ -118,6 +118,7 @@ add_executable(autonomous_hand_eye_calibration
   src/hand_eye_calibration/transformation_estimator.cpp
   src/hand_eye_calibration/estimation_data.cpp
   src/hand_eye_calibration/calibration_setup.cpp
+  src/hand_eye_calibration/pose_creator.cpp
   src/utils/eigen_utils.cpp
   src/utils/math.cpp
   src/utils/ros_eigen.cpp
