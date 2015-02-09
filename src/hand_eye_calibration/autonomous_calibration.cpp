@@ -36,7 +36,27 @@ int main(int argc, char **argv)
   ros::Rate rate(0.2);
   while ( calibrator.runSingleIteration() && n.ok() )
   {
-    rate.sleep();
+    cout<<endl<<"Number of added pose pairs: "<<calibrator.count();
+    if( calibrator.estimateAvailable() )
+    {
+      TransformationEstimator::EstimationData estimate = calibrator.getEstimate();
+      st_is::StdError reprojection_error;
+      TransformationEstimator::TransformationError relative_error;
+      
+      cout<<endl<<"The current hand-eye-transformation estimate T_HE is :"<<endl<<endl;
+      cout<<estimate.matrixE2H()<<endl;
+      if( estimate.reprojectionError( reprojection_error ) )
+      {
+	cout<<endl<<"Reprojection error: "<<reprojection_error.mean<<" +/- "<<sqrt(reprojection_error.variance);
+      }
+      if( estimate.transformationError( relative_error ) )
+      {
+	cout<<endl<<"Relative transformationn error for euler angles: "<<relative_error.euler_angle_error.mean<<" +/- "<<sqrt(relative_error.euler_angle_error.variance);
+	cout<<endl<<"Relative transformationn error for translation: "<<relative_error.relative_translation_error.mean<<" +/- "<<sqrt(relative_error.relative_translation_error.variance);
+      }
+    }
+    //rate.sleep();
+    calibrator.printToFile("/home/stewss/Documents/simulation_data.txt");
   }
   
   return 0;

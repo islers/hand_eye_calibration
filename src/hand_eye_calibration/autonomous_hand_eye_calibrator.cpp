@@ -176,9 +176,32 @@ void AutonomousHandEyeCalibrator::setImageBorderTolerance( double _tolerance )
   image_border_tolerance_ = _tolerance;
 }
 
+TransformationEstimator::EstimationData AutonomousHandEyeCalibrator::getEstimate()
+{
+  return estimators_.front()->estimate();
+}
+
+bool AutonomousHandEyeCalibrator::estimateAvailable()
+{
+  if( estimators_.empty() )
+    return false;
+  return estimators_.front()->estimationPossible();
+}
+
+unsigned int AutonomousHandEyeCalibrator::count()
+{
+  if( estimators_.empty() )
+    return 0;
+  return estimators_.front()->count();
+}
+
 bool AutonomousHandEyeCalibrator::printToFile( std::string _filename )
 {
-  return false;  /////////////////////////////////////////////////////// dummy
+  if( !estimators_.empty() )
+  {
+    estimators_.front()->printToFile(_filename);
+  }
+  return true;
 }
 
 void AutonomousHandEyeCalibrator::initializeJointSpace()
@@ -355,7 +378,7 @@ bool AutonomousHandEyeCalibrator::calculateNextJointPosition()
     bool collision_free = isCollisionFree(current_scene, state_to_check);
     new_state_found = new_state_found && collision_free;
     
-    if( collision_free && estimators_.front()->count()>30000000000 ) // start using hec estimate if (x) pose pairs are available
+    if( collision_free && estimators_.front()->count()>4 ) // start using hec estimate if (x) pose pairs are available
     {
       std::vector<geometry_msgs::Point> pattern_coordinates_camera_frame;
       getCameraFrameCoordinates( state_to_check, pattern_coordinates_camera_frame );
@@ -383,10 +406,6 @@ bool AutonomousHandEyeCalibrator::calculateNextJointPosition()
     }
     else if(!collision_free)
       collision_state_counter++;
-    ROS_INFO_STREAM("Iterating..."<<ros::Time::now());
-    ROS_INFO_STREAM("Collisions:"<<collision_state_counter);
-    ROS_INFO_STREAM("Bad pattern:"<<bad_pattern_position_counter);
-    ROS_INFO_STREAM("Invisible:"<<invisible_pattern_counter);
     
   }while( !new_state_found );
   

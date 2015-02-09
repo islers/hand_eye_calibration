@@ -68,6 +68,18 @@ public:
    */
   void setImageBorderTolerance( double _tolerance );
   
+  /** Returns the current estimate
+   */
+  TransformationEstimator::EstimationData getEstimate();
+  
+  /** Returns whether an estimate is available or not
+   */
+  bool estimateAvailable();
+  
+  /** returns the number of pose pairs added so far
+   */
+  unsigned int count();
+  
   /// writes all data to a file
   bool printToFile( std::string _filename );
   

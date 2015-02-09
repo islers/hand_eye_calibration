@@ -29,7 +29,8 @@ int main(int argc, char **argv)
   boost::shared_ptr<TransformationEstimator> daniilidis_estimator( new TransformationEstimator(&n) );
   boost::shared_ptr<TransformationEstimator::EstimationMethod> daniilidis( new DaniilidisDualQuaternionEstimation() );
   estimator.setEstimationMethod(daniilidis);
-  estimator.startListening();
+  //estimator.startListening();
+  estimator.loadCalibrationConfigurationFromService();
   
   while( n.ok() )
   {
@@ -42,7 +43,7 @@ int main(int argc, char **argv)
     
     switch(user_input)
     {
-      case 'a': estimator.addLastRetrievedPosePair();
+      case 'a': estimator.addNewPosePair();
 		if( estimator.estimationPossible() )estimator.createAndAddNewEstimation(); // create an estimation for it
 		break;
       case 'e': cout<<endl<<"The calculated transformation matrix from hand coordinates to eye coordinates is:"<<endl;
