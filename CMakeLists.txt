@@ -133,3 +133,26 @@ add_dependencies(autonomous_hand_eye_calibration
  ${catkin_EXPORTED_TARGETS}
  ${PROJECT_NAME}_generate_messages_cpp
 )
+
+add_executable(transformation_test
+  src/hand_eye_calibration/transformation_test.cpp
+  src/hand_eye_calibration/autonomous_hand_eye_calibrator.cpp
+  src/hand_eye_calibration/dual_quaternion_transformation_estimator.cpp
+  src/hand_eye_calibration/transformation_estimator.cpp
+  src/hand_eye_calibration/estimation_data.cpp
+  src/hand_eye_calibration/calibration_setup.cpp
+  src/hand_eye_calibration/pose_creator.cpp
+  src/utils/eigen_utils.cpp
+  src/utils/math.cpp
+  src/utils/ros_eigen.cpp
+)
+
+target_link_libraries(transformation_test
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
+add_dependencies(transformation_test
+ ${catkin_EXPORTED_TARGETS}
+ ${PROJECT_NAME}_generate_messages_cpp
+)

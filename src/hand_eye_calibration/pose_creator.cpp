@@ -21,7 +21,12 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include <fstream>
 #include <boost/foreach.hpp>
 
-PoseCreator::PoseCreator():random_seed_(true)
+PoseCreator::PoseCreator():
+  random_seed_(true),
+  hand_rot_stddev_(0),
+  hand_trans_stddev_(0),
+  eye_rot_stddev_(0),
+  eye_trans_stddev_(0)
 {
   std::random_device rd;
   std::mt19937 random_number_generator(rd()); // mersenne twister random number generator with random seed
@@ -49,13 +54,23 @@ PoseCreator::PoseCreator():random_seed_(true)
   t_HE_ = st_is::CoordinateTransformation(rot_HE,trans_HE);
 }
 
-PoseCreator::PoseCreator( st_is::CoordinateTransformation _t_WB, st_is::CoordinateTransformation _t_HE ):random_seed_(true)
+PoseCreator::PoseCreator( st_is::CoordinateTransformation _t_WB, st_is::CoordinateTransformation _t_HE ):
+  random_seed_(true),
+  hand_rot_stddev_(0),
+  hand_trans_stddev_(0),
+  eye_rot_stddev_(0),
+  eye_trans_stddev_(0)
 {
   t_WB_ = _t_WB;
   t_HE_ = _t_HE;
 }
 
-PoseCreator::PoseCreator( geometry_msgs::Pose _t_WB, geometry_msgs::Pose _t_HE ):random_seed_(true)
+PoseCreator::PoseCreator( geometry_msgs::Pose _t_WB, geometry_msgs::Pose _t_HE ):
+  random_seed_(true),
+  hand_rot_stddev_(0),
+  hand_trans_stddev_(0),
+  eye_rot_stddev_(0),
+  eye_trans_stddev_(0)
 {
   t_WB_ = st_is::CoordinateTransformation();
   t_HE_ = st_is::CoordinateTransformation();
@@ -66,7 +81,12 @@ PoseCreator::PoseCreator( geometry_msgs::Pose _t_WB, geometry_msgs::Pose _t_HE )
   t_HE_.translation = st_is::geometryToEigen( _t_HE.position );
 }
 
-PoseCreator::PoseCreator( Eigen::Matrix<double,3,4> _t_WB, Eigen::Matrix<double,3,4> _t_HE ):random_seed_(true)
+PoseCreator::PoseCreator( Eigen::Matrix<double,3,4> _t_WB, Eigen::Matrix<double,3,4> _t_HE ):
+  random_seed_(true),
+  hand_rot_stddev_(0),
+  hand_trans_stddev_(0),
+  eye_rot_stddev_(0),
+  eye_trans_stddev_(0)
 {
   t_WB_.rotation = Eigen::Quaterniond( _t_WB.topRightCorner<3,3>() );
   t_WB_.translation = _t_WB.rightCols(1);
@@ -173,14 +193,34 @@ std::vector<TransformationEstimator::PoseData>& PoseCreator::calcPosePairs( int 
     st_is::CoordinateTransformation t_BH = t_WB_.inv()*t_EW.inv()*t_HE_.inv();
     
     TransformationEstimator::PoseData pose;
-    pose.hand_pose.orientation = st_is::eigenToGeometry(t_BH.rotation);
-    pose.hand_pose.position = st_is::eigenToGeometry(t_BH.translation);
-    pose.eye_pose.orientation = st_is::eigenToGeometry(t_EW.rotation);
-    pose.eye_pose.position = st_is::eigenToGeometry(t_EW.translation);
+    pose.hand_pose.orientation = st_is::eigenToGeometry( Eigen::Quaterniond(rotationNoise(hand_rot_stddev_)*t_BH.rotation) );
+    pose.hand_pose.position = st_is::eigenToGeometry(t_BH.translation + translationNoise(hand_trans_stddev_));
+    pose.eye_pose.orientation = st_is::eigenToGeometry( Eigen::Quaterniond(rotationNoise(eye_rot_stddev_)*t_EW.rotation) );
+    pose.eye_pose.position = st_is::eigenToGeometry(t_EW.translation + translationNoise(eye_trans_stddev_));
     
     pose_pairs_.push_back(pose);
   }
   
+}
+
+void PoseCreator::addNoise( double _rotation_noise, double _translation_noise )
+{
+  hand_rot_stddev_ = _rotation_noise;
+  eye_rot_stddev_ = _rotation_noise;
+  hand_trans_stddev_ = _translation_noise;
+  eye_trans_stddev_ = _translation_noise;
+}
+
+void PoseCreator::addHandNoise( double _rotation_noise, double _translation_noise )
+{
+  hand_rot_stddev_ = _rotation_noise;
+  hand_trans_stddev_ = _translation_noise;
+}
+
+void PoseCreator::addEyeNoise( double _rotation_noise, double _translation_noise )
+{
+  eye_rot_stddev_ = _rotation_noise;
+  eye_trans_stddev_ = _translation_noise;
 }
 
 void PoseCreator::setSeed( int _seed_value )
@@ -315,4 +355,34 @@ void PoseCreator::fromFile( std::string _filename )
     
     pose_pairs_.push_back(new_pose_pair);
   }
+}
+
+Eigen::Matrix3d PoseCreator::rotationNoise( double _stddev )
+{
+  if( _stddev==0 )
+    return Eigen::MatrixXd::Identity(3,3);
+  
+  std::random_device rd;
+  std::mt19937 rng( rd() ); // mersenne twister random number generator with random seed
+  std::normal_distribution<double> random_variable( 0, _stddev );
+  
+  
+  Eigen::Matrix3d m;
+  m = Eigen::AngleAxisd( random_variable(rng), Eigen::Vector3d::UnitX() )
+  * Eigen::AngleAxisd( random_variable(rng), Eigen::Vector3d::UnitY() )
+  * Eigen::AngleAxisd( random_variable(rng), Eigen::Vector3d::UnitZ() );
+  
+  return m;
+}
+
+Eigen::Vector3d PoseCreator::translationNoise( double _stddev )
+{
+  if( _stddev==0 )
+    return Eigen::Vector3d(0,0,0);
+  
+  std::random_device rd;
+  std::mt19937 rng( rd() ); // mersenne twister random number generator with random seed
+  std::normal_distribution<double> random_variable( 0, _stddev );
+  
+  return Eigen::Vector3d( random_variable(rng), random_variable(rng), random_variable(rng) );
 }

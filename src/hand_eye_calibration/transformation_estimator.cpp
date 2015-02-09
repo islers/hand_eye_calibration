@@ -206,7 +206,7 @@ void TransformationEstimator::restoreLastDeletedPosePair()
 
 bool TransformationEstimator::estimationPossible()
 {
-  return pose_data_.size()>=2 && !estimation_methods_.empty();
+  return pose_data_.size()>2 && !estimation_methods_.empty();
 }
 
 TransformationEstimator::EstimationData TransformationEstimator::estimate()

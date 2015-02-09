@@ -29,47 +29,15 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "autonomous_hand_eye_calibration");
   ros::NodeHandle n("autonomous_hand_eye_calibration");
   
-  using namespace Eigen;
-  using namespace st_is;
     
-  // define relative pose of world to robot base
-  AngleAxisd a1(M_PI, Vector3d::UnitY() );
-  Eigen::Quaterniond r1(a1);
-  Eigen::Vector3d t1(-2.0006031,1.6234,1.23);
-  CoordinateTransformation t_WB(r1,t1);
-    
-  // define hand-eye transformation
-  AngleAxisd hec_rot_aa(5, Vector3d::UnitX() );
-  Eigen::Quaterniond hec_rot(hec_rot_aa);
-  Eigen::Vector3d hec_trans(1,-3,10);
+  AutonomousHandEyeCalibrator calibrator(&n);
   
-  CoordinateTransformation hec_HE(hec_rot,hec_trans);
   
-  PoseCreator artificial_poses( t_WB, hec_HE );
-  artificial_poses.setSeed( 123 );
-  artificial_poses.calcPosePairs( 10 );
-  //artificial_poses.toFile("/home/stewess/Documents/pose_set");
-  //artificial_poses.fromFile("/home/stewess/Documents/pose_set");
-  
-  DaniilidisDualQuaternionEstimation estimation_method;
-  TransformationEstimator::EstimationData estimation = estimation_method.calculateTransformation( artificial_poses.posePairs() );
-  
-  cout<<endl<<"Correct transformation"<<endl<<"-------------------------"<<endl;
-  
-  cout<<"rotation:"<<endl<<hec_HE.rotation.matrix()<<endl<<endl;
-  cout<<"translation:"<<endl<<hec_HE.translation<<endl;
-  
-  cout<<endl<<"Estimated transformation"<<endl<<"-------------------------"<<endl;
-  cout<<"rotation:"<<endl<<estimation.rot_HE().matrix()<<endl<<endl;
-  cout<<"translation:"<<endl<<estimation.transH2E()<<endl;
-  //AutonomousHandEyeCalibrator calibrator(&n);
-  
-  /*
   ros::Rate rate(0.2);
   while ( calibrator.runSingleIteration() && n.ok() )
   {
     rate.sleep();
-  }*/
+  }
   
   return 0;
 } 

@@ -102,6 +102,24 @@ public:
    */
   std::vector<TransformationEstimator::PoseData>& calcPosePairs( int _number_of_pairs, std::pair<double,double> _rotation_bounds = std::pair<double,double>(-2,2), std::pair<double,double> _translation_bounds = std::pair<double,double>(0,4) );
   
+  /** adds normally distributed additive noise to the generated hand and eye poses
+   * @param _rotation_noise standard deviation of the noise applied to the orientation in all axis
+   * @param _translation_noise standard deviation of the noise added to the translation in all dimensions
+   */
+  void addNoise( double _rotation_noise=0, double _translation_noise=0 );
+  
+  /** adds normally distributed additive noise to the generated hand poses
+   * @param _rotation_noise standard deviation of the noise applied to the orientation in all axis
+   * @param _translation_noise standard deviation of the noise added to the translation in all dimensions
+   */
+  void addHandNoise( double _rotation_noise=0, double _translation_noise=0 );
+  
+  /** adds normally distributed additive noise to the generated eye poses
+   * @param _rotation_noise standard deviation of the noise applied to the orientation in all axis
+   * @param _translation_noise standard deviation of the noise added to the translation in all dimensions
+   */
+  void addEyeNoise( double _rotation_noise=0, double _translation_noise=0 );
+  
   /** sets a fixed seed value for the internal mersenne twister random number generator
    * @param _seed_value seed value
    */
@@ -126,6 +144,19 @@ private:
   
   double random_seed_;
   int seed_value_;
+  
+  double hand_rot_stddev_; /// standard deviation of noise added to rotations for hand
+  double hand_trans_stddev_; /// standard deviation of noise added to translations for hand
+  double eye_rot_stddev_; /// standard deviation of noise added to rotations for eye
+  double eye_trans_stddev_; /// standard deviation of noise added to translations for eye
+  
+  /** returns a random rotation matrix with the rotations around the three axis normally distributed around zero with a standard deviation of _stddev
+   */
+  Eigen::Matrix3d rotationNoise( double _stddev );
+  
+  /** returns a random vector with each component normally distributed around zero with a standard deviation of _stddev
+   */
+  Eigen::Vector3d translationNoise( double _stddev );
   
   std::vector<TransformationEstimator::PoseData> pose_pairs_; // to save generated pose pairs
 };

@@ -83,7 +83,7 @@ public:
     /** add last deleted pose pair back to list */
     virtual void restoreLastDeletedPosePair();
     
-    /** returns true if estimating is possible
+    /** returns true if estimating is possible (a number of at least 3 pose pairs is required)
      */
     bool estimationPossible();
     
