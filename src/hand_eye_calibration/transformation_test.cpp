@@ -32,7 +32,10 @@ int main(int argc, char **argv)
   using namespace st_is;
     
   // define relative pose of world to robot base
-  AngleAxisd a1(M_PI, Vector3d::UnitY() );
+  Eigen::Matrix3d a1;
+  a1 = AngleAxisd(1.23*M_PI, Vector3d::UnitY() )
+  * Eigen::AngleAxisd( 5.12*M_PI, Eigen::Vector3d::UnitY() )
+  * Eigen::AngleAxisd( -0.2*M_PI, Eigen::Vector3d::UnitZ() );
   Eigen::Quaterniond r1(a1);
   Eigen::Vector3d t1(-2.0006031,1.6234,1.23);
   CoordinateTransformation t_WB(r1,t1);
