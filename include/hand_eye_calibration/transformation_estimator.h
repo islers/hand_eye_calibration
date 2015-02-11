@@ -205,6 +205,10 @@ public:
     /** Adds a new pose */
     void addPose( PoseData& _new_pose );
     
+    /** returns the pose data
+     */
+    std::vector<PoseData> poseData();
+    
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   protected:
     ros::Subscriber hand_subscriber_;

@@ -162,8 +162,8 @@ std::vector<TransformationEstimator::PoseData>& PoseCreator::posePairs()
 std::vector<TransformationEstimator::PoseData>& PoseCreator::calcPosePairs( int _number_of_pairs, std::pair<double,double> _rotation_bounds, std::pair<double,double> _translation_bounds )
 {
   std::mt19937 random_number_generator; // mersenne twister random number generator
-  std::uniform_real_distribution<double> rotations(-2,2);
-  std::uniform_real_distribution<double> translation(0.001,2.000);
+  std::uniform_real_distribution<double> rotations(_rotation_bounds.first, _rotation_bounds.second );
+  std::uniform_real_distribution<double> translation( _translation_bounds.first , _translation_bounds.second );
   
   if( random_seed_ )
   {
@@ -355,6 +355,11 @@ void PoseCreator::fromFile( std::string _filename )
     
     pose_pairs_.push_back(new_pose_pair);
   }
+}
+
+void PoseCreator::setPosePairs( std::vector<TransformationEstimator::PoseData>& _pose_data )
+{
+  pose_pairs_ = _pose_data;
 }
 
 Eigen::Matrix3d PoseCreator::rotationNoise( double _stddev )

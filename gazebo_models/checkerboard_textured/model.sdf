@@ -1,0 +1,22 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <model name="checkerboard">
+    <static>true</static>
+    <link name="square_01">
+      <pose>0 0 0 0 0 0</pose>
+      <visual name="visual">
+	<geometry>
+	  <box>
+	    <size>0.45 0.35 0.05</size>
+	  </box>
+	</geometry>
+	<material>
+	  <script>
+            <uri>model://checkerboard_textured</uri>
+            <name>Checkerboard/Diffuse</name>
+          </script>
+	</material>
+      </visual>
+    </link>
+  </model>
+</sdf>

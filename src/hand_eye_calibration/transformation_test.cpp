@@ -30,7 +30,10 @@ int main(int argc, char **argv)
 {
   using namespace Eigen;
   using namespace st_is;
-    
+  
+  ros::init(argc, argv, "autonomous_hand_eye_calibration");
+  ros::NodeHandle n("autonomous_hand_eye_calibration");
+  /*  
   // define relative pose of world to robot base
   Eigen::Matrix3d a1;
   a1 = AngleAxisd(1.23*M_PI, Vector3d::UnitY() )
@@ -61,6 +64,23 @@ int main(int argc, char **argv)
   
   cout<<"rotation:"<<endl<<hec_HE.rotation.matrix()<<endl<<endl;
   cout<<"translation:"<<endl<<hec_HE.translation<<endl;
+  
+  cout<<endl<<"Estimated transformation"<<endl<<"-------------------------"<<endl;
+  cout<<"rotation:"<<endl<<estimation.rot_HE().matrix()<<endl<<endl;
+  cout<<"translation:"<<endl<<estimation.transH2E()<<endl;
+  */
+  TransformationEstimator estimator(&n);
+  estimator.loadFromFile( "/home/stewess/Documents/manually_retrieved_simulation_data_3.txt" );
+  estimator.setEstimationMethod( daniilidis_1998 );
+  
+  std::vector<TransformationEstimator::PoseData> pose_data;
+  pose_data = estimator.poseData();
+  
+  PoseCreator interface;
+  interface.setPosePairs(pose_data);
+  interface.toFile("/home/stewess/Documents/gazebo_pose_set");
+  
+  TransformationEstimator::EstimationData estimation = estimator.estimate();
   
   cout<<endl<<"Estimated transformation"<<endl<<"-------------------------"<<endl;
   cout<<"rotation:"<<endl<<estimation.rot_HE().matrix()<<endl<<endl;

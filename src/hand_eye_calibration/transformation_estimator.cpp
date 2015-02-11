@@ -239,7 +239,7 @@ TransformationEstimator::EstimationData TransformationEstimator::getNewEstimatio
 {
   if( !estimationPossible() ) //estimation is NOT possible
   {
-    std::string error_message = "TransformationEstimator::getNewEstimation:: estimation is not possible since not enough data is available or not estimation method was specified.";
+    std::string error_message = "TransformationEstimator::getNewEstimation:: estimation is not possible since not enough data is available or no estimation method was specified.";
     ROS_ERROR_STREAM( error_message );
     std::runtime_error e( error_message );
     throw e;
@@ -697,13 +697,13 @@ bool TransformationEstimator::printToFile( string fileName_ )
     {
       if( pose_data_[i].calibration_pattern_coordinates.size()!=0 )
       {
-	cv::Mat x_row( pattern_coordinate_size, 1, CV_64FC1);
-	cv::Mat y_row( pattern_coordinate_size, 1, CV_64FC1);
+	cv::Mat x_row( 1, pattern_coordinate_size, CV_64FC1);
+	cv::Mat y_row( 1, pattern_coordinate_size, CV_64FC1);
 	
 	for( int j=0; j<pose_data_[i].calibration_pattern_coordinates.size(); j++ )
 	{
-	  x_row.at<double>(j,0) = pose_data_[i].calibration_pattern_coordinates[j].x;
-	  y_row.at<double>(j,0) = pose_data_[i].calibration_pattern_coordinates[j].y;
+	  x_row.at<double>(0,j) = pose_data_[i].calibration_pattern_coordinates[j].x;
+	  y_row.at<double>(0,j) = pose_data_[i].calibration_pattern_coordinates[j].y;
 	}
 	pattern_coordinates.push_back(x_row);
 	pattern_coordinates.push_back(y_row);
@@ -782,6 +782,8 @@ bool TransformationEstimator::printToFile( string fileName_ )
 
 bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldData_ )
 {
+  using namespace std;
+  
   try
   {
     cv::FileStorage inputFile( fileName_, cv::FileStorage::READ );
@@ -796,7 +798,7 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
     inputFile["estimated_transformations"] >> estimated_transformations;
     inputFile["pattern_coordinates"] >> pattern_coordinates;
     
-    if( hand_poses.cols!=eye_poses.cols || hand_poses.rows!=7 || eye_poses.rows!=7 || hand_poses.cols==0 || estimated_transformations.rows!=10 || estimated_transformations.cols!=(hand_poses.cols-1) || (pattern_coordinates.rows!=2*hand_poses.cols)&&(pattern_coordinates.rows!=0) )
+    if( hand_poses.cols!=eye_poses.cols || hand_poses.rows!=7 || eye_poses.rows!=7 || hand_poses.cols==0 || (estimated_transformations.rows!=13&&estimated_transformations.rows!=0) || (pattern_coordinates.cols!=2*hand_poses.cols)&&(pattern_coordinates.cols!=0) )
     {
        ROS_ERROR("TransformationEstimator::loadFromFile::failed::The input file %s did not contain valid cv::Mat matrices.",fileName_.c_str() );
        return 0;
@@ -832,6 +834,16 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
       new_data.eye_pose.position.x = eye_poses.at<double>(4,i);
       new_data.eye_pose.position.y = eye_poses.at<double>(5,i);
       new_data.eye_pose.position.z = eye_poses.at<double>(6,i);
+      
+      
+      /*// for bad data read
+      for( int j=0;j<48;j++ )
+      {
+	hand_eye_calibration::Point2D new_point;
+	new_point.x = pattern_coordinates.at<double>(0,i*96+j);
+	new_point.y = pattern_coordinates.at<double>(0,i*96+j+48);
+	new_data.calibration_pattern_coordinates.push_back(new_point);
+      }*/
       
       if( pattern_coordinates.rows!=0 )
       {
@@ -935,7 +947,7 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
 	
 	std::vector<geometry_msgs::Point> calibration_pattern_world_coordinates;
 	
-	for( unsigned int i=0; i<calibration_pattern_world_coordinates.size(); i++ )
+	for( unsigned int i=0; i<calibration_pattern_world_coordinates_buff.cols; i++ )
 	{
 	  geometry_msgs::Point calibration_point;
 	  calibration_point.x = calibration_pattern_world_coordinates_buff.at<double>(0,i);
@@ -961,4 +973,9 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
 void TransformationEstimator::addPose( PoseData& _new_pose )
 {
   pose_data_.push_back(_new_pose );
+}
+
+std::vector<TransformationEstimator::PoseData> TransformationEstimator::poseData()
+{
+  return pose_data_;
 }

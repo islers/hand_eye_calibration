@@ -138,6 +138,10 @@ public:
    */
   void fromFile( std::string _filename );
   
+  /* sets the internal pose pairs
+   */
+  void setPosePairs( std::vector<TransformationEstimator::PoseData>& _pose_data );
+  
 private:
   st_is::CoordinateTransformation t_WB_; // world (pattern) - robot base
   st_is::CoordinateTransformation t_HE_; // hand-eye
