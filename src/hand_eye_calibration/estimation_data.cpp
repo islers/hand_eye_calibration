@@ -89,7 +89,7 @@ Eigen::Vector3d TransformationEstimator::EstimationData::E_trans_EH()
 
 Eigen::Vector3d TransformationEstimator::EstimationData::transE2H()
 {
-  return -(rotH2E()*E_trans_EH_);
+  return -(rotE2H()*E_trans_EH_);
 }
 
 Eigen::Vector3d TransformationEstimator::EstimationData::H_trans_HE()

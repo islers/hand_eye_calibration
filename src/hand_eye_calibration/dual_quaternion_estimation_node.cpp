@@ -49,7 +49,7 @@ int main(int argc, char **argv)
       case 'e': cout<<endl<<"The calculated transformation matrix from hand coordinates to eye coordinates is:"<<endl;
 		
 		if(estimator.estimationPossible())
-		  cout<<estimator.getNewEstimation().matrixH2E();
+		  cout<<estimator.getNewEstimation().matrixE2H(); // output T_HE
 		else
 		  cout<<"Couldn't calculate estimate since data available was insufficient.";
       

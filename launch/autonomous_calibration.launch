@@ -6,7 +6,7 @@
   <node name="autonomous_hand_eye_calibration" pkg="hand_eye_calibration" type="autonomous_hand_eye_calibration" respawn="false" output="screen"><!-- link parameters -->
     <param name="octomap_frame" type="string" value="odom" />
     <param name="octomap_resolution" type="double" value="0.05" />
-    <rosparam file="$(find hand_eye_calibration)/autonomous_config/auto_config.yaml" command="load" ns=""/>
+    <rosparam file="$(find hand_eye_calibration)/config/autonomous_config/auto_config.yaml" command="load" ns=""/>
   </node>
   
 </launch>

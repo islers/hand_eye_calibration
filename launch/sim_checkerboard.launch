@@ -3,7 +3,7 @@
 <launch>
 
   <!-- upload camera and checkerboard parameters -->
-  <rosparam file="$(find hand_eye_calibration)/checkerboard_config/sim_checkerboard_config.yaml" command="load" ns=""/>
+  <rosparam file="$(find hand_eye_calibration)/config/checkerboard_config/sim_checkerboard_config.yaml" command="load" ns=""/>
   
   <remap from="/camera/image_rect" to="/youbot/eye/image_rect"/>
   <remap from="/camera/camera_info" to="/youbot/eye/camera_info"/>

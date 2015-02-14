@@ -95,7 +95,7 @@ public:
    */
   std::vector<TransformationEstimator::PoseData>& posePairs();
   
-  /** calculates new pose pairs, the old one are deleted
+  /** calculates new pose pairs, the old ones are deleted
    * @param _number_of_pairs how many pairs to calculate
    * @param _rotation_bounds uniform distribution borders for the rotations in pi
    * @param _translation_bounds uniform distribution borders for the translations

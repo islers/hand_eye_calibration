@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!-- launches the fake pose server with user defined transformations -->
+<launch>
+
+  <!-- upload camera and checkerboard parameters -->
+  <rosparam file="$(find hand_eye_calibration)/checkerboard_config/sim_checkerboard_config.yaml" command="load" ns=""/>
+    
+  <node name="fake_pose_server" pkg="hand_eye_calibration" type="fake_pose_server" respawn="false" output="screen"/>
+  
+</launch>

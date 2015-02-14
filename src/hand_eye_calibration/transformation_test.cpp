@@ -70,7 +70,7 @@ int main(int argc, char **argv)
   cout<<"translation:"<<endl<<estimation.transH2E()<<endl;
   */
   TransformationEstimator estimator(&n);
-  estimator.loadFromFile( "/home/stewess/Documents/manually_retrieved_simulation_data_3.txt" );
+  estimator.loadFromFile( "/home/stewess/Documents/gazebo-hec-07-42.txt" );
   estimator.setEstimationMethod( daniilidis_1998 );
   
   std::vector<TransformationEstimator::PoseData> pose_data;
@@ -78,13 +78,13 @@ int main(int argc, char **argv)
   
   PoseCreator interface;
   interface.setPosePairs(pose_data);
-  interface.toFile("/home/stewess/Documents/gazebo_pose_set");
+  interface.toFile("/home/stewess/Documents/gazebo-hec-07-42");
   
   TransformationEstimator::EstimationData estimation = estimator.estimate();
   
   cout<<endl<<"Estimated transformation"<<endl<<"-------------------------"<<endl;
   cout<<"rotation:"<<endl<<estimation.rot_HE().matrix()<<endl<<endl;
-  cout<<"translation:"<<endl<<estimation.transH2E()<<endl;
+  cout<<"translation:"<<endl<<estimation.transE2H()<<endl;
   
   
   return 0;

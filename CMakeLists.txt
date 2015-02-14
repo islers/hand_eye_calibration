@@ -156,3 +156,24 @@ add_dependencies(transformation_test
  ${catkin_EXPORTED_TARGETS}
  ${PROJECT_NAME}_generate_messages_cpp
 )
+
+add_executable(fake_pose_server
+  src/hand_eye_calibration/fake_pose_server.cpp
+  src/hand_eye_calibration/transformation_estimator.cpp
+  src/hand_eye_calibration/estimation_data.cpp
+  src/hand_eye_calibration/calibration_setup.cpp
+  src/hand_eye_calibration/pose_creator.cpp
+  src/utils/eigen_utils.cpp
+  src/utils/math.cpp
+  src/utils/ros_eigen.cpp
+)
+
+target_link_libraries(fake_pose_server
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
+add_dependencies(fake_pose_server
+ ${catkin_EXPORTED_TARGETS}
+ ${PROJECT_NAME}_generate_messages_cpp
+)

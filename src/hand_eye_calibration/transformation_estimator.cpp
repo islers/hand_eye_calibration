@@ -689,7 +689,7 @@ bool TransformationEstimator::printToFile( string fileName_ )
 	break;
       }
     }
-    cv::Mat pattern_placeholder(pattern_coordinate_size,1,CV_64FC1,-1000);
+    cv::Mat pattern_placeholder(1,pattern_coordinate_size,CV_64FC1,-1000);
     
     // saving each pattern_coordinates set in two rows, the first for the x, the second for the y values, -1000 is a placeholder for unknown coordinates (since they're always in the image, they're always positive if known)
     cv::Mat pattern_coordinates( pattern_coordinate_size, 0, CV_64FC1);
@@ -798,7 +798,7 @@ bool TransformationEstimator::loadFromFile( string fileName_, bool destroyOldDat
     inputFile["estimated_transformations"] >> estimated_transformations;
     inputFile["pattern_coordinates"] >> pattern_coordinates;
     
-    if( hand_poses.cols!=eye_poses.cols || hand_poses.rows!=7 || eye_poses.rows!=7 || hand_poses.cols==0 || (estimated_transformations.rows!=13&&estimated_transformations.rows!=0) || (pattern_coordinates.cols!=2*hand_poses.cols)&&(pattern_coordinates.cols!=0) )
+    if( hand_poses.cols!=eye_poses.cols || hand_poses.rows!=7 || eye_poses.rows!=7 || hand_poses.cols==0 || (estimated_transformations.rows!=13&&estimated_transformations.rows!=0) || (pattern_coordinates.rows!=2*hand_poses.cols)&&(pattern_coordinates.cols!=0) )
     {
        ROS_ERROR("TransformationEstimator::loadFromFile::failed::The input file %s did not contain valid cv::Mat matrices.",fileName_.c_str() );
        return 0;
