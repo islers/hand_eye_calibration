@@ -33,7 +33,7 @@ int main(int argc, char **argv)
   
   ros::init(argc, argv, "autonomous_hand_eye_calibration");
   ros::NodeHandle n("autonomous_hand_eye_calibration");
-  /*  
+    
   // define relative pose of world to robot base
   Eigen::Matrix3d a1;
   a1 = AngleAxisd(1.23*M_PI, Vector3d::UnitY() )
@@ -51,14 +51,35 @@ int main(int argc, char **argv)
   CoordinateTransformation hec_HE(hec_rot,hec_trans);
   
   PoseCreator artificial_poses( t_WB, hec_HE );
-  artificial_poses.addNoise( M_PI/360, 0.02 );
+  artificial_poses.addNoise( 0.1*M_PI/360, 0.01 );
   //artificial_poses.setSeed( 123 );
   artificial_poses.calcPosePairs( 5000 );
   artificial_poses.toFile("/home/stewess/Documents/noise1_pose_set");
   //artificial_poses.fromFile("/home/stewess/Documents/pose_set");
   
+  std::vector<TransformationEstimator::PoseData> poses;
+  for( unsigned int i=0;i<1000;i++)
+  {
+    hand_eye_calibration::CameraPose cam_pose_request;
+    hand_eye_calibration::HandPose hand_pose_request;
+    
+    ros::Time current_stamp = ros::Time::now();
+    
+    cam_pose_request.request.request.request_stamp = current_stamp;
+    hand_pose_request.request.request.request_stamp = current_stamp;
+    
+    ros::service::call("/hec/eye_pose",cam_pose_request);
+    ros::service::call("/hec/hand_pose",hand_pose_request);
+    
+    TransformationEstimator::PoseData new_data;
+    new_data.eye_pose = cam_pose_request.response.description.pose;
+    new_data.hand_pose = hand_pose_request.response.description.pose;
+    poses.push_back(new_data);
+  }
+  
   DaniilidisDualQuaternionEstimation estimation_method;
-  TransformationEstimator::EstimationData estimation = estimation_method.calculateTransformation( artificial_poses.posePairs() );
+  //TransformationEstimator::EstimationData estimation = estimation_method.calculateTransformation( artificial_poses.posePairs() );
+  TransformationEstimator::EstimationData estimation = estimation_method.calculateTransformation( poses );
   
   cout<<endl<<"Correct transformation"<<endl<<"-------------------------"<<endl;
   
@@ -68,8 +89,8 @@ int main(int argc, char **argv)
   cout<<endl<<"Estimated transformation"<<endl<<"-------------------------"<<endl;
   cout<<"rotation:"<<endl<<estimation.rot_HE().matrix()<<endl<<endl;
   cout<<"translation:"<<endl<<estimation.transH2E()<<endl;
-  */
-  TransformationEstimator estimator(&n);
+  
+  /*TransformationEstimator estimator(&n);
   estimator.loadFromFile( "/home/stewess/Documents/gazebo-hec-07-42.txt" );
   estimator.setEstimationMethod( daniilidis_1998 );
   
@@ -84,7 +105,7 @@ int main(int argc, char **argv)
   
   cout<<endl<<"Estimated transformation"<<endl<<"-------------------------"<<endl;
   cout<<"rotation:"<<endl<<estimation.rot_HE().matrix()<<endl<<endl;
-  cout<<"translation:"<<endl<<estimation.transE2H()<<endl;
+  cout<<"translation:"<<endl<<estimation.transE2H()<<endl;*/
   
   
   return 0;

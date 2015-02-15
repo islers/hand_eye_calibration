@@ -73,7 +73,7 @@ public:
   
   /** returns the currently set transformation from robot base to world
    */
-  void getWorldBaseTransform( Eigen::Matrix<double,3,4>& _t_WB );
+  void getWorldBaseTransform( Eigen::Matrix<double,4,4>& _t_WB );
   
   /** returns the currently set transformation from robot base to world
    */
@@ -85,7 +85,7 @@ public:
   
   /** returns the currently set transformation from eye to hand
    */
-  void getHandEyeTransform( Eigen::Matrix<double,3,4>& _t_HE );
+  void getHandEyeTransform( Eigen::Matrix<double,4,4>& _t_HE );
   
   /** returns the currently set transformation from eye to hand
    */

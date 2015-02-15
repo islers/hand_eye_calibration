@@ -71,25 +71,25 @@ bool TransformationEstimator::addNewPosePair()
   hand_pose_request.request.request.request_stamp = current_stamp;
   hand_pose_request.request.request.max_wait_time = max_service_wait_time_;
   
-  if( !ros::service::call("hec_eye_pose",cam_pose_request) )
+  if( !ros::service::call("/hec/eye_pose",cam_pose_request) )
   {
-    ROS_ERROR("TransformationEstimator::addNewPosePair(): Unable to contact 'hec_eye_pose' service. Cannot add new pose pair.");
+    ROS_ERROR("TransformationEstimator::addNewPosePair(): Unable to contact '/hec/eye_pose' service. Cannot add new pose pair.");
     return false;
   }
-  else if( !ros::service::call("hec_hand_pose",hand_pose_request) )
+  else if( !ros::service::call("/hec/hand_pose",hand_pose_request) )
   {
-    ROS_ERROR("TransformationEstimator::addNewPosePair(): Unable to contact 'hec_hand_pose' service. Cannot add new pose pair.");
+    ROS_ERROR("TransformationEstimator::addNewPosePair(): Unable to contact '/hec/hand_pose' service. Cannot add new pose pair.");
     return false;
   }
   // check if both poses were found
   if( !cam_pose_request.response.description.pose_found )
   {
-     ROS_WARN("TransformationEstimator::addNewPosePair(): The contacted 'hec_eye_pose' service  was not able to locate the camera, no pose retrieved in time. Cannot add new pose pair.");
+     ROS_WARN("TransformationEstimator::addNewPosePair(): The contacted '/hec/eye_pose' service  was not able to locate the camera, no pose retrieved in time. Cannot add new pose pair.");
      return false;
   }
   else if( !hand_pose_request.response.description.pose_found )
   {
-     ROS_WARN("TransformationEstimator::addNewPosePair(): The contacted 'hec_hand_pose' service was not able to calculate the location of the hand, no pose retrieved in time. Cannot add new pose pair.");
+     ROS_WARN("TransformationEstimator::addNewPosePair(): The contacted '/hec/hand_pose' service was not able to calculate the location of the hand, no pose retrieved in time. Cannot add new pose pair.");
      return false;
   }
   
@@ -480,30 +480,30 @@ bool TransformationEstimator::loadCalibrationConfigurationFromService()
 {
     
   hand_eye_calibration::CameraPoseInfo cam_pose_info;
-  if( !ros::service::call("hec_eye_node_info",cam_pose_info) )
+  if( !ros::service::call("/hec/eye_node_info",cam_pose_info) )
   {
-    std::string warning = "TransformationEstimator::loadCalibrationConfigurationFromService::could not contact 'hec_eye_node_info'-service of cam pose publisher node. Thus no new information about the calibration setup is available.";
+    std::string warning = "TransformationEstimator::loadCalibrationConfigurationFromService::could not contact '/hec/eye_node_info'-service of cam pose publisher node. Thus no new information about the calibration setup is available.";
     ROS_WARN("%s",warning.c_str());
     return false;
   }
   else
   {
-    ROS_INFO("Successfully contacted 'hec_eye_node_info' service.");
+    ROS_INFO("Successfully contacted '/hec/eye_node_info' service.");
     
     
     if( cam_pose_info.response.info.camera_info.P.size()!=12 )
     {
-      ROS_ERROR("The projection matrix provided by the 'hec_eye_node_info' service is invalid or empty. Cannot setup calibration configuration.");
+      ROS_ERROR("The projection matrix provided by the '/hec/eye_node_info' service is invalid or empty. Cannot setup calibration configuration.");
       return false;
     }
     if( cam_pose_info.response.info.pattern_coordinates.size()==0 )
     {
-      ROS_ERROR("No calibraton pattern coordinates are provided by the 'hec_eye_nod_info' service. Cannot setup calibration configuration.");
+      ROS_ERROR("No calibraton pattern coordinates are provided by the '/hec/eye_nod_info' service. Cannot setup calibration configuration.");
       return false;
     }
     if( cam_pose_info.response.info.camera_info.height==0 || cam_pose_info.response.info.camera_info.width==0 )
     {
-      ROS_ERROR_STREAM("The image height and/or width provided by the 'hec_eye_nod_info' service are invalid. The provided height is "<<cam_pose_info.response.info.camera_info.height<<"px, the provided width: "<<cam_pose_info.response.info.camera_info.width<<"px. Cannot setup calibration configuration.");
+      ROS_ERROR_STREAM("The image height and/or width provided by the '/hec/eye_nod_info' service are invalid. The provided height is "<<cam_pose_info.response.info.camera_info.height<<"px, the provided width: "<<cam_pose_info.response.info.camera_info.width<<"px. Cannot setup calibration configuration.");
       return false;
     }
     unsigned int height = cam_pose_info.response.info.camera_info.height;
@@ -523,7 +523,7 @@ bool TransformationEstimator::loadCalibrationConfigurationFromService()
     std::vector<geometry_msgs::Point> calibration_pattern_world_coordinates = cam_pose_info.response.info.pattern_coordinates;
     
     ROS_INFO_STREAM("Calibration pattern retrieved with "<<calibration_pattern_world_coordinates.size()<<" points.");
-    ROS_INFO_STREAM("Successfully retrieved all data needed from 'hec_eye_node_info' topic.");
+    ROS_INFO_STREAM("Successfully retrieved all data needed from '/hec/eye_node_info' topic.");
     
     calibration_configuration_.setData( projection_matrix, calibration_pattern_world_coordinates, height, width );
     

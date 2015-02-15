@@ -12,11 +12,11 @@
 * publishes:	- /hec/eye_position [geometry_msgs/Pose]: transformation base_link ->end_link (hand)
 * 		 thus: rotation R_BH (rotation hand->base) and translation B_t_BH in B coordinates
 * services provided:
-* 	- hec_hand_pose [HandPose.srv]
+* 	- /hec/hand_pose [HandPose.srv]
 * 
 * expects on parameter server:
-* 	- hec/hand/base_link
-* 	- hec/hand/end_link
+* 	- /hec/hand/base_link
+* 	- /hec/hand/end_link
 * 
 * 
 * Released under the GNU Lesser General Public License v3 (LGPLv3), see www.gnu.org

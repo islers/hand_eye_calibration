@@ -86,8 +86,8 @@ AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
   
   robot_ = boost::shared_ptr<moveit::planning_interface::MoveGroup>( new moveit::planning_interface::MoveGroup(moveit_group_name) );
   
-  eye_client_ = ros_node_->serviceClient<hand_eye_calibration::CameraPose>("hec_eye_pose");
-  hand_client_ = ros_node_->serviceClient<hand_eye_calibration::HandPose>("hec_hand_pose");
+  eye_client_ = ros_node_->serviceClient<hand_eye_calibration::CameraPose>("/hec/eye_pose");
+  hand_client_ = ros_node_->serviceClient<hand_eye_calibration::HandPose>("/hec/hand_pose");
   
   cameraPubNodeInfoAvailable(); // attempts to gather information
   

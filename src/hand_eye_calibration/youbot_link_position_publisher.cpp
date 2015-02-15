@@ -24,7 +24,7 @@ tf2_listener_(tf_core_)
   ros_node_ = _n;
   
   pose_publisher_ = ros_node_->advertise<geometry_msgs::Pose>("/hec/hand_position",10);
-  hand_position_server_ = ros_node_->advertiseService("hec_hand_pose", &YoubotLinkPositionPublisher::serviceHandPoseRequest, this );
+  hand_position_server_ = ros_node_->advertiseService("/hec/hand_pose", &YoubotLinkPositionPublisher::serviceHandPoseRequest, this );
   
   link_names_.push_back("arm_link_0"); // arm base which is rigidly fixed to the youbot base
   link_names_.push_back("arm_link_1");

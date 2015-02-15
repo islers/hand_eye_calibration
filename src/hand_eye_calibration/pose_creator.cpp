@@ -126,10 +126,11 @@ void PoseCreator::getWorldBaseTransform( geometry_msgs::Pose& _t_WB )
   _t_WB.position = st_is::eigenToGeometry( t_WB_.translation );
 }
 
-void PoseCreator::getWorldBaseTransform( Eigen::Matrix<double,3,4>& _t_WB )
+void PoseCreator::getWorldBaseTransform( Eigen::Matrix<double,4,4>& _t_WB )
 {
-  _t_WB.topRightCorner<3,3>() = t_WB_.rotation.matrix();
-  _t_WB.rightCols(1) = t_WB_.translation;
+  _t_WB.topLeftCorner<3,3>() = t_WB_.rotation.matrix();
+  _t_WB.topRightCorner<3,1>() = t_WB_.translation;
+  _t_WB.bottomRows<1>() << 0,0,0,1;
 }
 
 void PoseCreator::getWorldBaseTransform( st_is::CoordinateTransformation& _t_WB )
@@ -143,10 +144,11 @@ void PoseCreator::getHandEyeTransform( geometry_msgs::Pose& _t_HE )
   _t_HE.position = st_is::eigenToGeometry( t_HE_.translation );
 }
 
-void PoseCreator::getHandEyeTransform( Eigen::Matrix<double,3,4>& _t_HE )
+void PoseCreator::getHandEyeTransform( Eigen::Matrix<double,4,4>& _t_HE )
 {
-  _t_HE.topRightCorner<3,3>() = t_HE_.rotation.matrix();
-  _t_HE.rightCols(1) = t_HE_.translation;
+  _t_HE.topLeftCorner<3,3>() = t_HE_.rotation.matrix();
+  _t_HE.topRightCorner<3,1>() = t_HE_.translation;
+  _t_HE.bottomRows<1>() << 0,0,0,1;
 }
 
 void PoseCreator::getHandEyeTransform( st_is::CoordinateTransformation& _t_HE )

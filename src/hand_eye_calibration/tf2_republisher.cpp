@@ -24,16 +24,16 @@ tf2_listener_(tf_core_)
   ros_node_ = _n;
   
   pose_publisher_ = ros_node_->advertise<geometry_msgs::Pose>("/hec/hand_position",10);
-  hand_position_server_ = ros_node_->advertiseService("hec_hand_pose", &TF2Republisher::serviceHandPoseRequest, this );
+  hand_position_server_ = ros_node_->advertiseService("/hec/hand_pose", &TF2Republisher::serviceHandPoseRequest, this );
   
-  if( !ros_node_->getParam("hec/hand/base_link",base_link_) )
+  if( !ros_node_->getParam("/hec/hand/base_link",base_link_) )
   {
-    std::string error = "TF2Republisher::TF2Republisher::line "+std::to_string(__LINE__)+"::No base link name provided on 'hec/hand/base_link'. Shutting down node.";
+    std::string error = "TF2Republisher::TF2Republisher::line "+std::to_string(__LINE__)+"::No base link name provided on '/hec/hand/base_link'. Shutting down node.";
     ROS_FATAL("%s",error.c_str());
     ros::shutdown();
     return;
   }
-  if( !ros_node_->getParam("hec/hand/end_link",end_link_) )
+  if( !ros_node_->getParam("/hec/hand/end_link",end_link_) )
   {
     std::string error = "TF2Republisher::TF2Republisher::line "+std::to_string(__LINE__)+"::No end link name provided on 'hand/end_link'. Shutting down node.";
     ROS_FATAL("%s",error.c_str());

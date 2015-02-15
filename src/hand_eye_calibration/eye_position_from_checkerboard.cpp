@@ -29,10 +29,10 @@ camera_data_retrieved_(false)
   camera_stream_ = ros_node_->subscribe("/camera/image_rect",1, &EyePositionFromCheckerboard::imageLoader, this );
   camera_info_subscriber_ = ros_node_->subscribe("/camera/camera_info",1,&EyePositionFromCheckerboard::cameraInfoUpdate, this );
     
-  eye_position_info_server_ = ros_node_->advertiseService("hec_eye_node_info", &EyePositionFromCheckerboard::serviceCameraPoseInfoRequest, this );
+  eye_position_info_server_ = ros_node_->advertiseService("hec/eye_node_info", &EyePositionFromCheckerboard::serviceCameraPoseInfoRequest, this );
   
   // launch eye position server with separate callback queue
-  ros::AdvertiseServiceOptions eye_pos_server_ops = ros::AdvertiseServiceOptions::create<hand_eye_calibration::CameraPose>("hec_eye_pose", boost::bind(&EyePositionFromCheckerboard::serviceCameraPoseRequest, this, _1, _2), me_myself_and_i_, &pos_srv_queue_ );
+  ros::AdvertiseServiceOptions eye_pos_server_ops = ros::AdvertiseServiceOptions::create<hand_eye_calibration::CameraPose>("hec/eye_pose", boost::bind(&EyePositionFromCheckerboard::serviceCameraPoseRequest, this, _1, _2), me_myself_and_i_, &pos_srv_queue_ );
   eye_position_server_ = ros_node_->advertiseService( eye_pos_server_ops );
   
   init_success_ = false;

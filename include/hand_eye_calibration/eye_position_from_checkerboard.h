@@ -12,14 +12,14 @@
 * subscribes:	- /camera/image_rect [sensor_msgs/Image]: Rectified camera image, e.g. published by image_proc
 * 		- /camera/camera_info [sensor_msgs/CameraInfo]: Camera info data, published by the camera driver
 * 
-* services:	- hec_eye_pose [hand_eye_calibration::CameraPose]: data about the current pose
+* services:	- /hec/eye_pose [hand_eye_calibration::CameraPose]: data about the current pose
 * 		   ->including:
 * 			- pose_found [bool]: whether a pose was found
 * 			- request_stamp [time]: id for the request that was answered
 * 			- pose [geometry_msgs/Pose]: the transformation (see the explanation on the /hec/eye_position topic)
 * 			- image [sensor_msgs/Image]: the image from which the transformation was obtained
 * 			- point_coordinates [Point2D[]]: the positions of the pattern in the image
-* 		- hec_eye_node_info [hand_eye_calibration::CameraPoseInfo]: information about the camera and calibration pattern
+* 		- /hec/eye_node_info [hand_eye_calibration::CameraPoseInfo]: information about the camera and calibration pattern
 * 		   ->including:
 * 		   	- camera_info [sensor_msgs/CameraInfo]: camera info data for the camera used (from camera topic)
 * 			- pattern_coordinates [geometry_msgs/Point[]]: 3D coordinates of the calibration pattern used
