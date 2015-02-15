@@ -57,10 +57,12 @@ int main(int argc, char **argv)
   artificial_poses.toFile("/home/stewess/Documents/noise1_pose_set");
   //artificial_poses.fromFile("/home/stewess/Documents/pose_set");
   
-  std::vector<TransformationEstimator::PoseData> poses;
-  for( unsigned int i=0;i<1000;i++)
+  TransformationEstimator estimator(&n);
+  estimator.setEstimationMethod(daniilidis_1998);
+  //std::vector<TransformationEstimator::PoseData> poses;
+  for( unsigned int i=0;i<3000;i++)
   {
-    hand_eye_calibration::CameraPose cam_pose_request;
+    /*hand_eye_calibration::CameraPose cam_pose_request;
     hand_eye_calibration::HandPose hand_pose_request;
     
     ros::Time current_stamp = ros::Time::now();
@@ -74,12 +76,14 @@ int main(int argc, char **argv)
     TransformationEstimator::PoseData new_data;
     new_data.eye_pose = cam_pose_request.response.description.pose;
     new_data.hand_pose = hand_pose_request.response.description.pose;
-    poses.push_back(new_data);
+    poses.push_back(new_data);*/
+    estimator.addNewPosePair();
   }
   
   DaniilidisDualQuaternionEstimation estimation_method;
   //TransformationEstimator::EstimationData estimation = estimation_method.calculateTransformation( artificial_poses.posePairs() );
-  TransformationEstimator::EstimationData estimation = estimation_method.calculateTransformation( poses );
+  //TransformationEstimator::EstimationData estimation = estimation_method.calculateTransformation( poses );
+  TransformationEstimator::EstimationData estimation = estimator.getNewEstimation();
   
   cout<<endl<<"Correct transformation"<<endl<<"-------------------------"<<endl;
   

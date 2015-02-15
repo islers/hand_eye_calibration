@@ -113,26 +113,26 @@ int main(int argc, char **argv)
   double rot_rw_angle = uniform_rv(rng);
   Eigen::Quaterniond rot_rw( Eigen::AngleAxisd(rot_rw_angle,rot_rw_axis) );
   
-  if( !n.getParam("hec/fake_pose/world_to_robot/rotation/x",t_RW.rotation.x() ) || 
-      !n.getParam("hec/fake_pose/world_to_robot/rotation/y",t_RW.rotation.y() ) ||
-      !n.getParam("hec/fake_pose/world_to_robot/rotation/z",t_RW.rotation.z() ) ||
-      !n.getParam("hec/fake_pose/world_to_robot/rotation/w",t_RW.rotation.w() ) )
+  if( !n.getParam("/hec/fake_pose/world_to_robot/rotation/x",t_RW.rotation.x() ) || 
+      !n.getParam("/hec/fake_pose/world_to_robot/rotation/y",t_RW.rotation.y() ) ||
+      !n.getParam("/hec/fake_pose/world_to_robot/rotation/z",t_RW.rotation.z() ) ||
+      !n.getParam("/hec/fake_pose/world_to_robot/rotation/w",t_RW.rotation.w() ) )
   {
     ROS_INFO("One or more of '/hec/fake_pose/world_to_robot/rotation/*' parameters missing, using random rotation.");
     t_RW.rotation = rot_rw;
   }
   
-  if( !n.getParam("hec/fake_pose/world_to_robot/translation/x",t_RW.translation(0) ))
+  if( !n.getParam("/hec/fake_pose/world_to_robot/translation/x",t_RW.translation(0) ))
   {
     ROS_INFO("hec/fake_pose/world_to_robot/translation/x missing - using random value");
     t_RW.translation(0) = uniform_rv(rng);
   }
-  if( !n.getParam("hec/fake_pose/world_to_robot/translation/y",t_RW.translation(1) ))
+  if( !n.getParam("/hec/fake_pose/world_to_robot/translation/y",t_RW.translation(1) ))
   {
     ROS_INFO("hec/fake_pose/world_to_robot/translation/y missing - using random value");
     t_RW.translation(1) = uniform_rv(rng);
   }
-  if( !n.getParam("hec/fake_pose/world_to_robot/translation/z",t_RW.translation(2) ))
+  if( !n.getParam("/hec/fake_pose/world_to_robot/translation/z",t_RW.translation(2) ))
   {
     ROS_INFO("hec/fake_pose/world_to_robot/translation/z missing - using random value");
     t_RW.translation(2) = uniform_rv(rng);
@@ -143,34 +143,34 @@ int main(int argc, char **argv)
   double rot_he_angle = uniform_rv(rng);
   Eigen::Quaterniond rot_he( Eigen::AngleAxisd(rot_he_angle,rot_he_axis) );
   
-  if( !n.getParam("hec/fake_pose/eye_to_hand/rotation/x",t_HE.rotation.x() ) || 
-      !n.getParam("hec/fake_pose/eye_to_hand/rotation/y",t_HE.rotation.y() ) || 
-      !n.getParam("hec/fake_pose/eye_to_hand/rotation/z",t_HE.rotation.z() ) || 
-      !n.getParam("hec/fake_pose/eye_to_hand/rotation/w",t_HE.rotation.w() ) )
+  if( !n.getParam("/hec/fake_pose/eye_to_hand/rotation/x",t_HE.rotation.x() ) || 
+      !n.getParam("/hec/fake_pose/eye_to_hand/rotation/y",t_HE.rotation.y() ) || 
+      !n.getParam("/hec/fake_pose/eye_to_hand/rotation/z",t_HE.rotation.z() ) || 
+      !n.getParam("/hec/fake_pose/eye_to_hand/rotation/w",t_HE.rotation.w() ) )
   {
     ROS_INFO("One or more of '/hec/fake_pose/eye_to_hand/rotation/*' parameters missing, using random rotation.");
     t_HE.rotation = rot_he;
   }
   
-  if( !n.getParam("hec/fake_pose/eye_to_hand/translation/x",t_HE.translation(0) ))
+  if( !n.getParam("/hec/fake_pose/eye_to_hand/translation/x",t_HE.translation(0) ))
   {
     ROS_INFO("hec/fake_pose/eye_to_hand/translation/x missing - using random value");
     t_HE.translation(0) = uniform_rv(rng);
   }
-  if( !n.getParam("hec/fake_pose/eye_to_hand/translation/y",t_HE.translation(1) ))
+  if( !n.getParam("/hec/fake_pose/eye_to_hand/translation/y",t_HE.translation(1) ))
   {
     ROS_INFO("hec/fake_pose/eye_to_hand/translation/y missing - using random value");
     t_HE.translation(1) = uniform_rv(rng);
   }
-  if( !n.getParam("hec/fake_pose/eye_to_hand/translation/z",t_HE.translation(2) ))
+  if( !n.getParam("/hec/fake_pose/eye_to_hand/translation/z",t_HE.translation(2) ))
   {
     ROS_INFO("hec/fake_pose/eye_to_hand/translation/z missing - using random value");
     t_HE.translation(2) = uniform_rv(rng);
   }
   
   double trans_noise=0, rot_noise=0;
-  n.getParam("hec/fake_pose/noise/rotation",rot_noise );
-  n.getParam("hec/fake_pose/noise/translation",trans_noise );
+  n.getParam("/hec/fake_pose/noise/rotation",rot_noise );
+  n.getParam("/hec/fake_pose/noise/translation",trans_noise );
   
   
   g_artificial_poses = PoseCreator( t_RW.inv(), t_HE );

@@ -3,25 +3,25 @@
 hec:
   fake_pose:
     world_to_robot:
-      rotation: #rotation quaternion
-        x:0.3257788682
-        y:0.0407223585
-        z:-0.1628894341
-        w:0.930417568 
-      translation: #[m]
-        x:3
-        y:2
-        z:2
+      rotation:
+        x: 0.3257788682
+        y: 0.0407223585
+        z: -0.1628894341
+        w: 0.930417568 
+      translation:
+        x: 3 #[m]
+        y: 2
+        z: 2
     eye_to_hand:
-      rotation: #rotation quaternion
-        x:0.0487200768
-        y:0.0649601025
-        z:0.0162400256
-        w:0.9965655025
-      translation: #[m]
-        x:1
-        y:3
-        z:1
+      rotation:
+        x: 0.0487200768
+        y: 0.0649601025
+        z: 0.0162400256
+        w: 0.9965655025
+      translation:
+        x: 1 #[m]
+        y: 3
+        z: 1
     noise:
-      rotation:0.0174532925 #stddev [rad]
-      translation:0.02 #stddev [m]
+      rotation: 0.0017266463 #stddev [rad]
+      translation: 0.01 #stddev [m]

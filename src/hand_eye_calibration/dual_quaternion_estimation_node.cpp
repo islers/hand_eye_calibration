@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     switch(user_input)
     {
       case 'a': estimator.addNewPosePair();
-		if( estimator.estimationPossible() )estimator.createAndAddNewEstimation(); // create an estimation for it
+		if( estimator.estimationPossible() ) estimator.createAndAddNewEstimation(); // create an estimation for it
 		break;
       case 'e': cout<<endl<<"The calculated transformation matrix from hand coordinates to eye coordinates is:"<<endl;
 		

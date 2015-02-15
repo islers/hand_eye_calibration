@@ -3,7 +3,7 @@
 <launch>
 
   <!-- upload camera and checkerboard parameters -->
-  <rosparam file="$(find hand_eye_calibration)/checkerboard_config/sim_checkerboard_config.yaml" command="load" ns=""/>
+  <rosparam file="$(find hand_eye_calibration)/config/fake_pose_config.yaml" command="load" ns=""/>
     
   <node name="fake_pose_server" pkg="hand_eye_calibration" type="fake_pose_server" respawn="false" output="screen"/>
   

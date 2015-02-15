@@ -246,7 +246,7 @@ TransformationEstimator::EstimationData TransformationEstimator::getNewEstimatio
   }
     
   EstimationData new_estimate = (*estimation_methods_[0])(pose_data_,true);
-    
+  
   st_is::StdError reprojection_error;
   if( getReprojectionError(new_estimate,reprojection_error) )
   {
