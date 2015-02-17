@@ -26,6 +26,23 @@ along with math. If not, see <http://www.gnu.org/licenses/>.
 
 namespace st_is
 {
+double machine_precision = 1.e-14;
+
+bool approxIsZero( double _to_check )
+{
+  return _to_check>-machine_precision && _to_check<machine_precision;
+}
+
+bool approxLessZero( double _to_check )
+{
+  return _to_check<-machine_precision;
+}
+
+bool approxGreaterZero( double _to_check )
+{
+  return _to_check>machine_precision;
+}
+  
 
 bool roots( double _aCoeff, double _bCoeff, double _cCoeff, std::pair<double,double>& _roots )
 {

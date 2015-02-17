@@ -14,6 +14,7 @@ along with eigen_utils. If not, see <http://www.gnu.org/licenses/>.
 */ 
  
 #include "utils/eigen_utils.h"
+#include "utils/math.h"
 
 using namespace Eigen;
 
@@ -73,20 +74,24 @@ DualQuaternion::DualQuaternion()
 DualQuaternion::DualQuaternion( Eigen::Quaterniond _rot, Eigen::Vector3d _trans )
 {
   q = _rot.normalized(); // just to ensure normalization
+  //using namespace std;
   
-  // by the screw congruence theorem q and q' one must be equal for hand eye calibration for both the eye and the hand movement. since the rotation represented by quaternion q is equal to -q, enforcing q_1>=0
-  if( q.w()<0 )
-  {
-    q.w() = - q.w();
-    q.x() = -q.x();
-    q.y() = -q.y();
-    q.z() = -q.z();
-  }
+  /*cout<<endl<<"rotation matrix: ";
+  cout<<endl<<_rot.toRotationMatrix();
+  cout<<endl<<"translation: ";
+  cout<<endl<<_trans<<endl;*/
+  
   
   Vector3d qAxis = q.vec();
   
   Vector3d qPrimeAxis = 0.5*( q.w()*_trans + _trans.cross(qAxis) );
   double qPrimeW = -0.5*qAxis.dot(_trans);
+  
+  /*cout<<endl<<"rot quaternion:";
+  cout<<endl<<"x:"<<q.x()<<endl<<"y:"<<q.y()<<endl<<"z:"<<q.z()<<endl<<"w:"<<q.w()<<"]";
+  cout<<endl<<"w: "<<q.w();
+  cout<<endl<<"qAxis"<<endl<<qAxis<<endl;
+  cout<<endl<<"qPrimeAxis:"<<endl<<qPrimeAxis<<endl;*/
   
   q_prime.x() = qPrimeAxis.x();
   q_prime.y() = qPrimeAxis.y();
@@ -94,6 +99,19 @@ DualQuaternion::DualQuaternion( Eigen::Quaterniond _rot, Eigen::Vector3d _trans 
   q_prime.w() = qPrimeW;
   
   q_prime = q_prime;
+  
+  // by the screw congruence theorem q and q' one must be equal for hand eye calibration for both the eye and the hand movement. since the rotation represented by quaternion q is equal to -q, enforcing q_1>=0 and q_prime>=0 if q_1==0
+  if( st_is::approxLessZero( q.w() ) || (st_is::approxIsZero( q.w() ) && st_is::approxLessZero( q_prime.w() )) )
+  {
+    q.w() = - q.w();
+    q.x() = -q.x();
+    q.y() = -q.y();
+    q.z() = -q.z();
+    q_prime.w() = -q_prime.w();
+    q_prime.x() = -q_prime.x();
+    q_prime.y() = -q_prime.y();
+    q_prime.z() = -q_prime.z();
+  }
 }
     
 } 

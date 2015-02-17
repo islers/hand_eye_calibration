@@ -17,6 +17,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 #include "hand_eye_calibration/dual_quaternion_transformation_estimator.h"
 #include "hand_eye_calibration/estimation_data.h"
+#include "hand_eye_calibration/pose_creator.h"
 using namespace std;
 
 int main(int argc, char **argv)
@@ -49,7 +50,7 @@ int main(int argc, char **argv)
       case 'e': cout<<endl<<"The calculated transformation matrix from hand coordinates to eye coordinates is:"<<endl;
 		
 		if(estimator.estimationPossible())
-		  cout<<estimator.getNewEstimation().matrixE2H(); // output T_HE
+		  cout<<estimator.getNewEstimation().matrixH2E(); // output T_HE
 		else
 		  cout<<"Couldn't calculate estimate since data available was insufficient.";
       
@@ -74,6 +75,11 @@ int main(int argc, char **argv)
 		break;
 		}
       case 's':	{
+		std::vector<TransformationEstimator::PoseData> data = estimator.poseData();
+		PoseCreator just_a_container;
+		just_a_container.setPosePairs(data);
+		just_a_container.toFile("/home/stewess/Documents/gazebo_data.txt");
+		break;
 		cout<<endl<<"Please enter the name of the file you want to store the current data sets to."<<endl;
 		string save_file;
 		cin >> save_file;

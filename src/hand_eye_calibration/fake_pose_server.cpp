@@ -77,7 +77,7 @@ bool eyePositionService( hand_eye_calibration::CameraPose::Request& _req, hand_e
   _res.description.request_stamp = _req.request.request_stamp;
   _res.description.pose_found = true;
   _res.description.pose = getPose( _req.request.request_stamp ).eye_pose;
-    
+  
   return true;
 }
 

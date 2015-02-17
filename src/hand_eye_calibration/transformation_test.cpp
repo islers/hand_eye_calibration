@@ -22,6 +22,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include "hand_eye_calibration/estimation_data.h"
 #include "hand_eye_calibration/pose_creator.h"
 #include <random>
+#include <boost/foreach.hpp>
 
 using namespace std;
 
@@ -31,8 +32,122 @@ int main(int argc, char **argv)
   using namespace Eigen;
   using namespace st_is;
   
+  /*
+  
+  geometry_msgs::Pose eins;
+  eins.orientation.x = 0.4303;
+  eins.orientation.y = 0.7746;
+  eins.orientation.z = -0.1721;
+  eins.orientation.w = 0.4303;
+  eins.position.x = 3;
+  eins.position.y = 1;
+  eins.position.z = -5;
+  
+  Eigen::Matrix<double,3,4> zwei = transformationMatrix(eins);
+  */
+  /*cout<<endl<<"source:";
+  cout<<endl<<eins;
+  cout<<endl<<"target:";
+  cout<<endl<<zwei;
+  */
+  /*Eigen::Matrix<double,3,3> rot;
+  rot<<0,1,0, -1,0,0, 0,0,1;
+  cout<<endl<<"rotation matrix:";
+  cout<<endl<<rot;
+  Quaterniond q(rot);
+  cout<<endl<<"rotation quaternion:";
+  cout<<endl<<"x: "<<q.x();
+  cout<<endl<<"y: "<<q.y();
+  cout<<endl<<"z: "<<q.z();
+  cout<<endl<<"w: "<<q.w();
+  cout<<endl<<"rotation matrix from quaternion:";
+  cout<<endl<<q.toRotationMatrix();
+  Quaterniond q_2(0.707106,0,0,0.707106);
+  cout<<endl<<"rotation quaternion 2:";
+  cout<<endl<<"x: "<<q_2.x();
+  cout<<endl<<"y: "<<q_2.y();
+  cout<<endl<<"z: "<<q_2.z();
+  cout<<endl<<"w: "<<q_2.w();
+  cout<<endl<<"rotation matrix from quaternion 2:";
+  cout<<endl<<q_2.toRotationMatrix();
+  
+  Vector3d source(4,2,-3);
+  cout<<endl<<"Target of quaternion multiplication:";
+  cout<<endl<<source;
+  cout<<endl<<"Result of quaternion multiplication:";
+  cout<<endl<<q*source;
+  cout<<endl<<"Result of untransposed matrix multiplication:";
+  cout<<endl<<q.toRotationMatrix()*source;
+  cout<<endl<<"vec() output of q:";
+  cout<<endl<<q.vec();
+  Quaterniond direct_init(0.707106,0,0,0.707106);
+  cout<<endl<<"Quaternion from direct initialization:";
+  cout<<endl<<"x: "<<direct_init.x();
+  cout<<endl<<"y: "<<direct_init.y();
+  cout<<endl<<"z: "<<direct_init.z();
+  cout<<endl<<"w: "<<direct_init.w();
+  cout<<endl<<"Corresponding rotation:";
+  cout<<endl<<direct_init.toRotationMatrix();
+  
+  cout<<endl<<endl;
+  
+  return 0;*/
+  
   ros::init(argc, argv, "autonomous_hand_eye_calibration");
   ros::NodeHandle n("autonomous_hand_eye_calibration");
+  
+  /*Eigen::Matrix<double,3,3> trans1;
+  trans1<<0,1,0, -1,0,0, 0,0,1;
+  Eigen::Quaterniond transeye1(trans1);
+  cout<<endl<<"trans1 matrix as initialized:";
+  cout<<endl<<trans1;
+  cout<<endl<<"Quaternion:";
+  cout<<endl<<"x: "<<transeye1.x();
+  cout<<endl<<"y: "<<transeye1.y();
+  cout<<endl<<"z: "<<transeye1.z();
+  cout<<endl<<"w: "<<transeye1.w();
+  
+  double rot_angle = M_PI/2;//2*acos( transeye1.w() );
+  Eigen::Vector3d rot_axis( 1, 0, 0 );
+  rot_axis.normalize();
+  cout<<endl<<"the rotation axis is:";
+  cout<<endl<<rot_axis;
+  cout<<endl<<"the rotation angle is:";
+  cout<<endl<<rot_angle;
+  
+  Eigen::Matrix<double,3,3> rot_from_q;
+  rot_from_q = Eigen::AngleAxisd( rot_angle, rot_axis );
+  
+  cout<<endl<<"trans1 matrix from quaternion:";
+  cout<<endl<<rot_from_q;
+  cout<<endl;
+  return 0;*/
+  //---------------------------------------------------------------
+  
+  /*Eigen::Matrix<double,3,3> trans;
+  trans<<0,1,0, 1,0,0, 0,0,-1;
+  Eigen::Quaterniond transeye(trans);
+  cout<<endl<<"trans matrix as initialized:";
+  cout<<endl<<trans;
+  cout<<endl<<"Quaternion:";
+  cout<<endl<<"x: "<<transeye.x();
+  cout<<endl<<"y: "<<transeye.y();
+  cout<<endl<<"z: "<<transeye.z();
+  cout<<endl<<"w: "<<transeye.w();
+  return 0;*/
+  //---------------------------------------------------------------
+  
+  /*Eigen::Matrix<double,3,4> eye_pose;
+  eye_pose<<0,1,0,0, 1,0,0,0, 0,0,-1,8;
+  //eye_pose=eye_pose.inverse().eval();
+  geometry_msgs::Pose eye;
+  eye = st_is::geometryPose(eye_pose);
+  cout<<endl<<"eye pose matrix as initialized:";
+  cout<<endl<<eye_pose;
+  cout<<endl<<"corresponding geometry pose:";
+  cout<<endl<<eye<<endl<<endl<<endl<<endl<<endl<<endl;
+  return 0;
+  */
     
   // define relative pose of world to robot base
   Eigen::Matrix3d a1;
@@ -51,16 +166,16 @@ int main(int argc, char **argv)
   CoordinateTransformation hec_HE(hec_rot,hec_trans);
   
   PoseCreator artificial_poses( t_WB, hec_HE );
-  artificial_poses.addNoise( 0.1*M_PI/360, 0.01 );
+  artificial_poses.addNoise( 0.3*M_PI/360, 0.005 );
   //artificial_poses.setSeed( 123 );
-  artificial_poses.calcPosePairs( 5000 );
-  artificial_poses.toFile("/home/stewess/Documents/noise1_pose_set");
+  artificial_poses.calcPosePairs( 1000 );
+  //artificial_poses.toFile("/home/stewess/Documents/noise1_pose_set");
   //artificial_poses.fromFile("/home/stewess/Documents/pose_set");
   
   TransformationEstimator estimator(&n);
   estimator.setEstimationMethod(daniilidis_1998);
-  //std::vector<TransformationEstimator::PoseData> poses;
-  for( unsigned int i=0;i<3000;i++)
+  std::vector<TransformationEstimator::PoseData> poses;
+  for( unsigned int i=1;i<1000;i++)
   {
     /*hand_eye_calibration::CameraPose cam_pose_request;
     hand_eye_calibration::HandPose hand_pose_request;
@@ -77,8 +192,75 @@ int main(int argc, char **argv)
     new_data.eye_pose = cam_pose_request.response.description.pose;
     new_data.hand_pose = hand_pose_request.response.description.pose;
     poses.push_back(new_data);*/
+    TransformationEstimator::PoseData new_pose;
+    geometry_msgs::Pose eye;
+    switch(i)
+    {
+      case 1:
+      {
+	Eigen::Matrix<double,3,4> eye_pose;
+	eye_pose<<1,0,0,4, 0,1,0,3, 0,0,1,0;
+	//eye_pose=eye_pose.inverse().eval();
+	eye = st_is::geometryPose(eye_pose);
+	break;
+      }
+      case 2:
+      {
+	Eigen::Matrix<double,3,4> eye_pose;
+	eye_pose<<0,1,0,0, 1,0,0,0, 0,0,-1,8;
+	//eye_pose=eye_pose.inverse().eval();
+	eye = st_is::geometryPose(eye_pose);
+	break;
+      }
+      case 3:
+      {
+	Eigen::Matrix<double,3,4> eye_pose;
+	eye_pose<<0,0,1,-2, 0,1,0,-3, -1,0,0,5;
+	//eye_pose=eye_pose.inverse().eval();
+	eye = st_is::geometryPose(eye_pose);
+	break;
+      }
+    };
+    geometry_msgs::Pose hand;
+    switch(i)
+    {
+      case 1:
+      {
+	Eigen::Matrix<double,3,4> hand_pose;
+	hand_pose<<1,0,0,-3, 0,1,0,-2, 0,0,1,0;
+	//hand_pose=hand_pose.inverse().eval();
+	hand = st_is::geometryPose(hand_pose);
+	break;
+      }
+      case 2:
+      {
+	Eigen::Matrix<double,3,4> hand_pose;
+	hand_pose<<0,1,0,1, 1,0,0,1, 0,0,-1,8;
+	//hand_pose=hand_pose.inverse().eval();
+	hand = st_is::geometryPose(hand_pose);
+	break;
+      }
+      case 3:
+      {
+	Eigen::Matrix<double,3,4> hand_pose;
+	hand_pose<<0,0,-1,5, 0,1,0,4, 1,0,0,3;
+	//hand_pose=hand_pose.inverse().eval();
+	hand = st_is::geometryPose(hand_pose);
+	break;
+      }
+    };
+    new_pose.hand_pose = hand;
+    new_pose.eye_pose = eye;
+    poses.push_back(new_pose);
     estimator.addNewPosePair();
   }
+  
+  /*BOOST_FOREACH( TransformationEstimator::PoseData data, poses )
+  {
+    using namespace std;
+    cout<<endl<<"hand:"<<endl<<st_is::transformationMatrix(data.hand_pose);
+    cout<<endl<<"eye:"<<endl<<st_is::transformationMatrix(data.eye_pose);
+  }*/
   
   DaniilidisDualQuaternionEstimation estimation_method;
   //TransformationEstimator::EstimationData estimation = estimation_method.calculateTransformation( artificial_poses.posePairs() );
@@ -90,9 +272,9 @@ int main(int argc, char **argv)
   cout<<"rotation:"<<endl<<hec_HE.rotation.matrix()<<endl<<endl;
   cout<<"translation:"<<endl<<hec_HE.translation<<endl;
   
-  cout<<endl<<"Estimated transformation"<<endl<<"-------------------------"<<endl;
+  cout<<endl<<"Estimated transformation cam to hand"<<endl<<"-------------------------"<<endl;
   cout<<"rotation:"<<endl<<estimation.rot_HE().matrix()<<endl<<endl;
-  cout<<"translation:"<<endl<<estimation.transH2E()<<endl;
+  cout<<"translation:"<<endl<<estimation.H_trans_HE()<<endl;
   
   /*TransformationEstimator estimator(&n);
   estimator.loadFromFile( "/home/stewess/Documents/gazebo-hec-07-42.txt" );

@@ -36,11 +36,11 @@ std::string DaniilidisDualQuaternionEstimation::estimationMethod()
 
 std::string DaniilidisDualQuaternionEstimation::g_method_name_ = "dual_quaternion_estimation_daniilidis_1998";
 
-
+#include <boost/foreach.hpp>
 TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calculateTransformation( std::vector<TransformationEstimator::PoseData>& _pose_data, bool _suppressWarnings )
 {
   ROS_INFO("Calculating hand-eye transformation...");
-  
+    
   if( _pose_data.size()<=1 )
   {
     std::stringstream msg;
@@ -55,6 +55,24 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
     ROS_INFO("Going on with calculation...");
   }
   
+  /*for( auto i=0;i<_pose_data.size();i++ )
+  {
+    if(i==1)
+    {
+      _pose_data[i].hand_pose.orientation.x = -_pose_data[i].hand_pose.orientation.x;
+      _pose_data[i].hand_pose.orientation.y = -_pose_data[i].hand_pose.orientation.y;
+      _pose_data[i].hand_pose.orientation.z = -_pose_data[i].hand_pose.orientation.z;
+      _pose_data[i].hand_pose.orientation.w = -_pose_data[i].hand_pose.orientation.w;
+    }
+  }*/
+  
+  /*BOOST_FOREACH( auto pose, _pose_data )
+  {
+    cout<<endl<<"hand pose";
+    cout<<endl<<pose.hand_pose;
+    cout<<endl<<endl<<"eye pose";
+    cout<<endl<<pose.eye_pose;
+  }*/
   
   /* calculate movement transformations from pose to pose from base<->pose transformations and calculate
    * dual quaternions
@@ -78,6 +96,11 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
     Vector3d H2_trans_H2H1 = rot_H2B * ( B_trans_BH1-B_trans_BH2 );
     st_is::DualQuaternion dualQuat_H2H1( rot_H2H1, H2_trans_H2H1 );
     
+    geometry_msgs::Pose pose;
+    pose.orientation = st_is::eigenToGeometry(rot_H2H1);
+    pose.position = st_is::eigenToGeometry(H2_trans_H2H1);
+    //cout<<endl<<"transformation matrix:";
+    //cout<<endl<<st_is::transformationMatrix(pose);
     //cout<<endl<<"q:["<<dualQuat_H2H1.q.x()<<", "<<dualQuat_H2H1.q.y()<<", "<<dualQuat_H2H1.q.z()<<", "<<dualQuat_H2H1.q.w()<<"]";
     //cout<<endl<<"q':["<<dualQuat_H2H1.q_prime.x()<<", "<<dualQuat_H2H1.q_prime.y()<<", "<<dualQuat_H2H1.q_prime.z()<<", "<<dualQuat_H2H1.q_prime.w()<<"]";
     
@@ -94,7 +117,17 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
     Vector3d C2_trans_C2C1 = C2_trans_C2G - rot_C2C1*C1_trans_C1G;
     st_is::DualQuaternion dualQuat_C2C1( rot_C2C1, C2_trans_C2C1 );
     
+    //cout<<endl<<"q:["<<dualQuat_C2C1.q.x()<<", "<<dualQuat_C2C1.q.y()<<", "<<dualQuat_C2C1.q.z()<<", "<<dualQuat_C2C1.q.w()<<"]";
+    //cout<<endl<<"q':["<<dualQuat_C2C1.q_prime.x()<<", "<<dualQuat_C2C1.q_prime.y()<<", "<<dualQuat_C2C1.q_prime.z()<<", "<<dualQuat_C2C1.q_prime.w()<<"]";
+        
     cQ.push_back( dualQuat_C2C1 );
+    
+    if( dualQuat_H2H1.q.w()<0 || dualQuat_C2C1.q.w()<0 )
+    {
+      cout<<endl<<"H2H1.q: "<<dualQuat_H2H1.q.w()<<" , C2C1.q: "<<dualQuat_C2C1.q.w();
+      cout<<endl<<"H2H1.q_prime: "<<dualQuat_H2H1.q_prime.w()<<" , C2C1.q_prime: "<<dualQuat_C2C1.q_prime.w();
+      cout<<endl<<"------------------------------"<<endl;
+    }
   }
   
   // build  S(i)...
@@ -108,7 +141,10 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
     S[i] <<	hQ[i].q.vec()-cQ[i].q.vec()		,st_is::crossProdMatrix( hQ[i].q.vec()+cQ[i].q.vec() )		,Matrix<double,3,1>::Zero()			,Matrix<double,3,3>::Zero()
 		,hQ[i].q_prime.vec()-cQ[i].q_prime.vec()		,st_is::crossProdMatrix( hQ[i].q_prime.vec()+cQ[i].q_prime.vec() )	,hQ[i].q.vec()-cQ[i].q.vec()		,st_is::crossProdMatrix( hQ[i].q.vec()+cQ[i].q.vec());
   }
-    
+  /*cout<<endl<<endl;
+  cout<<endl<<S[0];
+  cout<<endl<<S[1];
+  cout<<endl<<endl;*/
   // build T
   Matrix<double,Dynamic,Dynamic> T; // 8*x-matrix
   for( unsigned int i=0; i<hQ.size(); i++ )
@@ -192,8 +228,8 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
   Matrix<double,8,1> qVec = lambda_1 * v_7 + lambda_2 * v_8;
   
   pair<Quaterniond,Quaterniond> q;
-  q.first = Quaterniond( qVec(0),qVec(1),qVec(2),qVec(3) ); // quaternion representing the rotation R_CH (hand to eye)
-  q.second = Quaterniond( qVec(4), qVec(5), qVec(6), qVec(7) );
+  q.first = Quaterniond( qVec(0),-qVec(1),-qVec(2),-qVec(3) ); // quaternion representing the rotation R_CH (hand to eye) : negatives because Eigen defines Quaternions differently
+  q.second = Quaterniond( qVec(4), -qVec(5), -qVec(6), -qVec(7) );
   
   //using namespace std;
   //cout<<endl<<v_7;
@@ -201,14 +237,13 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
   //cout<<endl<<"q:["<<qVec(0)<<", "<<qVec(1)<<", "<<qVec(2)<<", "<<qVec(3)<<"]";
   //cout<<endl<<"q':["<<qVec(4)<<", "<<qVec(5)<<", "<<qVec(6)<<", "<<qVec(7)<<"]";
   
-  Quaterniond rot_HE = q.first;
+  Quaterniond rot_EH = q.first;
   // calculate the translation
   Quaterniond t_p = q.second*q.first.conjugate();
   Vector3d t = 2*t_p.vec(); // translation vector representing the translation from hand- to eye-frame in hand coordinates
   
   // build output transformation
   Eigen::Vector3d E_trans_EH = t;
-  Quaterniond rot_EH = rot_HE.conjugate();
   
     
   TransformationEstimator::EstimationData new_estimate( estimationMethod(), rot_EH, E_trans_EH );

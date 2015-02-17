@@ -35,5 +35,7 @@ geometry_msgs::Quaternion eigenToGeometry( const Eigen::Quaterniond& _quat );
 
 /// returns the transformation matrix represented by _pose
 Eigen::Matrix<double,3,4> transformationMatrix( geometry_msgs::Pose& _pose );
+geometry_msgs::Pose geometryPose( Eigen::Matrix<double,3,4>& _pose );
+geometry_msgs::Pose geometryPose( Eigen::Matrix<double,4,4>& _pose );
     
 }

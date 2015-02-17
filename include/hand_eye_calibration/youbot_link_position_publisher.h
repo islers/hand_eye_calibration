@@ -46,6 +46,8 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 #include "hand_eye_calibration/HandPose.h"
 
+#include <Eigen/Core>
+#include "utils/ros_eigen.h"
 
 class YoubotLinkPositionPublisher
 {
@@ -62,6 +64,7 @@ class YoubotLinkPositionPublisher
 
     bool serviceHandPoseRequest( hand_eye_calibration::HandPose::Request& _req, hand_eye_calibration::HandPose::Response& _res );
   private:
+    int count;
     ros::Publisher pose_publisher_;
     ros::ServiceServer hand_position_server_;
     

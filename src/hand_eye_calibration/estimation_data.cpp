@@ -102,9 +102,9 @@ Eigen::Matrix<double,4,4> TransformationEstimator::EstimationData::matrixH2E()
 {
   Matrix<double,4,4> mH2E;
   
-  Vector3d E_t_HE = - (rotE2H()*E_trans_EH_);
+  Vector3d E_t_EH = E_trans_EH_;
   
-  mH2E<<rotH2E(), E_t_HE, 0, 0, 0, 1;
+  mH2E<<rotH2E(), E_t_EH, 0, 0, 0, 1;
   
   return mH2E;
 }
@@ -114,9 +114,9 @@ Eigen::Matrix<double,4,4> TransformationEstimator::EstimationData::matrixE2H()
 {
   Matrix<double,4,4> mE2H;
   
-  Vector3d H_t_EH = E_trans_EH_;
+  Vector3d H_t_HE = -( rotE2H()*E_trans_EH_ );
   
-  mE2H<<rotE2H(), H_t_EH, 0, 0, 0, 1;
+  mE2H<<rotE2H(), H_t_HE, 0, 0, 0, 1;
   
   return mE2H;
 }

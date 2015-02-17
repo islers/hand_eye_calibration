@@ -55,7 +55,11 @@ include_directories(include
   ${Boost_INCLUDE_DIRS}
 )
 
-add_executable(youbot_link_position_publisher src/hand_eye_calibration/youbot_link_position_publisher.cpp src/hand_eye_calibration/youbot_link_position_publisher_node.cpp)
+add_executable(youbot_link_position_publisher
+  src/hand_eye_calibration/youbot_link_position_publisher.cpp
+  src/hand_eye_calibration/youbot_link_position_publisher_node.cpp
+  src/utils/ros_eigen.cpp
+  )
 
 target_link_libraries(youbot_link_position_publisher
   ${catkin_LIBRARIES}
@@ -66,7 +70,10 @@ add_dependencies(youbot_link_position_publisher
  ${catkin_EXPORTED_TARGETS}
 )
 
-add_executable(tf2_republisher src/hand_eye_calibration/tf2_republisher.cpp src/hand_eye_calibration/tf2_republisher_node.cpp)
+add_executable(tf2_republisher
+  src/hand_eye_calibration/tf2_republisher.cpp
+  src/hand_eye_calibration/tf2_republisher_node.cpp
+)
 
 target_link_libraries(tf2_republisher
   ${catkin_LIBRARIES}
@@ -78,7 +85,11 @@ add_dependencies(tf2_republisher
  ${PROJECT_NAME}_generate_messages_cpp
 )
 
-add_executable(eye_position_from_checkerboard src/hand_eye_calibration/eye_position_from_checkerboard.cpp src/hand_eye_calibration/eye_position_from_checkerboard_node.cpp)
+add_executable(eye_position_from_checkerboard
+  src/hand_eye_calibration/eye_position_from_checkerboard.cpp
+  src/hand_eye_calibration/eye_position_from_checkerboard_node.cpp
+  src/utils/ros_eigen.cpp
+)
 
 target_link_libraries(eye_position_from_checkerboard
   ${catkin_LIBRARIES}
@@ -96,6 +107,7 @@ add_executable(dual_quaternion_transformation_estimator
   src/hand_eye_calibration/calibration_setup.cpp
   src/hand_eye_calibration/dual_quaternion_transformation_estimator.cpp
   src/hand_eye_calibration/dual_quaternion_estimation_node.cpp
+  src/hand_eye_calibration/pose_creator.cpp
   src/utils/eigen_utils.cpp
   src/utils/math.cpp
   src/utils/ros_eigen.cpp

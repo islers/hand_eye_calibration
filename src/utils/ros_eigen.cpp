@@ -29,7 +29,7 @@ Eigen::Vector3d geometryToEigen( const geometry_msgs::Point& _vec )
 
 
 Eigen::Quaterniond geometryToEigen( const geometry_msgs::Quaternion& _quat )
-{
+{// Eigen returns the rotation quaternion that would correspond to rotating the coordinate system, not the points/vectors, thus the transposition is necessary
   Eigen::Quaterniond output;
   output.x() = _quat.x;
   output.y() = _quat.y;
@@ -50,7 +50,7 @@ geometry_msgs::Point eigenToGeometry( const Eigen::Vector3d& _vec )
 
 
 geometry_msgs::Quaternion eigenToGeometry( const Eigen::Quaterniond& _quat )
-{
+{// Eigen returns the rotation quaternion that would correspond to rotating the coordinate system, not the points/vectors, thus the transposition is necessary
   geometry_msgs::Quaternion output;
   output.x = _quat.x();
   output.y = _quat.y();
@@ -66,10 +66,38 @@ Eigen::Matrix<double,3,4> transformationMatrix( geometry_msgs::Pose& _pose )
   Eigen::Vector3d translation = geometryToEigen( _pose.position );
   Eigen::Quaterniond rotation = geometryToEigen( _pose.orientation );
   
-  transformation_matrix.leftCols<3>() = rotation.matrix();
+  transformation_matrix.leftCols<3>() = rotation.toRotationMatrix();
   transformation_matrix.rightCols<1>() = translation;
   
   return transformation_matrix;
+}
+
+geometry_msgs::Pose geometryPose( Eigen::Matrix<double,3,4>& _pose )
+{
+  Eigen::Quaterniond rotation( _pose.leftCols<3>() );
+  /*using namespace std;
+  cout<<endl<<"temporary quaternion source matrix:";;
+  cout<<endl<<_pose.leftCols<3>();
+  cout<<endl<<"temporary quaternion:";
+  cout<<endl<<"x:"<<rotation.x();
+  cout<<endl<<"y:"<<rotation.y();
+  cout<<endl<<"z:"<<rotation.z();
+  cout<<endl<<"w:"<<rotation.w();
+  cout<<endl<<"which still represents the rotation matrix:";
+  cout<<endl<<rotation.matrix();*/
+  geometry_msgs::Pose pose;
+  pose.orientation = eigenToGeometry( rotation );
+  pose.position = eigenToGeometry( _pose.rightCols<1>() );
+  return pose;
+}
+
+geometry_msgs::Pose geometryPose( Eigen::Matrix<double,4,4>& _pose )
+{
+  Eigen::Quaterniond rotation( _pose.topLeftCorner<3,3>() );
+  geometry_msgs::Pose pose;
+  pose.orientation = eigenToGeometry( rotation );
+  pose.position = eigenToGeometry( _pose.topRightCorner<3,1>() );
+  return pose;
 }
 
 }

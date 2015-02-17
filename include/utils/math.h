@@ -23,6 +23,14 @@ along with math. If not, see <http://www.gnu.org/licenses/>.
 namespace st_is
 {
   
+extern double machine_precision;
+/// checks whether _to_check is within machine_precision close to zero
+bool approxIsZero( double _to_check );
+/// checks whether _to_check is more than _to_check smaller than zero
+bool approxLessZero( double _to_check );
+/// checks whether _to_check is more than _to_check greater than zero
+bool approxGreaterZero( double _to_check );
+  
 /** simple solver for the quadratic equation a*x² + bx + c = 0
 *  Returns false if the roots are imaginary, otherwhise the two roots are stored in _roots - twice
 *  the same value if only one root exists.

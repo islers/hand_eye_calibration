@@ -76,6 +76,8 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
 
+#include <Eigen/Core>
+#include "utils/ros_eigen.h"
 
 class EyePositionFromCheckerboard
 {
@@ -91,6 +93,7 @@ class EyePositionFromCheckerboard
     bool serviceCameraPoseRequest( hand_eye_calibration::CameraPose::Request& _req, hand_eye_calibration::CameraPose::Response& _res );
     bool serviceCameraPoseInfoRequest( hand_eye_calibration::CameraPoseInfo::Request& _req, hand_eye_calibration::CameraPoseInfo::Response& _res );
   private:
+    int count;
     ros::Publisher pose_publisher_;
     ros::Subscriber camera_stream_;
     ros::Subscriber camera_info_subscriber_;

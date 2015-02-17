@@ -19,7 +19,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
  
 EyePositionFromCheckerboard::EyePositionFromCheckerboard( ros::NodeHandle* _n ):
-camera_data_retrieved_(false)
+camera_data_retrieved_(false),count(0)
 {
   me_myself_and_i_ = boost::shared_ptr<EyePositionFromCheckerboard>(this);
   
@@ -164,7 +164,7 @@ bool EyePositionFromCheckerboard::serviceCameraPoseRequest( hand_eye_calibration
   ros::Time request_stamp = _req.request.request_stamp;
   ros::Duration max_wait_time = _req.request.max_wait_time;
   ros::Time request_time = ros::Time::now();
-  
+  count++;
   ros::Time time_limit = request_time+max_wait_time;
     
   ros::Rate rate(100.0); //Hz
@@ -191,6 +191,30 @@ bool EyePositionFromCheckerboard::serviceCameraPoseRequest( hand_eye_calibration
 	_res.description.point_coordinates = checkerboard_corners;
 		
 	_res.description.pose = last_checkerboard_pose_;
+	switch(count)
+	{
+	  case 1:
+	  {
+	    Eigen::Matrix<double,3,4> eye_pose;
+	    eye_pose<<1,0,0,4, 0,1,0,3, 0,0,1,0;
+	    _res.description.pose = st_is::geometryPose(eye_pose);
+	    break;
+	  }
+	  case 2:
+	  {
+	    Eigen::Matrix<double,3,4> eye_pose;
+	    eye_pose<<0,1,0,0, 1,0,0,0, 0,0,-1,8;
+	    _res.description.pose = st_is::geometryPose(eye_pose);
+	    break;
+	  }
+	  case 3:
+	  {
+	    Eigen::Matrix<double,3,4> eye_pose;
+	    eye_pose<<0,0,1,-2, 0,1,0,-3, -1,0,0,5;
+	    _res.description.pose = st_is::geometryPose(eye_pose);
+	    break;
+	  }
+	};
 	
 	last_checkerboard_image_->toImageMsg(_res.description.image);
 	

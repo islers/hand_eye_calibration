@@ -116,7 +116,16 @@ bool TransformationEstimator::addNewPosePair()
   new_data.hand_pose = hand_pose_request.response.description.pose;
    
   pose_data_.push_back( new_data );
-      
+  
+  /*
+  using namespace std;
+  cout<<endl<<"eye pose:"<<endl;
+  cout<<st_is::transformationMatrix(new_data.eye_pose);
+  cout<<endl<<"hand pose:"<<endl;
+  cout<<st_is::transformationMatrix(new_data.hand_pose);
+  cout<<endl<<endl;
+  */
+  
   return true;
 }
 
