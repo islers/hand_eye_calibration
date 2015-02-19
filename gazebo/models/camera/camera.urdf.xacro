@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<robot name="camera" xmlns:xacro="http://ros.org/wiki/xacro">
+
+	<xacro:include filename="$(find hand_eye_calibration)/gazebo/models/camera/camera.gazebo.xacro" />
+	
+	<!-- materials for visualization -->
+	<xacro:include filename="$(find hand_eye_calibration)/gazebo/models/materials.urdf.xacro" />
+	
+	<xacro:property name="cameraSize" value="0.03"/>
+	<xacro:property name="cameraMass" value="0.01"/>
+	
+	<gazebo>
+	  <static>true</static>
+	</gazebo>
+	<link name="camera_base">
+	</link>	
+ 
+	<joint name="cameramount" type="fixed">
+	  <origin xyz="0 0 0" rpy="0 0 0" />
+	  <parent link="camera_base"/>
+	  <child link="camera" />
+	</joint>
+	
+	<link name="camera">
+	  <collision>
+	    <origin xyz="0 0 0" rpy="0 0 0"/>
+	    <geometry>
+	      <box size="${cameraSize*2} ${cameraSize} ${cameraSize}"/>
+	    </geometry>
+	  </collision>
+
+	  <visual>
+	    <origin xyz="0 0 0" rpy="0 0 0"/>
+	    <geometry>
+	      <box size="${cameraSize*2} ${cameraSize} ${cameraSize}"/>
+	    </geometry>
+	    <material name="Black"/>
+	  </visual>
+
+	  <inertial>
+	    <mass value="${cameraMass}" />
+	    <origin xyz="0 0 0" rpy="0 0 0"/>
+	    <box_inertia m="${cameraMass*2}" x="${cameraSize}" y="${cameraSize}" z="${cameraSize}" />
+	  </inertial>
+	</link>
+	
+	<!-- extensions -->
+	<xacro:camera_settings />
+</robot>

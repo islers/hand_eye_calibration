@@ -15,6 +15,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "hand_eye_calibration/eye_position_from_checkerboard.h"
+#include "boost/foreach.hpp"
 
 using namespace std;
  
@@ -381,10 +382,16 @@ bool EyePositionFromCheckerboard::init()
   {
     for( int j=0; j<pattern_size_.width; j++ )
     {
-      object_point_coordinates_.push_back( cv::Point3f( j*squareSize, i*squareSize, 0 ) ); // x,y,z
+      object_point_coordinates_.push_back( cv::Point3f( i*squareSize, j*squareSize, 0 ) ); // x,y,z
     }
   }
-  
+  using namespace std;
+  cout<<endl<<"[";
+  BOOST_FOREACH( cv::Point3f point, object_point_coordinates_ )
+  {
+    cout<<point<<endl;
+  }
+  cout<<"]"<<endl<<endl<<endl;
   
   return true;
 }

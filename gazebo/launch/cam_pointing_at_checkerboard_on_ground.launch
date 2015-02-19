@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<launch>
+	<!-- start gazebo empty world-->
+	<param name="/use_sim_time" value="true" />
+	<!-- loads gazebo and a simulation environment -->
+	<include file="$(find gazebo_ros)/launch/empty_world.launch">	    
+	  <arg name="world_name" value="$(find hand_eye_calibration)/gazebo/worlds/checkerboard_on_floor_edge_at_x0y0.world"/>
+		<arg name="gui" value="true"/>	  
+	</include>
+	
+	
+	<!-- send camera urdf to param server -->
+	<param name="robot_description" command="$(find xacro)/xacro.py '$(find hand_eye_calibration)/gazebo/models/camera/camera.urdf.xacro'"/>
+
+	<!-- push robot_description to factory and spawn robot in gazebo -->
+	<node pkg="gazebo_ros" type="spawn_model" name="spawn_robot" respawn="false" output="screen"
+	args="-param robot_description
+	      -urdf
+	      -x 0
+	      -y 0
+	      -z 0.8
+	      -R 0
+	      -P 1.570796327
+	      -Y 3.141592654
+	      -model camera">
+	</node>
+</launch>
