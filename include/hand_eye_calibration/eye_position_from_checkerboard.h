@@ -93,7 +93,6 @@ class EyePositionFromCheckerboard
     bool serviceCameraPoseRequest( hand_eye_calibration::CameraPose::Request& _req, hand_eye_calibration::CameraPose::Response& _res );
     bool serviceCameraPoseInfoRequest( hand_eye_calibration::CameraPoseInfo::Request& _req, hand_eye_calibration::CameraPoseInfo::Response& _res );
   private:
-    int count;
     ros::Publisher pose_publisher_;
     ros::Subscriber camera_stream_;
     ros::Subscriber camera_info_subscriber_;

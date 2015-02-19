@@ -19,7 +19,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
  
 EyePositionFromCheckerboard::EyePositionFromCheckerboard( ros::NodeHandle* _n ):
-camera_data_retrieved_(false),count(0)
+camera_data_retrieved_(false)
 {
   me_myself_and_i_ = boost::shared_ptr<EyePositionFromCheckerboard>(this);
   
@@ -82,7 +82,7 @@ void EyePositionFromCheckerboard::run()
 	if( chessboard_wait_counter++ > 10 )
 	{
 	  chessboard_wait_counter=0;
-	  ROS_INFO("Chessboard wasn't found in the given image");
+	  //ROS_INFO("Chessboard wasn't found in the given image");
 	}
       }
       cv::imshow( "Checkerboard publisher", current_image_->image );
@@ -91,7 +91,7 @@ void EyePositionFromCheckerboard::run()
     {
       if( image_wait_counter++ > 30 )
       {
-	ROS_WARN("EyePositionFromCheckerboard::run()::no new image available: waiting...");
+	//ROS_WARN("EyePositionFromCheckerboard::run()::no new image available: waiting...");
 	image_wait_counter=0;
       }
       //ros::Rate(30).sleep();
@@ -139,7 +139,7 @@ void EyePositionFromCheckerboard::cameraInfoUpdate( const sensor_msgs::CameraInf
   
   if( _newCamInfo->distortion_model != "plumb_bob" )
   {
-    ROS_ERROR("The distortion model of the published camera_info data is unknown. It is '%s' but should be 'plumb_bob'",_newCamInfo->distortion_model.c_str());
+    ROS_ERROR("The distortion model of the published camera_info data is unknown. It is '%s' but should be 'plumb_bob', which is the only one currently supported.",_newCamInfo->distortion_model.c_str());
     return;
   }
   distortion_coefficients_ = cv::Mat(5, 1, CV_64F);
@@ -164,7 +164,7 @@ bool EyePositionFromCheckerboard::serviceCameraPoseRequest( hand_eye_calibration
   ros::Time request_stamp = _req.request.request_stamp;
   ros::Duration max_wait_time = _req.request.max_wait_time;
   ros::Time request_time = ros::Time::now();
-  count++;
+  
   ros::Time time_limit = request_time+max_wait_time;
     
   ros::Rate rate(100.0); //Hz
@@ -191,34 +191,14 @@ bool EyePositionFromCheckerboard::serviceCameraPoseRequest( hand_eye_calibration
 	_res.description.point_coordinates = checkerboard_corners;
 		
 	_res.description.pose = last_checkerboard_pose_;
-	switch(count)
-	{
-	  case 1:
-	  {
-	    Eigen::Matrix<double,3,4> eye_pose;
-	    eye_pose<<1,0,0,4, 0,1,0,3, 0,0,1,0;
-	    _res.description.pose = st_is::geometryPose(eye_pose);
-	    break;
-	  }
-	  case 2:
-	  {
-	    Eigen::Matrix<double,3,4> eye_pose;
-	    eye_pose<<0,1,0,0, 1,0,0,0, 0,0,-1,8;
-	    _res.description.pose = st_is::geometryPose(eye_pose);
-	    break;
-	  }
-	  case 3:
-	  {
-	    Eigen::Matrix<double,3,4> eye_pose;
-	    eye_pose<<0,0,1,-2, 0,1,0,-3, -1,0,0,5;
-	    _res.description.pose = st_is::geometryPose(eye_pose);
-	    break;
-	  }
-	};
+	//std::cout<<std::endl<<"Checkerboard pose:"<<std::endl<<last_checkerboard_pose_<<std::endl;
+	// matlab format output:
+	cout<<endl<<endl<<"eye pose"<<":"<<endl<<"["<<last_checkerboard_pose_.orientation.x<<" "<<last_checkerboard_pose_.orientation.y<<" "<<last_checkerboard_pose_.orientation.z<<" "<<last_checkerboard_pose_.orientation.w<<"]"<<endl;
+	cout<<"["<<last_checkerboard_pose_.position.x<<"; "<<last_checkerboard_pose_.position.y<<"; "<<last_checkerboard_pose_.position.z<<"]"<<endl;
 	
 	last_checkerboard_image_->toImageMsg(_res.description.image);
 	
-	ROS_INFO_STREAM("Called successfully.");	
+	ROS_INFO_STREAM("'serviceCameraPoseRequest' was called successfully.");	
 	return true;
       }
       else
@@ -274,10 +254,10 @@ EyePositionFromCheckerboard::ImageState EyePositionFromCheckerboard::processImag
 	  
 	  geometry_msgs::Pose cameraPose = geometryPoseFromVectors( rotation_vector, translation_vector );
 	  
-	  cout<<endl<<"New camera pose found:"<<endl;
+	  /*cout<<endl<<"New camera pose found:"<<endl;
 	  cout<<endl<<"The translation vector is:"<<endl<<translation_vector<<endl<<endl<<"which has a length of "<<cv::norm( translation_vector, cv::NORM_L2 )<<" m."<<endl;
 	  cout<<endl<<"The rotation vector is "<<endl<<rotation_vector<<endl;
-	  
+	  */
 	  // save last "checkerboard state"
 	  last_image_retrieval_with_chkrbrd_ = last_image_retrieval_;
 	  checkerboard_corner_coordinates_ = chkbrdCorners;
@@ -308,8 +288,8 @@ bool EyePositionFromCheckerboard::calculateChessboardCorners( cv::Mat& _image, c
   if( chessboardFound )
   {
     cv::Mat grayImage;
-    cv::cvtColor( _image, grayImage, CV_BGR2GRAY);
-    cv::cornerSubPix( grayImage, _chkbrdCorners, cv::Size(11,11), cv::Size(-1,-1), cv::TermCriteria( CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 30, 0.1 ));
+    cv::cvtColor( _image, grayImage, CV_BGR2GRAY, 0);
+    cv::cornerSubPix( grayImage, _chkbrdCorners, cv::Size(11,11), cv::Size(-1,-1), cv::TermCriteria( CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 40, 0.001 ));
     return true;
   }
   
@@ -333,6 +313,9 @@ geometry_msgs::Pose EyePositionFromCheckerboard::geometryPoseFromVectors( cv::Ma
   cameraPose.position.y = _translation_vector.at<double>(1);
   cameraPose.position.z = _translation_vector.at<double>(2);
   
+  /*using namespace std;
+  cout<<endl<<endl<<"angle axis description: ["<<_rotation_vector.at<double>(0)<<", "<<_rotation_vector.at<double>(1)<<_rotation_vector.at<double>(2)<<"]"<<endl<<endl;*/
+  
   // calculate quaternion for rotation from rotation vector
   double thetaHalf = cv::norm( _rotation_vector, cv::NORM_L2 )/2;
   double scale = 0.5/thetaHalf;
@@ -342,6 +325,8 @@ geometry_msgs::Pose EyePositionFromCheckerboard::geometryPoseFromVectors( cv::Ma
   cameraPose.orientation.y = _rotation_vector.at<double>(1)*sinThetaHalfScaled;
   cameraPose.orientation.z = _rotation_vector.at<double>(2)*sinThetaHalfScaled;
   cameraPose.orientation.w = cos(thetaHalf);
+  
+  //cout<<endl<<endl<<"my quaternion description:"<<cameraPose<<endl<<endl;
   
   return cameraPose;
 }
@@ -391,7 +376,7 @@ bool EyePositionFromCheckerboard::init()
    the OpenCV findChessboardCorners-function orders the point sequentially in an array row by row, left to right in every row.
    x-axis along rows, y-axis along columns, z-axis perpendicular to it */
   
-  object_point_coordinates_;
+  object_point_coordinates_.clear();
   for( int i=0; i<pattern_size_.height; i++ )
   {
     for( int j=0; j<pattern_size_.width; j++ )

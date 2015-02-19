@@ -19,7 +19,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 
 YoubotLinkPositionPublisher::YoubotLinkPositionPublisher( ros::NodeHandle* _n, int _sourceId, int _targetId ):
-tf2_listener_(tf_core_),count(0)
+tf2_listener_(tf_core_)
 {
   ros_node_ = _n;
   
@@ -81,7 +81,7 @@ bool YoubotLinkPositionPublisher::serviceHandPoseRequest( hand_eye_calibration::
 {
   ros::Time request_time = ros::Time::now();
   ros::Duration max_wait_time = _req.request.max_wait_time;
-  count++;
+  
   ros::Time time_limit = request_time+max_wait_time;
   
   _res.description.stamp = request_time;
@@ -94,30 +94,10 @@ bool YoubotLinkPositionPublisher::serviceHandPoseRequest( hand_eye_calibration::
     if( calculateTransformation(newPose) )
     {
       _res.description.pose = newPose;
-      switch(count)
-	{
-	  case 1:
-	  {
-	    Eigen::Matrix<double,3,4> hand_pose;
-	    hand_pose<<1,0,0,-3, 0,1,0,-2, 0,0,1,0;
-	    _res.description.pose = st_is::geometryPose(hand_pose);
-	    break;
-	  }
-	  case 2:
-	  {
-	    Eigen::Matrix<double,3,4> hand_pose;
-	    hand_pose<<0,1,0,1, 1,0,0,1, 0,0,-1,8;
-	    _res.description.pose = st_is::geometryPose(hand_pose);
-	    break;
-	  }
-	  case 3:
-	  {
-	    Eigen::Matrix<double,3,4> hand_pose;
-	    hand_pose<<0,0,-1,5, 0,1,0,4, 1,0,0,3;
-	    _res.description.pose = st_is::geometryPose(hand_pose);
-	    break;
-	  }
-	};
+      //std::cout<<std::endl<<"hand pose:"<<std::endl<<newPose<<std::endl;
+	// matlab format output:
+      cout<<endl<<endl<<"hand pose"<<":"<<endl<<"["<<newPose.orientation.x<<" "<<newPose.orientation.y<<" "<<newPose.orientation.z<<" "<<newPose.orientation.w<<"]"<<endl;
+      cout<<"["<<newPose.position.x<<"; "<<newPose.position.y<<"; "<<newPose.position.z<<"]"<<endl;
       _res.description.pose_found = true;
       return true;
     }
@@ -141,14 +121,16 @@ bool YoubotLinkPositionPublisher::calculateTransformation( geometry_msgs::Pose& 
   }
   catch( tf2::TransformException& ex)
   {
-    ROS_ERROR("YoubotLinkPositionPublisher::run:: %s", ex.what() );
+    //ROS_WARN("YoubotLinkPositionPublisher::run::Transformation not yet available, TF reports: %s", ex.what() );
     return false;
   }
-  std::cout<<std::endl<<transformation;
   _hand_pose.position.x = transformation.transform.translation.x;
   _hand_pose.position.y = transformation.transform.translation.y;
   _hand_pose.position.z = transformation.transform.translation.z;
-  _hand_pose.orientation = transformation.transform.rotation;
+  _hand_pose.orientation.x = transformation.transform.rotation.x;
+  _hand_pose.orientation.y = transformation.transform.rotation.y;
+  _hand_pose.orientation.z = transformation.transform.rotation.z;
+  _hand_pose.orientation.w = transformation.transform.rotation.w;
   
   return true;
 }

@@ -31,6 +31,7 @@ int main(int argc, char **argv)
 {
   using namespace Eigen;
   using namespace st_is;
+  using namespace std;
   
   /*
   
@@ -168,14 +169,14 @@ int main(int argc, char **argv)
   PoseCreator artificial_poses( t_WB, hec_HE );
   artificial_poses.addNoise( 0.3*M_PI/360, 0.005 );
   //artificial_poses.setSeed( 123 );
-  artificial_poses.calcPosePairs( 1000 );
+  //artificial_poses.calcPosePairs( 1000 );
   //artificial_poses.toFile("/home/stewess/Documents/noise1_pose_set");
-  //artificial_poses.fromFile("/home/stewess/Documents/pose_set");
+  artificial_poses.fromFile("/home/stewess/Documents/gazebo_data_17-2");
   
   TransformationEstimator estimator(&n);
   estimator.setEstimationMethod(daniilidis_1998);
   std::vector<TransformationEstimator::PoseData> poses;
-  for( unsigned int i=1;i<1000;i++)
+  for( unsigned int i=1;i<4;i++)
   {
     /*hand_eye_calibration::CameraPose cam_pose_request;
     hand_eye_calibration::HandPose hand_pose_request;
@@ -200,6 +201,7 @@ int main(int argc, char **argv)
       {
 	Eigen::Matrix<double,3,4> eye_pose;
 	eye_pose<<1,0,0,4, 0,1,0,3, 0,0,1,0;
+	cout<<endl<<endl<<"eye pose matrix "<<i<<":"<<endl<<eye_pose;
 	//eye_pose=eye_pose.inverse().eval();
 	eye = st_is::geometryPose(eye_pose);
 	break;
@@ -208,6 +210,7 @@ int main(int argc, char **argv)
       {
 	Eigen::Matrix<double,3,4> eye_pose;
 	eye_pose<<0,1,0,0, 1,0,0,0, 0,0,-1,8;
+	cout<<endl<<endl<<"eye pose matrix "<<i<<":"<<endl<<eye_pose;
 	//eye_pose=eye_pose.inverse().eval();
 	eye = st_is::geometryPose(eye_pose);
 	break;
@@ -216,11 +219,15 @@ int main(int argc, char **argv)
       {
 	Eigen::Matrix<double,3,4> eye_pose;
 	eye_pose<<0,0,1,-2, 0,1,0,-3, -1,0,0,5;
+	cout<<endl<<endl<<"eye pose matrix "<<i<<":"<<endl<<eye_pose;
 	//eye_pose=eye_pose.inverse().eval();
 	eye = st_is::geometryPose(eye_pose);
 	break;
       }
     };
+    cout<<endl<<endl<<"eye pose "<<i<<":"<<endl<<"["<<eye.orientation.x<<" "<<eye.orientation.y<<" "<<eye.orientation.z<<" "<<eye.orientation.w<<"]"<<endl;
+    cout<<"["<<eye.position.x<<"; "<<eye.position.y<<"; "<<eye.position.z<<"]"<<endl;
+    
     geometry_msgs::Pose hand;
     switch(i)
     {
@@ -228,6 +235,7 @@ int main(int argc, char **argv)
       {
 	Eigen::Matrix<double,3,4> hand_pose;
 	hand_pose<<1,0,0,-3, 0,1,0,-2, 0,0,1,0;
+	cout<<endl<<endl<<"hand pose matrix "<<i<<":"<<endl<<hand_pose;
 	//hand_pose=hand_pose.inverse().eval();
 	hand = st_is::geometryPose(hand_pose);
 	break;
@@ -236,6 +244,7 @@ int main(int argc, char **argv)
       {
 	Eigen::Matrix<double,3,4> hand_pose;
 	hand_pose<<0,1,0,1, 1,0,0,1, 0,0,-1,8;
+	cout<<endl<<endl<<"hand pose matrix "<<i<<":"<<endl<<hand_pose;
 	//hand_pose=hand_pose.inverse().eval();
 	hand = st_is::geometryPose(hand_pose);
 	break;
@@ -244,15 +253,19 @@ int main(int argc, char **argv)
       {
 	Eigen::Matrix<double,3,4> hand_pose;
 	hand_pose<<0,0,-1,5, 0,1,0,4, 1,0,0,3;
+	cout<<endl<<endl<<"hand pose matrix "<<i<<":"<<endl<<hand_pose;
 	//hand_pose=hand_pose.inverse().eval();
 	hand = st_is::geometryPose(hand_pose);
 	break;
       }
     };
+    cout<<endl<<endl<<"hand pose "<<i<<":"<<endl<<"["<<hand.orientation.x<<" "<<hand.orientation.y<<" "<<hand.orientation.z<<" "<<hand.orientation.w<<"]"<<endl;
+    cout<<"["<<hand.position.x<<"; "<<hand.position.y<<"; "<<hand.position.z<<"]"<<endl;
+    
     new_pose.hand_pose = hand;
     new_pose.eye_pose = eye;
     poses.push_back(new_pose);
-    estimator.addNewPosePair();
+    //estimator.addNewPosePair();
   }
   
   /*BOOST_FOREACH( TransformationEstimator::PoseData data, poses )
@@ -264,8 +277,8 @@ int main(int argc, char **argv)
   
   DaniilidisDualQuaternionEstimation estimation_method;
   //TransformationEstimator::EstimationData estimation = estimation_method.calculateTransformation( artificial_poses.posePairs() );
-  //TransformationEstimator::EstimationData estimation = estimation_method.calculateTransformation( poses );
-  TransformationEstimator::EstimationData estimation = estimator.getNewEstimation();
+  TransformationEstimator::EstimationData estimation = estimation_method.calculateTransformation( poses );
+  //TransformationEstimator::EstimationData estimation = estimator.getNewEstimation();
   
   cout<<endl<<"Correct transformation"<<endl<<"-------------------------"<<endl;
   
@@ -292,7 +305,21 @@ int main(int argc, char **argv)
   cout<<endl<<"Estimated transformation"<<endl<<"-------------------------"<<endl;
   cout<<"rotation:"<<endl<<estimation.rot_HE().matrix()<<endl<<endl;
   cout<<"translation:"<<endl<<estimation.transE2H()<<endl;*/
+  cout<<endl<<endl<<"------////////////////////////////"<<endl<<"final test dings und so:"<<endl;
+  Quaterniond q(0.1302, 0.007, 0.9915, -0.0013);
+  cout<<"quaternion is: [x,y,z,w]: "<<"["<<q.x()<<", "<<q.y()<<", "<<q.z()<<", "<<q.w()<<"]";
+  cout<<"the corresponding matrix according to eigen is:"<<endl;
+  cout<<q.toRotationMatrix()<<endl<<endl<<endl;
   
+  Quaterniond q2(0.0016,  0.5199,  -0.0020, 0.8542);
+  cout<<"q2uaternion is: [x,y,z,w]: "<<"["<<q2.x()<<", "<<q2.y()<<", "<<q2.z()<<", "<<q2.w()<<"]";
+  cout<<"the corresponding matrix according to eigen is:"<<endl;
+  cout<<q2.toRotationMatrix()<<endl<<endl<<endl;
+  
+  Quaterniond q3(0.2463, 0, -0.9626, -0.1129);
+  cout<<"q3uaternion is: [x,y,z,w]: "<<"["<<q3.x()<<", "<<q3.y()<<", "<<q3.z()<<", "<<q3.w()<<"]";
+  cout<<"the corresponding matrix according to eigen is:"<<endl;
+  cout<<q3.toRotationMatrix()<<endl<<endl<<endl;
   
   return 0;
 } 

@@ -76,12 +76,12 @@ int main(int argc, char **argv)
 		}
       case 's':	{
 		std::vector<TransformationEstimator::PoseData> data = estimator.poseData();
-		PoseCreator just_a_container;
+		/*PoseCreator just_a_container;
 		just_a_container.setPosePairs(data);
-		just_a_container.toFile("/home/stewess/Documents/gazebo_data.txt");
-		break;
+		just_a_container.toFile("/home/stewess/Documents/gazebo_data_17-2.txt");
+		*/
 		cout<<endl<<"Please enter the name of the file you want to store the current data sets to."<<endl;
-		string save_file;
+		string save_file;//="gazebo_data_17-2.txt";
 		cin >> save_file;
 		if( estimator.printToFile( save_file ) ) cout<<endl<<"Data successfully saved to file."<<endl;
 		else cout<<endl<<"Saving data to file failed."<<endl;

@@ -64,7 +64,6 @@ class YoubotLinkPositionPublisher
 
     bool serviceHandPoseRequest( hand_eye_calibration::HandPose::Request& _req, hand_eye_calibration::HandPose::Response& _res );
   private:
-    int count;
     ros::Publisher pose_publisher_;
     ros::ServiceServer hand_position_server_;
     

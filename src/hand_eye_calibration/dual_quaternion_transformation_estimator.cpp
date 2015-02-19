@@ -122,12 +122,12 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
         
     cQ.push_back( dualQuat_C2C1 );
     
-    if( dualQuat_H2H1.q.w()<0 || dualQuat_C2C1.q.w()<0 )
+    /*if( dualQuat_H2H1.q.w()<0 || dualQuat_C2C1.q.w()<0 )
     {
       cout<<endl<<"H2H1.q: "<<dualQuat_H2H1.q.w()<<" , C2C1.q: "<<dualQuat_C2C1.q.w();
       cout<<endl<<"H2H1.q_prime: "<<dualQuat_H2H1.q_prime.w()<<" , C2C1.q_prime: "<<dualQuat_C2C1.q_prime.w();
       cout<<endl<<"------------------------------"<<endl;
-    }
+    }*/
   }
   
   // build  S(i)...
@@ -228,7 +228,7 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
   Matrix<double,8,1> qVec = lambda_1 * v_7 + lambda_2 * v_8;
   
   pair<Quaterniond,Quaterniond> q;
-  q.first = Quaterniond( qVec(0),-qVec(1),-qVec(2),-qVec(3) ); // quaternion representing the rotation R_CH (hand to eye) : negatives because Eigen defines Quaternions differently
+  q.first = Quaterniond( qVec(0),-qVec(1),-qVec(2),-qVec(3) ); // quaternion representing the rotation R_CH (hand to eye) : negatives simply easy way to adjust the direction
   q.second = Quaterniond( qVec(4), -qVec(5), -qVec(6), -qVec(7) );
   
   //using namespace std;
