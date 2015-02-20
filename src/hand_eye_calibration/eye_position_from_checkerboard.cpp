@@ -190,12 +190,12 @@ bool EyePositionFromCheckerboard::serviceCameraPoseRequest( hand_eye_calibration
 	  checkerboard_corners.push_back( point );
 	}
 	_res.description.point_coordinates = checkerboard_corners;
-		
 	_res.description.pose = last_checkerboard_pose_;
+	
 	//std::cout<<std::endl<<"Checkerboard pose:"<<std::endl<<last_checkerboard_pose_<<std::endl;
 	// matlab format output:
-	cout<<endl<<endl<<"eye pose"<<":"<<endl<<"["<<last_checkerboard_pose_.orientation.x<<" "<<last_checkerboard_pose_.orientation.y<<" "<<last_checkerboard_pose_.orientation.z<<" "<<last_checkerboard_pose_.orientation.w<<"]"<<endl;
-	cout<<"["<<last_checkerboard_pose_.position.x<<"; "<<last_checkerboard_pose_.position.y<<"; "<<last_checkerboard_pose_.position.z<<"]"<<endl;
+	cout<<endl<<endl<<"eye pose"<<":"<<endl<<"["<<_res.description.pose.orientation.x<<" "<<_res.description.pose.orientation.y<<" "<<_res.description.pose.orientation.z<<" "<<_res.description.pose.orientation.w<<"]"<<endl;
+	cout<<"["<<_res.description.pose.position.x<<"; "<<_res.description.pose.position.y<<"; "<<_res.description.pose.position.z<<"]"<<endl;
 	
 	last_checkerboard_image_->toImageMsg(_res.description.image);
 	
@@ -307,8 +307,6 @@ void EyePositionFromCheckerboard::calculatePose( cv::vector<cv::Point2f>& _chkbr
 
 geometry_msgs::Pose EyePositionFromCheckerboard::geometryPoseFromVectors( cv::Mat& _rotation_vector, cv::Mat& _translation_vector )
 {
-  // create the ROS message
-	  
   geometry_msgs::Pose cameraPose;
   cameraPose.position.x = _translation_vector.at<double>(0);
   cameraPose.position.y = _translation_vector.at<double>(1);
@@ -385,13 +383,6 @@ bool EyePositionFromCheckerboard::init()
       object_point_coordinates_.push_back( cv::Point3f( i*squareSize, j*squareSize, 0 ) ); // x,y,z
     }
   }
-  using namespace std;
-  cout<<endl<<"[";
-  BOOST_FOREACH( cv::Point3f point, object_point_coordinates_ )
-  {
-    cout<<point<<endl;
-  }
-  cout<<"]"<<endl<<endl<<endl;
   
   return true;
 }

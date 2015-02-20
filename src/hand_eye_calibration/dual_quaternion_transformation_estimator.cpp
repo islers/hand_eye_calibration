@@ -96,9 +96,9 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
     Vector3d H2_trans_H2H1 = rot_H2B * ( B_trans_BH1-B_trans_BH2 );
     st_is::DualQuaternion dualQuat_H2H1( rot_H2H1, H2_trans_H2H1 );
     
-    geometry_msgs::Pose pose;
-    pose.orientation = st_is::eigenToGeometry(rot_H2H1);
-    pose.position = st_is::eigenToGeometry(H2_trans_H2H1);
+    //geometry_msgs::Pose pose;
+    //pose.orientation = st_is::eigenToGeometry(rot_H2H1);
+    //pose.position = st_is::eigenToGeometry(H2_trans_H2H1);
     //cout<<endl<<"transformation matrix:";
     //cout<<endl<<st_is::transformationMatrix(pose);
     //cout<<endl<<"q:["<<dualQuat_H2H1.q.x()<<", "<<dualQuat_H2H1.q.y()<<", "<<dualQuat_H2H1.q.z()<<", "<<dualQuat_H2H1.q.w()<<"]";
