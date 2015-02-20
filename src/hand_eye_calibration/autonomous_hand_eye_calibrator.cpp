@@ -378,7 +378,7 @@ bool AutonomousHandEyeCalibrator::calculateNextJointPosition()
     bool collision_free = isCollisionFree(current_scene, state_to_check);
     new_state_found = new_state_found && collision_free;
     
-    if( collision_free && estimators_.front()->count()>4 ) // start using hec estimate if (x) pose pairs are available
+    if( collision_free /*&& estimators_.front()->count()>4*/ ) // start using hec estimate if (x) pose pairs are available ////////////////////////////////// readd second part or something similar when actual estimates are being used ///////////////////////////////////
     {
       std::vector<geometry_msgs::Point> pattern_coordinates_camera_frame;
       getCameraFrameCoordinates( state_to_check, pattern_coordinates_camera_frame );
@@ -438,7 +438,7 @@ geometry_msgs::Pose AutonomousHandEyeCalibrator::getCameraWorldPose( robot_state
    * - R: space of last actuated robot link
    * - G: planning frame (model frame) of the moveit robot object
    */
-  TransformationEstimator::EstimationData current_hec_estimate = estimators_.front()->estimate();
+  TransformationEstimator::EstimationData current_hec_estimate("daniilidis_1998", Eigen::Quaterniond(0.707, 0, 0.707, 0), Eigen::Vector3d(0,0,-0.04) );// = estimators_.front()->estimate();
   st_is::CoordinateTransformation t_EH( current_hec_estimate.rot_EH(), current_hec_estimate.E_trans_EH() );
   
   st_is::CoordinateTransformation t_BP = estimators_.front()->getCalibrationPatternPoseEstimate(current_hec_estimate);
