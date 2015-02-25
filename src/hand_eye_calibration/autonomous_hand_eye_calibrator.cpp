@@ -20,7 +20,6 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include <boost/foreach.hpp>
 
 #include "hand_eye_calibration/autonomous_hand_eye_calibrator.h"
-#include "hand_eye_calibration/estimation_data.h"
 #include "utils/ros_eigen.h"
 
 #include "hand_eye_calibration/CameraPose.h"
@@ -72,6 +71,34 @@ AutonomousHandEyeCalibrator::AutonomousHandEyeCalibrator( ros::NodeHandle* _n ):
   else
   {
     pattern_safety_distance_square_ = pattern_safety_distance*pattern_safety_distance;
+  }
+  //if( ros_node_->getParam("hec_estimate") )
+  {
+    Eigen::Quaterniond rotation;
+    Eigen::Vector3d translation;
+    if( ros_node_->getParam("hec_estimate/translation/x",translation(0) ) &&
+	ros_node_->getParam("hec_estimate/translation/y",translation(1) ) &&
+	ros_node_->getParam("hec_estimate/translation/z",translation(2) ) &&
+	ros_node_->getParam("hec_estimate/rotation/x",rotation.x() ) &&
+	ros_node_->getParam("hec_estimate/rotation/y",rotation.y() ) &&
+	ros_node_->getParam("hec_estimate/rotation/z",rotation.z() ) &&
+	ros_node_->getParam("hec_estimate/rotation/w",rotation.w() ) )
+    {
+      manual_hec_estimate_ = boost::shared_ptr<TransformationEstimator::EstimationData>(new TransformationEstimator::EstimationData("manual_hec_estimate",rotation,translation) );
+      use_manual_hec_estimate_  = true;
+      ROS_INFO("Using the following hand-eye transformation estimate for calculations:");
+      std::cout<<std::endl;
+      std::cout<<"rotation:"<<std::endl<<rotation.matrix();
+      std::cout<<"translation:"<<std::endl<<translation<<std::endl;
+    }
+    else
+    {
+      use_manual_hec_estimate_ = false;
+    }
+  }
+  if( !ros_node_->getParam("trusting_threshold",trusting_threshold_) )
+  {
+    trusting_threshold_ = 4;
   }
   
   // initialize estimators
@@ -378,11 +405,10 @@ bool AutonomousHandEyeCalibrator::calculateNextJointPosition()
     bool collision_free = isCollisionFree(current_scene, state_to_check);
     new_state_found = new_state_found && collision_free;
     
-    if( collision_free /*&& estimators_.front()->count()>4*/ ) // start using hec estimate if (x) pose pairs are available ////////////////////////////////// readd second part or something similar when actual estimates are being used ///////////////////////////////////
+    if( collision_free && (estimators_.front()->count()>trusting_threshold_ || use_manual_hec_estimate_)  ) // start using hec estimate if (x) pose pairs are available
     {
       std::vector<geometry_msgs::Point> pattern_coordinates_camera_frame;
       getCameraFrameCoordinates( state_to_check, pattern_coordinates_camera_frame );
-      //calibrationPatternExpectedVisible(pattern_coordinates_camera_frame);// debug code - delete this line!/////////////////////////////////////////////////////////
       if( !pattern_coordinates_camera_frame.empty() ) // empty if no estimates are available
       {
 	bool good_pattern_position = relativePositionToPatternAcceptable( pattern_coordinates_camera_frame );
@@ -438,10 +464,20 @@ geometry_msgs::Pose AutonomousHandEyeCalibrator::getCameraWorldPose( robot_state
    * - R: space of last actuated robot link
    * - G: planning frame (model frame) of the moveit robot object
    */
-  TransformationEstimator::EstimationData current_hec_estimate("daniilidis_1998", Eigen::Quaterniond(0.707, 0, 0, 0.707), Eigen::Vector3d(0,0.04,0) );// = estimators_.front()->estimate();
-  st_is::CoordinateTransformation t_EH( current_hec_estimate.rot_EH(), current_hec_estimate.E_trans_EH() );
   
-  st_is::CoordinateTransformation t_BP = estimators_.front()->getCalibrationPatternPoseEstimate(current_hec_estimate);
+  boost::shared_ptr<TransformationEstimator::EstimationData> current_hec_estimate;
+  if( use_manual_hec_estimate_ )
+  {
+    current_hec_estimate = manual_hec_estimate_;
+  }
+  else
+  {
+    current_hec_estimate = boost::shared_ptr<TransformationEstimator::EstimationData>( new TransformationEstimator::EstimationData(estimators_.front()->estimate()) );
+  }
+  
+  st_is::CoordinateTransformation t_EH( current_hec_estimate->rot_EH(), current_hec_estimate->E_trans_EH() );
+  
+  st_is::CoordinateTransformation t_BP = estimators_.front()->getCalibrationPatternPoseEstimate(*current_hec_estimate);
   
     
   Eigen::Matrix<double,4,4> m_GH = _robot.getFrameTransform( robot_hand_frame_ ).matrix();

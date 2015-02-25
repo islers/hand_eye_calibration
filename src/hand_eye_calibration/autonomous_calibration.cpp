@@ -55,8 +55,6 @@ int main(int argc, char **argv)
 	cout<<endl<<"Relative transformationn error for translation: "<<relative_error.relative_translation_error.mean<<" +/- "<<sqrt(relative_error.relative_translation_error.variance);
       }
     }
-    char egal;
-    //std::cin>>egal;
     //rate.sleep();
     //calibrator.printToFile("/home/stewss/Documents/simulation_data.txt");
   }

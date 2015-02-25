@@ -20,6 +20,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 #include "utils/numeric_iterator.h"
 #include "utils/continuous_x_dim_space_iterator.h"
 #include "hand_eye_calibration/dual_quaternion_transformation_estimator.h"
+#include "hand_eye_calibration/estimation_data.h"
 #include <moveit/move_group_interface/move_group.h>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit/robot_state/robot_state.h>
@@ -101,6 +102,10 @@ private:
   
   std::string robot_base_frame_; /// name of the robot base frame used by the hand pose publisher
   std::string robot_hand_frame_; /// name of the robot hand frame used by the hand pose publisher
+  
+  int trusting_threshold_; /// after how many measurements the hand-eye-estimate is expected to be sufficiently close to be used for visibility estimates etc
+  bool use_manual_hec_estimate_; /// sets whether to use the manually set hand-eye transformation to calculate expected visibility internally or the current estimate from measurements
+  boost::shared_ptr<TransformationEstimator::EstimationData> manual_hec_estimate_; /// manually set transformation estimate t_EH (hand to eye)
   
   /// loads the joint dimension names, limits and step sizes, initializes joint_position_ accordingly
   /** @throws ROS_FATAL if a correct configuration wasn't found on the parameter server and shuts down the node

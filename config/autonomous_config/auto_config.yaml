@@ -14,6 +14,17 @@ moveit_group_name: arm
 estimation_type: dual_quaternion # not used yet
 robot_base_frame: arm_link_0
 hand_frame: arm_link_5
+hec_estimate:
+  translation:
+    x:0
+    y:0.04
+    z:0
+  rotation:
+    x:0
+    y:0
+    z:0.707
+    w:0.707
+trusting_threshold: 4 # nr of measurements until hec estimate might be used (if hec_estimate isn't set)
 
 image_border_tolerance: 20
-pattern_safety_distance: 0.2 # minimal distance the camera coordinate system origin may have from calculated pattern positions[m]
+pattern_safety_distance: 0.2 # minimal distance the camera coordinate system origin must have from calculated pattern positions[m]
