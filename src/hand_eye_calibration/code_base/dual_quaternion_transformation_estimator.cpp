@@ -41,10 +41,10 @@ TransformationEstimator::EstimationData DaniilidisDualQuaternionEstimation::calc
 {
   ROS_INFO("Calculating hand-eye transformation...");
     
-  if( _pose_data.size()<=1 )
+  if( _pose_data.size()<=2 )
   {
     std::stringstream msg;
-    msg<<"DaniilidisDualQuaternionEstimation::calculateTransformation:: At least two hand-eye pose pairs are necessary for computation."<<"Number of pose pairs currently available for computation: "<<(int)_pose_data.size()<<" Aborting transformation computation.";
+    msg<<"DaniilidisDualQuaternionEstimation::calculateTransformation:: At least three hand-eye pose pairs are necessary for computation."<<"Number of pose pairs currently available for computation: "<<(int)_pose_data.size()<<" Aborting transformation computation.";
     ROS_ERROR_STREAM(msg.str());
     throw std::runtime_error(msg.str());
   }
