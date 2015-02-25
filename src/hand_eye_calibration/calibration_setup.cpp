@@ -94,7 +94,7 @@ void CalibrationSetup::getCameraFrameCoordinates( geometry_msgs::Pose _camera_po
   }
   return;
 }
-
+//#include <boost/foreach.hpp>
 void CalibrationSetup::getImageCoordinates( std::vector<geometry_msgs::Point>& _camera_coordinates, std::vector<hand_eye_calibration::Point2D>& _projected_coordinates )
 {
   if( !isSetup() )
@@ -106,6 +106,16 @@ void CalibrationSetup::getImageCoordinates( std::vector<geometry_msgs::Point>& _
   Eigen::Matrix<double,4,Eigen::Dynamic> calib_pattern_camera_coordinates;
   calib_pattern_camera_coordinates.resize( 4,_camera_coordinates.size() );
   
+  /*// debug test code ///////////////////////////////////////////////////////////////////////////////
+  using namespace std;
+  cout<<endl<<endl<<"Passed point vector includes:";
+  BOOST_FOREACH( auto point, _camera_coordinates )
+  {
+    cout<<endl<<"point: "<<point.x<<" | "<<point.y<<" | "<<point.z;
+  }
+  cout<<endl<<endl<<"The used camera projection matrix is:";
+  cout<<endl<<camera_projection_matrix_<<endl<<endl<<endl;
+  ////////////////////////////////////////////////////////////////////////////////////////////////////*/
   for( unsigned int i=0; i<_camera_coordinates.size(); i++ )
   {
     calib_pattern_camera_coordinates(0,i) = _camera_coordinates[i].x;
@@ -116,6 +126,7 @@ void CalibrationSetup::getImageCoordinates( std::vector<geometry_msgs::Point>& _
   // unnormalized coordinates;
   Eigen::Matrix<double,3,Eigen::Dynamic> calib_pattern_image_coordinates_unnormalized;
   calib_pattern_image_coordinates_unnormalized = camera_projection_matrix_*calib_pattern_camera_coordinates;
+  
   
   // normalize coordinates (true perspective)  
   for( unsigned int i=0; i<_camera_coordinates.size(); i++ )

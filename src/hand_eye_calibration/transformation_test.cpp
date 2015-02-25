@@ -33,6 +33,43 @@ int main(int argc, char **argv)
   using namespace st_is;
   using namespace std;
   
+  
+  // test CalibrationSetup class:
+  CalibrationSetup setup;
+  Eigen::Matrix<double,3,4> trafo;
+  trafo<<1,0,0,0, 0,1,0,0, 0,0,1,0;
+  
+  std::vector<geometry_msgs::Point> calib_pattern_world;
+  geometry_msgs::Point a;
+  a.x = 0.5;
+  a.y = 0.5;
+  a.z = 0;
+  
+  calib_pattern_world.push_back(a);
+  
+  int image_height=300;
+  int image_width=300;
+  
+  setup.setData(trafo,calib_pattern_world,image_height,image_width);
+  
+  geometry_msgs::Pose cam_pose;
+  cam_pose.orientation.x=0;
+  cam_pose.orientation.y=0;
+  cam_pose.orientation.z=0;
+  cam_pose.orientation.w=1;
+  cam_pose.position.x = 0;
+  cam_pose.position.y = 0;
+  cam_pose.position.z = 1;
+  
+  std::vector<geometry_msgs::Point> return_coord;
+  setup.getCameraFrameCoordinates(cam_pose,return_coord);
+  
+  BOOST_FOREACH( auto point, return_coord )
+  {
+    cout<<endl<<"Point: "<<point.x<<"|"<<point.y<<"|"<<point.z<<endl;
+  }
+  
+  return 0;
   /*
   
   geometry_msgs::Pose eins;

@@ -152,7 +152,7 @@ bool AutonomousHandEyeCalibrator::runSingleIteration()
       }
     }
   }
-  
+  /*
   if( estimators_.front()->count()>4 )
   {
     using namespace std;
@@ -161,7 +161,7 @@ bool AutonomousHandEyeCalibrator::runSingleIteration()
     cout<<endl<<endl;
     ros::Duration(5).sleep();
   }
-   
+   */
   
   return true;
 }
@@ -382,7 +382,7 @@ bool AutonomousHandEyeCalibrator::calculateNextJointPosition()
     {
       std::vector<geometry_msgs::Point> pattern_coordinates_camera_frame;
       getCameraFrameCoordinates( state_to_check, pattern_coordinates_camera_frame );
-      
+      //calibrationPatternExpectedVisible(pattern_coordinates_camera_frame);// debug code - delete this line!/////////////////////////////////////////////////////////
       if( !pattern_coordinates_camera_frame.empty() ) // empty if no estimates are available
       {
 	bool good_pattern_position = relativePositionToPatternAcceptable( pattern_coordinates_camera_frame );
@@ -438,24 +438,38 @@ geometry_msgs::Pose AutonomousHandEyeCalibrator::getCameraWorldPose( robot_state
    * - R: space of last actuated robot link
    * - G: planning frame (model frame) of the moveit robot object
    */
-  TransformationEstimator::EstimationData current_hec_estimate("daniilidis_1998", Eigen::Quaterniond(0.707, 0, 0.707, 0), Eigen::Vector3d(0,0,-0.04) );// = estimators_.front()->estimate();
+  TransformationEstimator::EstimationData current_hec_estimate("daniilidis_1998", Eigen::Quaterniond(0.707, 0, 0, 0.707), Eigen::Vector3d(0,0.04,0) );// = estimators_.front()->estimate();
   st_is::CoordinateTransformation t_EH( current_hec_estimate.rot_EH(), current_hec_estimate.E_trans_EH() );
   
   st_is::CoordinateTransformation t_BP = estimators_.front()->getCalibrationPatternPoseEstimate(current_hec_estimate);
+  
     
-  Eigen::Matrix<double,4,4> m_HG = _robot.getFrameTransform( robot_hand_frame_ ).matrix();
-  Eigen::Quaterniond quat_HG( m_HG.topLeftCorner<3,3>() );
-  Eigen::Vector3d H_t_HG = m_HG.topRightCorner<3,1>();
-  st_is::CoordinateTransformation t_HG( quat_HG, H_t_HG );
+  Eigen::Matrix<double,4,4> m_GH = _robot.getFrameTransform( robot_hand_frame_ ).matrix();
+  Eigen::Quaterniond quat_GH( m_GH.topLeftCorner<3,3>() );
+  Eigen::Vector3d G_t_GH = m_GH.topRightCorner<3,1>();
+  st_is::CoordinateTransformation t_GH( quat_GH, G_t_GH );
   
-  Eigen::Matrix<double,4,4> m_BG = _robot.getFrameTransform( robot_base_frame_ ).matrix();
-  Eigen::Quaterniond quat_BG( m_BG.topLeftCorner<3,3>() );
-  Eigen::Vector3d B_t_BG = m_BG.topRightCorner<3,1>();
-  st_is::CoordinateTransformation t_BG( quat_BG, B_t_BG );
+  Eigen::Matrix<double,4,4> m_GB = _robot.getFrameTransform( robot_base_frame_ ).matrix();
+  Eigen::Quaterniond quat_GB( m_GB.topLeftCorner<3,3>() );
+  Eigen::Vector3d G_t_GB = m_GB.topRightCorner<3,1>();
+  st_is::CoordinateTransformation t_GB( quat_GB, G_t_GB );
   
-  st_is::CoordinateTransformation t_GB = t_BG.inv();  
+  st_is::CoordinateTransformation t_HG = t_GH.inv();  
   st_is::CoordinateTransformation t_HB = t_HG*t_GB;
   st_is::CoordinateTransformation t_EB = t_EH*t_HB;
+  
+  /*// DEBUG CODE ///////////////////////////////////
+  using namespace std; using namespace st_is;
+  cout<<endl<<"robot hand frame is: "<<robot_hand_frame_;
+  cout<<endl<<"robot base frame is: "<<robot_base_frame_;
+  cout<<endl<<endl<<"getCalibrationPatternPoseEstimate output, t_HB:"<<endl;
+  cout<<"rotation:"<<endl<<t_HB.rotation.matrix();
+  cout<<endl<<"translation:"<<endl<<eigenToGeometry(t_HB.translation);
+  
+  cout<<endl<<endl<<"getCalibrationPatternPoseEstimate output, t_GB:"<<endl;
+  cout<<"rotation:"<<endl<<t_GB.rotation.matrix();
+  cout<<endl<<"translation:"<<endl<<eigenToGeometry(t_GB.translation);
+  // DEBUG CODE ///////////////////////////////////*/
   
   st_is::CoordinateTransformation t_EP = t_EB*t_BP;
   geometry_msgs::Pose camera_pose;
@@ -480,6 +494,22 @@ void AutonomousHandEyeCalibrator::getCameraFrameCoordinates( robot_state::RobotS
   
   geometry_msgs::Pose camera_pose = getCameraWorldPose(_robot);
   estimators_.front()->getCalibrationSetup().getCameraFrameCoordinates( camera_pose, _pattern_coordinates );
+  
+  
+  /*// DEBUG CODE //////////////////////////////////////////////////////
+  using namespace std;
+  cout<<endl<<endl<<"The calculated geometry camera pose is:"<<endl<<camera_pose;
+  cout<<endl<<"The calculated corresponding pattern coordinates in camera frame are:";
+  BOOST_FOREACH( auto point, _pattern_coordinates )
+  {
+    cout<<endl<<"point: ("<<point.x<<" | "<<point.y<<" | "<<point.z<<")";
+  }
+  cout<<endl<<endl;
+  char ha;
+  cin>>ha;
+  exit(1);
+  // DEBUG CODE //////////////////////////////////////////////////////*/
+  
   return;
 }
 
@@ -521,6 +551,16 @@ bool AutonomousHandEyeCalibrator::calibrationPatternExpectedVisible( std::vector
   std::vector<hand_eye_calibration::Point2D> projected_calibration_pattern;
   
   estimators_.front()->getCalibrationSetup().getImageCoordinates(_pattern_coordinates, projected_calibration_pattern );
+  
+  /*/// debug test code /////////////////////////////////////////////////////////////////////////////////////
+  using namespace std;
+  BOOST_FOREACH( auto point, projected_calibration_pattern )
+  {
+    cout<<endl<<"image point:"<<point.x<<" | "<<point.y<<endl;
+  }
+  char test;
+  cin>>test;
+  /// debug test code //////////////////////////////////////////////////////////////////////////////////////*/
   
   // check if all projected points are inside the image frame, enlarged using the image border tolerance value
   double x_upper_bound = estimators_.front()->getCalibrationSetup().imageWidth() + image_border_tolerance_;

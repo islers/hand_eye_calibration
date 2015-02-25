@@ -60,7 +60,7 @@ public:
   
   /** Returns a vector with all projected coordinates of points given an array of the points in camera frame coordinates
    * @param _camera_coordinates Vector with the point coordinates in camera frame coordinates
-   * @param _projected_coordinates vector with the points projected on the camera image plane
+   * @param _projected_coordinates vector with the points projected onto the camera image plane
    * @throws runtime_error if the object hasn't been setup yet
    */
   void getImageCoordinates( std::vector<geometry_msgs::Point>& _camera_coordinates, std::vector<hand_eye_calibration::Point2D>& _projected_coordinates );

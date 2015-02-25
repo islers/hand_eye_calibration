@@ -133,7 +133,7 @@ class EyePositionFromCheckerboard
      */
     void calculatePose( cv::vector<cv::Point2f>& _chkbrdCorners, cv::Mat& _rotation_vector, cv::Mat& _translation_vector );
     
-    /// calculates a gemoetry_msgs::Pose structure from given rotation and translation vectors
+    /// calculates a geometry_msgs::Pose structure from given rotation and translation vectors
     /**
      * @param _rotation_vector represents R_CO (rotation matrix from object to camera coordinates)
      * @param _translation_vector position of the object origin in camera coordinates
