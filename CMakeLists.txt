@@ -56,8 +56,8 @@ include_directories(include
 )
 
 add_executable(youbot_link_position_publisher
-  src/hand_eye_calibration/youbot_link_position_publisher.cpp
-  src/hand_eye_calibration/youbot_link_position_publisher_node.cpp
+  src/hand_eye_calibration/code_base/youbot_link_position_publisher.cpp
+  src/hand_eye_calibration/ros_nodes/youbot_link_position_publisher_node.cpp
   src/utils/ros_eigen.cpp
   )
 
@@ -71,8 +71,8 @@ add_dependencies(youbot_link_position_publisher
 )
 
 add_executable(tf2_republisher
-  src/hand_eye_calibration/tf2_republisher.cpp
-  src/hand_eye_calibration/tf2_republisher_node.cpp
+  src/hand_eye_calibration/code_base/tf2_republisher.cpp
+  src/hand_eye_calibration/ros_nodes/tf2_republisher_node.cpp
 )
 
 target_link_libraries(tf2_republisher
@@ -86,8 +86,8 @@ add_dependencies(tf2_republisher
 )
 
 add_executable(eye_position_from_checkerboard
-  src/hand_eye_calibration/eye_position_from_checkerboard.cpp
-  src/hand_eye_calibration/eye_position_from_checkerboard_node.cpp
+  src/hand_eye_calibration/code_base/eye_position_from_checkerboard.cpp
+  src/hand_eye_calibration/ros_nodes/eye_position_from_checkerboard_node.cpp
   src/utils/ros_eigen.cpp
 )
 
@@ -102,12 +102,12 @@ add_dependencies(eye_position_from_checkerboard
 )
 
 add_executable(dual_quaternion_transformation_estimator
-  src/hand_eye_calibration/transformation_estimator.cpp
-  src/hand_eye_calibration/estimation_data.cpp
-  src/hand_eye_calibration/calibration_setup.cpp
-  src/hand_eye_calibration/dual_quaternion_transformation_estimator.cpp
-  src/hand_eye_calibration/dual_quaternion_estimation_node.cpp
-  src/hand_eye_calibration/pose_creator.cpp
+  src/hand_eye_calibration/code_base/transformation_estimator.cpp
+  src/hand_eye_calibration/code_base/estimation_data.cpp
+  src/hand_eye_calibration/code_base/calibration_setup.cpp
+  src/hand_eye_calibration/code_base/dual_quaternion_transformation_estimator.cpp
+  src/hand_eye_calibration/ros_nodes/dual_quaternion_estimation_node.cpp
+  src/hand_eye_calibration/code_base/pose_creator.cpp
   src/utils/eigen_utils.cpp
   src/utils/math.cpp
   src/utils/ros_eigen.cpp
@@ -124,13 +124,13 @@ add_dependencies(dual_quaternion_transformation_estimator
 )
 
 add_executable(autonomous_hand_eye_calibration
-  src/hand_eye_calibration/autonomous_calibration.cpp
-  src/hand_eye_calibration/autonomous_hand_eye_calibrator.cpp
-  src/hand_eye_calibration/dual_quaternion_transformation_estimator.cpp
-  src/hand_eye_calibration/transformation_estimator.cpp
-  src/hand_eye_calibration/estimation_data.cpp
-  src/hand_eye_calibration/calibration_setup.cpp
-  src/hand_eye_calibration/pose_creator.cpp
+  src/hand_eye_calibration/ros_nodes/autonomous_calibration.cpp
+  src/hand_eye_calibration/code_base/autonomous_hand_eye_calibrator.cpp
+  src/hand_eye_calibration/code_base/dual_quaternion_transformation_estimator.cpp
+  src/hand_eye_calibration/code_base/transformation_estimator.cpp
+  src/hand_eye_calibration/code_base/estimation_data.cpp
+  src/hand_eye_calibration/code_base/calibration_setup.cpp
+  src/hand_eye_calibration/code_base/pose_creator.cpp
   src/utils/eigen_utils.cpp
   src/utils/math.cpp
   src/utils/ros_eigen.cpp
@@ -147,13 +147,13 @@ add_dependencies(autonomous_hand_eye_calibration
 )
 
 add_executable(transformation_test
-  src/hand_eye_calibration/transformation_test.cpp
-  src/hand_eye_calibration/autonomous_hand_eye_calibrator.cpp
-  src/hand_eye_calibration/dual_quaternion_transformation_estimator.cpp
-  src/hand_eye_calibration/transformation_estimator.cpp
-  src/hand_eye_calibration/estimation_data.cpp
-  src/hand_eye_calibration/calibration_setup.cpp
-  src/hand_eye_calibration/pose_creator.cpp
+  src/hand_eye_calibration/ros_nodes/transformation_test.cpp
+  src/hand_eye_calibration/code_base/autonomous_hand_eye_calibrator.cpp
+  src/hand_eye_calibration/code_base/dual_quaternion_transformation_estimator.cpp
+  src/hand_eye_calibration/code_base/transformation_estimator.cpp
+  src/hand_eye_calibration/code_base/estimation_data.cpp
+  src/hand_eye_calibration/code_base/calibration_setup.cpp
+  src/hand_eye_calibration/code_base/pose_creator.cpp
   src/utils/eigen_utils.cpp
   src/utils/math.cpp
   src/utils/ros_eigen.cpp
@@ -170,11 +170,11 @@ add_dependencies(transformation_test
 )
 
 add_executable(fake_pose_server
-  src/hand_eye_calibration/fake_pose_server.cpp
-  src/hand_eye_calibration/transformation_estimator.cpp
-  src/hand_eye_calibration/estimation_data.cpp
-  src/hand_eye_calibration/calibration_setup.cpp
-  src/hand_eye_calibration/pose_creator.cpp
+  src/hand_eye_calibration/ros_nodes/fake_pose_server.cpp
+  src/hand_eye_calibration/code_base/transformation_estimator.cpp
+  src/hand_eye_calibration/code_base/estimation_data.cpp
+  src/hand_eye_calibration/code_base/calibration_setup.cpp
+  src/hand_eye_calibration/code_base/pose_creator.cpp
   src/utils/eigen_utils.cpp
   src/utils/math.cpp
   src/utils/ros_eigen.cpp
