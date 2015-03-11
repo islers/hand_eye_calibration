@@ -16,6 +16,7 @@ along with hand_eye_calibration. If not, see <http://www.gnu.org/licenses/>.
 
 #include <sstream>
 #include <boost/foreach.hpp>
+#include <fstream>
 
 #include "hand_eye_calibration/transformation_estimator.h" 
 #include "hand_eye_calibration/transformation_estimation_method.h"
@@ -787,6 +788,33 @@ bool TransformationEstimator::printToFile( string fileName_ )
   }
   
   return 1;
+}
+
+
+bool TransformationEstimator::hecToYaml( std::string fileName_ )
+{
+  if( !estimationPossible() )
+    return false;
+  
+  EstimationData current_estimate = estimate();
+  
+  Eigen::Vector3d translation = current_estimate.E_trans_EH();
+  Eigen::Quaterniond rotation = current_estimate.rot_EH();
+  
+  std::ofstream out(fileName_+".yaml",std::ofstream::trunc);
+  out<<"hec:\n";
+  out<<"  "<<"arm2image: #transform from arm frame to image frame\n";
+  out<<"  "<<"  "<<"translation:";
+  out<<"  "<<"  "<<"  "<<"x: "<<translation.x()<<"\n";
+  out<<"  "<<"  "<<"  "<<"y: "<<translation.y()<<"\n";
+  out<<"  "<<"  "<<"  "<<"z: "<<translation.z()<<"\n";
+  out<<"  "<<"  "<<"rotation:";
+  out<<"  "<<"  "<<"  "<<"x: "<<rotation.x()<<"\n";
+  out<<"  "<<"  "<<"  "<<"y: "<<rotation.y()<<"\n";
+  out<<"  "<<"  "<<"  "<<"z: "<<rotation.z()<<"\n";
+  out<<"  "<<"  "<<"  "<<"w: "<<rotation.w();
+  out.close();
+  return true;
 }
 
 

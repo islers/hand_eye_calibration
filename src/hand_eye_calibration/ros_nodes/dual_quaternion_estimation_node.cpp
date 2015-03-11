@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     ros::spinOnce();
     
     cout<<endl<<"Currently "<<estimator.count()<<" hand-eye pose-correspondences have been added."<<endl;
-    cout<<endl<<"If you are satisfied with the hand and eye poses currently published and want to add them to the estimation set, press the 'a' key. If you want to start the estimation procedure, press 'e'. To delete the last added pair, type 'd', to delete all sets and restart from scratch, type 'c'. To load data from file, type 'l', to store the data to a file, type 's'. 'q' quits the programm"<<endl;
+    cout<<endl<<"If you are satisfied with the hand and eye poses currently published and want to add them to the estimation set, press the 'a' key. If you want to start the estimation procedure, press 'e'. To delete the last added pair, type 'd', to delete all sets and restart from scratch, type 'c'. To load data from file, type 'l', to store the data to a file, type 's', 'y' to write the current estimation to a yaml file. 'q' quits the programm"<<endl;
     char user_input;
     cin >> user_input;
     
@@ -75,15 +75,18 @@ int main(int argc, char **argv)
 		break;
 		}
       case 's':	{
-		std::vector<TransformationEstimator::PoseData> data = estimator.poseData();
-		/*PoseCreator just_a_container;
-		just_a_container.setPosePairs(data);
-		just_a_container.toFile("/home/stewess/Documents/gazebo_data_17-2.txt");
-		*/
 		cout<<endl<<"Please enter the name of the file you want to store the current data sets to."<<endl;
 		string save_file;//="gazebo_data_17-2.txt";
 		cin >> save_file;
 		if( estimator.printToFile( save_file ) ) cout<<endl<<"Data successfully saved to file."<<endl;
+		else cout<<endl<<"Saving data to file failed."<<endl;
+		break;
+		}
+      case 'y':	{
+		cout<<endl<<"Please enter the name of the file you want to store the current data sets to, the .yaml extension will be added."<<endl;
+		string save_file;//="gazebo_data_17-2.txt";
+		cin >> save_file;
+		if( estimator.hecToYaml( save_file ) ) cout<<endl<<"Data successfully saved to file."<<endl;
 		else cout<<endl<<"Saving data to file failed."<<endl;
 		break;
 		}

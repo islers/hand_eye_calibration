@@ -196,6 +196,12 @@ public:
      */
     virtual bool printToFile( std::string fileName_ );
     
+    /** saves the current hand eye calibration to a yaml file
+     * @param fileName_ the name of the file to generate (.yaml will be added), if the file exists its content gets truncated
+     * @return true if successful, false otherwise (e.g. when no estimate is available)
+     */
+    virtual bool hecToYaml( std::string fileName_ );
+    
     /** loads hand and eye poses from a file, saved using the printToFile method: both must be saved like a OpenCV Mat matrix with size 7xNumberOfPoses, where indices 0...3 represent the rotation quaternion and 4..6 the translation vector and the number of poses must be equal for both. The name of the hand poses must be "handPoses", the one of the eye poses "eyePoses". Returns true if succesful.
      * 
      * If destroyOldData_ is set to true, any previous hand-eye correspondences are dropped. If it is false, the correspondences loaded from file are added to the ones already stored.
