@@ -3,27 +3,27 @@ joints:
   - arm_joint_3
   - arm_joint_2
   - arm_joint_1
-  #- arm_joint_5
+  #- arm_joint_5 # dont do iteration in that joint
 joint_space:
-  arm_joint_1: {lower_limit: 0.011, upper_limit: 5.840, step_size: 0.05}
-  arm_joint_2: {lower_limit: 0.011, upper_limit: 2.617, step_size: 0.1}
-  arm_joint_3: {lower_limit: -5.026, upper_limit: -0.016, step_size: 0.1}
-  arm_joint_4: {lower_limit: 0.023, upper_limit: 3.429, step_size: 0.05}
-  arm_joint_5: {lower_limit: 0.111, upper_limit: 5.641, step_size: 0.1}
+  arm_joint_1: {lower_limit: 0.011, upper_limit: 5.840, step_size: 0.2}
+  arm_joint_2: {lower_limit: 0.011, upper_limit: 2.617, step_size: 0.3}
+  arm_joint_3: {lower_limit: -5.026, upper_limit: -0.016, step_size: 0.2}
+  arm_joint_4: {lower_limit: 0.023, upper_limit: 3.429, step_size: 0.2}
+  arm_joint_5: {lower_limit: 0.111, upper_limit: 5.641, step_size: 0.2}
 moveit_group_name: arm
 estimation_type: dual_quaternion # not used yet
 robot_base_frame: arm_link_0
 hand_frame: arm_link_5
 hec_estimate:
   translation:
-    x:0
-    y:0.04
-    z:0
+    x: -0.00220635
+    y: 0.0401817
+    z: 0.00292597
   rotation:
-    x:0
-    y:0
-    z:0.707
-    w:0.707
+    x: 0.499489
+    y: 0.500095
+    z: -0.500198
+    w: -0.500218
 trusting_threshold: 4 # nr of measurements until hec estimate might be used (if hec_estimate isn't set)
 
 image_border_tolerance: 20

@@ -57,7 +57,14 @@ int main(int argc, char **argv)
 		break;
       case 'd': estimator.deleteLastAddedPosePair(); break;
       case 'c': estimator.clearAll(); break;
-      case 'q': return 0;
+      case 'q': {
+		  char confirmation;
+		  cout<<endl<<"Are you sure you want to quit the program? (Y/n)"<<endl;
+		  cin >> confirmation;
+		  if( confirmation=='Y' )
+		    return 0;
+		  break;
+		}
       case 'l': {
 		cout<<endl<<"Do you want to delete all previous data? (Y/n), Or type 'q' to go back to the main routine."<<endl;
 		char delete_data_input;

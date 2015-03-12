@@ -34,7 +34,7 @@ int main(int argc, char **argv)
   
   
   ros::Rate rate(0.2);
-  while ( calibrator.runSingleIteration() && n.ok() )
+  while ( calibrator.runSingleIteration() && n.ok() ) // no stop criteria defined yet, it's iterating the whole joint space as defined... gonna take a while :)
   {
     cout<<endl<<"Number of added pose pairs: "<<calibrator.count();
     if( calibrator.estimateAvailable() )
@@ -58,6 +58,32 @@ int main(int argc, char **argv)
     //rate.sleep();
     //calibrator.printToFile("/home/stewss/Documents/simulation_data.txt");
   }
+  
+  program_end: // yes a loop would be prettier but that jump really doesn't hurt anyone here, does it?
+  
+  cout<<endl<<"The method has finally finished. Would you like to save the result? (y/n)"<<endl;
+  char in;
+  cin>>in;
+  if( in=='n' )
+  {
+    cout<<endl<<"Are you sure you want to leave without saving? (y/n)";
+    char in2;
+    cin>>in2;
+    if(in2=='y')
+      return 0;
+  }
+  cout<<endl<<"In what file do you want to save the data? (full path)";
+  std::string path;
+  cin>>path;
+  if( calibrator.printToFile(path) )
+  {
+    cout<<endl<<"Successfully saved data to "<<path<<endl;
+    return 0;
+  }
+  cout<<endl<<"Really sorry but something went wrong."<<endl;
+  
+  goto program_end;
+  
   
   return 0;
 } 

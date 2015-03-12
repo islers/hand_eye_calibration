@@ -804,11 +804,11 @@ bool TransformationEstimator::hecToYaml( std::string fileName_ )
   std::ofstream out(fileName_+".yaml",std::ofstream::trunc);
   out<<"hec:\n";
   out<<"  "<<"arm2image: #transform from arm frame to image frame\n";
-  out<<"  "<<"  "<<"translation:";
+  out<<"  "<<"  "<<"translation:\n";
   out<<"  "<<"  "<<"  "<<"x: "<<translation.x()<<"\n";
   out<<"  "<<"  "<<"  "<<"y: "<<translation.y()<<"\n";
   out<<"  "<<"  "<<"  "<<"z: "<<translation.z()<<"\n";
-  out<<"  "<<"  "<<"rotation:";
+  out<<"  "<<"  "<<"rotation:\n";
   out<<"  "<<"  "<<"  "<<"x: "<<rotation.x()<<"\n";
   out<<"  "<<"  "<<"  "<<"y: "<<rotation.y()<<"\n";
   out<<"  "<<"  "<<"  "<<"z: "<<rotation.z()<<"\n";

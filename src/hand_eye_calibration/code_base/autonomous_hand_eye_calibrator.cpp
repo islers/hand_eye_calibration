@@ -522,7 +522,7 @@ void AutonomousHandEyeCalibrator::getCameraFrameCoordinates( robot_state::RobotS
     //ROS_INFO("No camera calibration info available. Going on with blind iteration.");
     return;
   }
-  if( !estimators_.front()->estimationPossible() )
+  if( !estimators_.front()->estimationPossible() && !manual_hec_estimate_ )
   {
     //ROS_INFO("No hand-eye estimate available yet. Going on with blind iteration.");
     return;
@@ -630,8 +630,15 @@ bool AutonomousHandEyeCalibrator::planAndMove()
   
   for( unsigned int i = 0; i < joint_names.size() ; i++ )
   {
-    std::cout<<std::endl<<joint_names[i]<<": "<<target_robot_state.getVariablePosition(joint_names[i]);
-    target_state_position.push_back( target_robot_state.getVariablePosition(joint_names[i]) );
+    try
+    { // in case joints show up that are not known to the model operated on
+      std::cout<<std::endl<<joint_names[i]<<": "<<target_robot_state.getVariablePosition(joint_names[i]);
+      target_state_position.push_back( target_robot_state.getVariablePosition(joint_names[i]) );
+    }
+    catch(...)
+    {
+	ROS_INFO("Don't bother the MoveIt! error you got, it is not important.");
+    }
   }
   std::cout<<std::endl<<std::endl;
   
@@ -676,7 +683,16 @@ bool AutonomousHandEyeCalibrator::planAndMove()
     finished = true;
     for( unsigned int i = 0; i < joint_names.size(); i++ )
     {
-      finished = finished && ( abs( current_robot_state.getVariablePosition(joint_names[i]) - target_state_position[i] ) <= joint_tolerance ) && ( abs( current_robot_state.getVariableVelocity(joint_names[i]) ) <= velocity_tolerance );
+      bool backupfinish = finished;
+      try // for some reason on the lab machine unactuated joints show up and an error about unknown joints to the 'youbot' model is thrown. Since this code isn't too important this provides a quick fix
+      {
+	finished = finished && ( abs( current_robot_state.getVariablePosition(joint_names[i]) - target_state_position[i] ) <= joint_tolerance ) && ( abs( current_robot_state.getVariableVelocity(joint_names[i]) ) <= velocity_tolerance );
+      }
+      catch(...)
+      {
+	ROS_INFO("Don't bother the MoveIt! error you got, it is not important.");
+	finished = backupfinish;
+      }
     }
     
     if( ros::Time::now() > (start_time+max_wait_time) )

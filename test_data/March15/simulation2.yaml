@@ -1,0 +1,11 @@
+hec:
+  arm2image: #transform from arm frame to image frame
+    translation:
+      x: -0.00161314
+      y: 0.0383049
+      z: 0.00239681
+    rotation:
+      x: 0.49929
+      y: 0.50079
+      z: -0.50024
+      w: -0.499678
